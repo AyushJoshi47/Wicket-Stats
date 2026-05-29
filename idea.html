@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CricPredict AI — IPL Intelligence Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow+Condensed:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --saffron:#FF6B00;
+  --orange:#FF9500;
+  --yellow:#FFD600;
+  --blue:#0052CC;
+  --electric:#00D4FF;
+  --green:#00C853;
+  --white:#FFFFFF;
+  --offwhite:#FFF8F0;
+  --ink:#0A0A0F;
+  --card-bg:#FFFFFF;
+  --surface:#F4F0FF;
+  --border:rgba(255,107,0,0.15);
+  --shadow-orange:0 20px 60px rgba(255,107,0,0.25);
+  --shadow-blue:0 20px 60px rgba(0,82,204,0.2);
+}
+
+html{scroll-behavior:smooth;}
+body{background:var(--offwhite);color:var(--ink);font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:400;overflow-x:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+#cur{width:14px;height:14px;background:var(--saffron);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .3s,height .3s,background .3s;mix-blend-mode:multiply;}
+#cur-ring{width:44px;height:44px;border:2px solid var(--saffron);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .14s ease-out,width .3s,height .3s,border-color .3s;}
+
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;background:var(--ink);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4rem;transition:opacity .7s,visibility .7s;}
+#loader.out{opacity:0;visibility:hidden;}
+
+.ldr-logo-wrap{display:flex;align-items:center;gap:1rem;}
+.ldr-cricket-icon{width:64px;height:64px;position:relative;animation:spinBall 2s linear infinite;}
+.ldr-cricket-icon svg{width:100%;height:100%;}
+@keyframes spinBall{to{transform:rotate(360deg);}}
+
+.ldr-brand{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:3.8rem;letter-spacing:0.06em;color:var(--white);line-height:1;animation:fadeInUp .8s ease forwards;opacity:0;}
+.ldr-brand span{color:var(--saffron);}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+.ldr-teams-strip{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center;max-width:640px;opacity:0;animation:fadeInUp .8s ease .4s forwards;}
+.ldr-team-pill{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.75rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:0.35rem 1rem;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);border-radius:100px;}
+
+.ldr-progress-wrap{width:320px;opacity:0;animation:fadeInUp .8s ease .6s forwards;}
+.ldr-progress-label{display:flex;justify-content:space-between;margin-bottom:0.5rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);}
+.ldr-bar-bg{height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;}
+.ldr-bar-fill{height:100%;background:linear-gradient(90deg,var(--saffron),var(--yellow));border-radius:2px;width:0%;transition:width .1s linear;}
+
+.ldr-pct{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:5rem;color:rgba(255,255,255,0.06);position:absolute;pointer-events:none;}
+
+/* ── CONFETTI PARTICLES ── */
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.particle{position:absolute;border-radius:2px;animation:particleFall var(--d,8s) ease-in-out infinite var(--delay,0s);}
+@keyframes particleFall{
+  0%{transform:translateY(-20px) rotate(0deg);opacity:0;}
+  10%{opacity:1;}
+  90%{opacity:0.4;}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0;}
+}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1.2rem 3rem;display:flex;align-items:center;justify-content:space-between;background:rgba(255,248,240,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);animation:slideNavDown 1s ease 2.8s backwards;}
+@keyframes slideNavDown{from{transform:translateY(-60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+.nav-brand{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--ink);text-decoration:none;}
+.nav-brand span{color:var(--saffron);}
+
+.nav-links{display:flex;gap:2.4rem;list-style:none;}
+.nav-links a{text-decoration:none;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:600;font-size:0.82rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(10,10,15,0.55);transition:color .3s;position:relative;}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--saffron);transition:width .3s;}
+.nav-links a:hover{color:var(--saffron);}
+.nav-links a:hover::after{width:100%;}
+
+.nav-btn{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;background:var(--saffron);color:var(--white);border:none;padding:0.7rem 1.8rem;border-radius:4px;cursor:pointer;transition:background .3s,transform .2s;text-decoration:none;display:inline-block;}
+.nav-btn:hover{background:var(--orange);transform:translateY(-2px);}
+
+/* ── TICKER STRIP ── */
+.ticker-outer{background:linear-gradient(135deg,var(--saffron),var(--orange));padding:0.5rem 0;overflow:hidden;position:relative;z-index:2;margin-top:72px;}
+.ticker-track{display:flex;gap:0;white-space:nowrap;animation:tickerRoll 35s linear infinite;}
+.ticker-track:hover{animation-play-state:paused;}
+.ticker-item{display:inline-flex;align-items:center;gap:0.8rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--white);padding:0 2.5rem;}
+.ticker-sep{width:6px;height:6px;background:rgba(255,255,255,0.4);border-radius:50%;flex-shrink:0;}
+@keyframes tickerRoll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ── HERO ── */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:var(--offwhite);padding:0 2rem;}
+
+.hero-bg-shape{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;}
+.hbs-1{width:700px;height:700px;background:radial-gradient(circle,rgba(255,107,0,0.12),transparent 70%);top:-200px;right:-100px;animation:driftA 10s ease-in-out infinite;}
+.hbs-2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,255,0.1),transparent 70%);bottom:-100px;left:-50px;animation:driftB 13s ease-in-out infinite;}
+.hbs-3{width:400px;height:400px;background:radial-gradient(circle,rgba(255,214,0,0.12),transparent 70%);top:30%;left:50%;transform:translateX(-50%);animation:driftA 8s ease-in-out infinite 2s;}
+@keyframes driftA{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(30px,-30px) scale(1.05);}}
+@keyframes driftB{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(-20px,25px) scale(1.04);}}
+
+.hero-badge{display:inline-flex;align-items:center;gap:0.5rem;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.25);border-radius:100px;padding:0.4rem 1.2rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--saffron);margin-bottom:1.8rem;opacity:0;animation:fadeInUp 1s ease 3s forwards;}
+.hero-badge .dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:livePulse 1.5s ease-in-out infinite;}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(0,200,83,0.6);}50%{box-shadow:0 0 0 6px rgba(0,200,83,0);}}
+
+.hero-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:clamp(4.5rem,11vw,10rem);line-height:0.88;letter-spacing:0.03em;text-align:center;margin-bottom:1.5rem;opacity:0;animation:fadeInUp 1.1s ease 3.2s forwards;position:relative;z-index:1;}
+.hero-title .line2{color:var(--saffron);display:block;-webkit-text-stroke:2px var(--saffron);}
+.hero-title .line3{font-size:clamp(2rem,5vw,4.5rem);font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:900;font-style:italic;color:rgba(10,10,15,0.25);letter-spacing:0.08em;display:block;margin-top:0.3rem;}
+
+.hero-sub{font-size:1rem;font-weight:500;color:rgba(10,10,15,0.55);letter-spacing:0.04em;max-width:520px;text-align:center;line-height:1.8;margin-bottom:3rem;opacity:0;animation:fadeInUp 1s ease 3.5s forwards;position:relative;z-index:1;}
+.hero-sub strong{color:var(--saffron);}
+
+.hero-actions{display:flex;gap:1.2rem;align-items:center;opacity:0;animation:fadeInUp 1s ease 3.7s forwards;position:relative;z-index:1;}
+.btn-orange{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.85rem;letter-spacing:0.18em;text-transform:uppercase;background:var(--saffron);color:var(--white);border:none;padding:1.05rem 2.8rem;border-radius:4px;cursor:pointer;transition:all .3s;text-decoration:none;display:inline-block;position:relative;overflow:hidden;}
+.btn-orange::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);transform:translateX(-100%);transition:transform .5s;}
+.btn-orange:hover{background:var(--orange);transform:translateY(-3px);box-shadow:0 14px 40px rgba(255,107,0,0.4);}
+.btn-orange:hover::before{transform:translateX(200%);}
+
+.btn-outline-blue{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.85rem;letter-spacing:0.18em;text-transform:uppercase;background:transparent;color:var(--blue);border:2px solid var(--blue);padding:1rem 2.5rem;border-radius:4px;cursor:pointer;transition:all .3s;text-decoration:none;display:inline-block;}
+.btn-outline-blue:hover{background:var(--blue);color:var(--white);transform:translateY(-3px);}
+
+/* ── TEAM SCROLLER ── */
+#team-scroller{position:relative;z-index:2;background:var(--white);padding:4.5rem 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.scroller-label{text-align:center;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(10,10,15,0.35);margin-bottom:2.5rem;}
+
+.scroller-row{display:flex;gap:1.2rem;margin-bottom:1.2rem;}
+.scroller-row:last-child{margin-bottom:0;}
+.scroll-fwd{animation:scrollFwd 30s linear infinite;}
+.scroll-rev{animation:scrollRev 28s linear infinite;}
+.scroll-fwd:hover,.scroll-rev:hover{animation-play-state:paused;}
+@keyframes scrollFwd{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes scrollRev{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+
+.team-pill{display:inline-flex;align-items:center;gap:0.8rem;padding:0.7rem 1.6rem;border-radius:100px;border:1.5px solid;white-space:nowrap;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;cursor:none;transition:transform .3s,box-shadow .3s;flex-shrink:0;}
+.team-pill:hover{transform:scale(1.06);}
+.team-pill .tp-dot{width:10px;height:10px;border-radius:50%;}
+
+.tp-mi{border-color:#004B8D;color:#004B8D;background:rgba(0,75,141,0.06);}
+.tp-mi .tp-dot{background:#004B8D;}
+.tp-mi:hover{box-shadow:0 8px 24px rgba(0,75,141,0.25);}
+
+.tp-csk{border-color:#F7C800;color:#2C2C2C;background:rgba(247,200,0,0.08);}
+.tp-csk .tp-dot{background:#F7C800;}
+.tp-csk:hover{box-shadow:0 8px 24px rgba(247,200,0,0.35);}
+
+.tp-rcb{border-color:#D4001A;color:#D4001A;background:rgba(212,0,26,0.06);}
+.tp-rcb .tp-dot{background:#D4001A;}
+.tp-rcb:hover{box-shadow:0 8px 24px rgba(212,0,26,0.25);}
+
+.tp-kkr{border-color:#3A225D;color:#3A225D;background:rgba(58,34,93,0.06);}
+.tp-kkr .tp-dot{background:#3A225D;}
+
+.tp-dc{border-color:#00529B;color:#00529B;background:rgba(0,82,155,0.06);}
+.tp-dc .tp-dot{background:#00529B;}
+
+.tp-srh{border-color:#F7602B;color:#F7602B;background:rgba(247,96,43,0.06);}
+.tp-srh .tp-dot{background:#F7602B;}
+
+.tp-pk{border-color:#D71921;color:#D71921;background:rgba(215,25,33,0.06);}
+.tp-pk .tp-dot{background:#D71921;}
+
+.tp-rr{border-color:#254AA5;color:#254AA5;background:rgba(37,74,165,0.06);}
+.tp-rr .tp-dot{background:#254AA5;}
+
+.tp-gt{border-color:#1C1C5B;color:#1C1C5B;background:rgba(28,28,91,0.06);}
+.tp-gt .tp-dot{background:#1C1C5B;}
+
+.tp-lsg{border-color:#A4C8FF;color:#004C97;background:rgba(164,200,255,0.12);}
+.tp-lsg .tp-dot{background:#004C97;}
+
+/* ── FEATURES CARDS ── */
+#features{position:relative;z-index:2;padding:7rem 4rem;background:var(--offwhite);}
+.section-eyebrow{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.35em;text-transform:uppercase;color:var(--saffron);margin-bottom:1rem;display:flex;align-items:center;gap:0.8rem;}
+.section-eyebrow::before{content:'';width:32px;height:3px;background:var(--saffron);border-radius:2px;display:inline-block;}
+.section-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:clamp(2.8rem,5vw,4.8rem);line-height:0.95;letter-spacing:0.03em;margin-bottom:4rem;}
+.section-title span{color:var(--saffron);}
+
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+.feat-card{background:var(--white);border-radius:16px;padding:2.5rem;border:1.5px solid rgba(10,10,15,0.06);position:relative;overflow:hidden;transition:transform .4s,box-shadow .4s;cursor:none;}
+.feat-card::before{content:'';position:absolute;inset:0;border-radius:16px;opacity:0;transition:opacity .4s;}
+.feat-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-orange);}
+.feat-card.blue:hover{box-shadow:var(--shadow-blue);}
+.feat-card:hover::before{opacity:1;}
+.feat-card.orange::before{background:linear-gradient(135deg,rgba(255,107,0,0.04),transparent);}
+.feat-card.blue::before{background:linear-gradient(135deg,rgba(0,82,204,0.04),transparent);}
+.feat-card.yellow::before{background:linear-gradient(135deg,rgba(255,214,0,0.06),transparent);}
+.feat-card.green::before{background:linear-gradient(135deg,rgba(0,200,83,0.04),transparent);}
+
+.feat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1.5rem;}
+.feat-icon.orange{background:rgba(255,107,0,0.12);}
+.feat-icon.blue{background:rgba(0,82,204,0.1);}
+.feat-icon.yellow{background:rgba(255,214,0,0.15);}
+.feat-icon.green{background:rgba(0,200,83,0.1);}
+.feat-icon.purple{background:rgba(120,80,255,0.1);}
+.feat-icon.red{background:rgba(220,38,38,0.1);}
+
+.feat-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:800;font-size:1.3rem;letter-spacing:0.03em;text-transform:uppercase;margin-bottom:0.7rem;}
+.feat-desc{font-size:0.88rem;color:rgba(10,10,15,0.55);line-height:1.75;}
+.feat-tag{display:inline-block;margin-top:1.2rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;padding:0.3rem 0.9rem;border-radius:100px;}
+.feat-tag.orange{background:rgba(255,107,0,0.1);color:var(--saffron);}
+.feat-tag.blue{background:rgba(0,82,204,0.1);color:var(--blue);}
+.feat-tag.yellow{background:rgba(255,214,0,0.15);color:#8B6800;}
+.feat-tag.green{background:rgba(0,200,83,0.1);color:#006E2E;}
+.feat-tag.purple{background:rgba(120,80,255,0.1);color:#5020CC;}
+.feat-tag.red{background:rgba(220,38,38,0.1);color:#B91C1C;}
+
+/* ── MATCHUP PREVIEW ── */
+#matchup{position:relative;z-index:2;padding:7rem 4rem;background:var(--white);overflow:hidden;}
+.matchup-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,107,0,0.04) 0%,rgba(255,255,255,0) 50%,rgba(0,82,204,0.04) 100%);pointer-events:none;}
+
+.vs-arena{display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;max-width:900px;margin:0 auto;}
+.team-side{text-align:center;}
+.team-big-name{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:3rem;letter-spacing:0.05em;line-height:1;margin-bottom:0.4rem;}
+.team-abbr{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(10,10,15,0.4);margin-bottom:1.5rem;}
+.team-crest{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:2rem;letter-spacing:0.05em;color:var(--white);position:relative;animation:crestFloat 4s ease-in-out infinite;}
+.tc-a{background:linear-gradient(135deg,#004B8D,#0066CC);box-shadow:0 12px 40px rgba(0,75,141,0.35);}
+.tc-b{background:linear-gradient(135deg,#D4001A,#FF2244);box-shadow:0 12px 40px rgba(212,0,26,0.35);}
+@keyframes crestFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+
+.team-stat-row{display:flex;justify-content:center;gap:1.5rem;}
+.ts-chip{text-align:center;}
+.ts-num{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.6rem;line-height:1;}
+.ts-lbl{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.62rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(10,10,15,0.4);}
+
+.vs-center{display:flex;flex-direction:column;align-items:center;gap:1rem;}
+.vs-badge{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:3.5rem;color:var(--saffron);letter-spacing:0.02em;text-shadow:0 4px 20px rgba(255,107,0,0.3);}
+.predict-btn-big{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:800;font-size:0.82rem;letter-spacing:0.2em;text-transform:uppercase;background:linear-gradient(135deg,var(--saffron),var(--orange));color:var(--white);border:none;padding:1rem 2rem;border-radius:8px;cursor:pointer;transition:all .3s;box-shadow:0 8px 30px rgba(255,107,0,0.35);}
+.predict-btn-big:hover{transform:scale(1.05);box-shadow:0 14px 50px rgba(255,107,0,0.5);}
+
+.win-prob-bar{margin-top:3rem;background:rgba(10,10,15,0.05);border-radius:100px;height:8px;overflow:hidden;position:relative;}
+.wpb-fill-a{position:absolute;left:0;top:0;height:100%;width:58%;background:linear-gradient(90deg,#004B8D,#0066CC);border-radius:100px;animation:barSlide 1.5s ease 4s backwards;}
+.wpb-fill-b{position:absolute;right:0;top:0;height:100%;width:38%;background:linear-gradient(90deg,#FF2244,#D4001A);border-radius:100px;animation:barSlide 1.5s ease 4.1s backwards;}
+@keyframes barSlide{from{width:0;}to{}}
+.wpb-labels{display:flex;justify-content:space-between;margin-top:0.6rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(10,10,15,0.45);}
+
+/* ── STATS COUNTER ── */
+#stats-section{position:relative;z-index:2;padding:6rem 4rem;background:linear-gradient(135deg,var(--ink) 0%,#1a1a2e 100%);}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+.stat-block{padding:3.5rem 2.5rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden;transition:background .4s;}
+.stat-block::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--saffron),var(--yellow));transform:scaleX(0);transition:transform .5s;transform-origin:left;}
+.stat-block:hover{background:rgba(255,255,255,0.06);}
+.stat-block:hover::after{transform:scaleX(1);}
+.stat-num{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:4rem;line-height:1;color:var(--white);}
+.stat-num span{color:var(--saffron);}
+.stat-label{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:600;font-size:0.72rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:0.4rem;}
+.stat-desc{font-size:0.8rem;color:rgba(255,255,255,0.25);margin-top:0.8rem;line-height:1.6;}
+
+/* ── PLAYER INDEX ── */
+#players{position:relative;z-index:2;padding:7rem 4rem;background:var(--offwhite);}
+.players-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-top:3rem;}
+.player-card{background:var(--white);border-radius:14px;overflow:hidden;border:1.5px solid rgba(10,10,15,0.06);transition:transform .4s,box-shadow .4s;cursor:none;}
+.player-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(10,10,15,0.1);}
+.pc-header{padding:1.5rem 1.5rem 1rem;background:linear-gradient(135deg,#f8f8f8,#fff);display:flex;align-items:center;gap:1rem;}
+.pc-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.3rem;color:var(--white);flex-shrink:0;}
+.av-1{background:linear-gradient(135deg,#004B8D,#0066CC);}
+.av-2{background:linear-gradient(135deg,#D4001A,#FF2244);}
+.av-3{background:linear-gradient(135deg,#F7C800,#FFAB00);}
+.av-4{background:linear-gradient(135deg,#3A225D,#6B3FA0);}
+.av-5{background:linear-gradient(135deg,var(--saffron),var(--orange));}
+.av-6{background:linear-gradient(135deg,#00897B,#00C4B4);}
+.av-7{background:linear-gradient(135deg,#D71921,#FF4444);}
+.av-8{background:linear-gradient(135deg,#254AA5,#4A7FFF);}
+
+.pc-name{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:800;font-size:1rem;letter-spacing:0.04em;text-transform:uppercase;line-height:1.2;}
+.pc-team{font-size:0.72rem;color:rgba(10,10,15,0.4);font-weight:500;margin-top:0.15rem;}
+.pc-stats{padding:1rem 1.5rem 1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;}
+.pc-stat{text-align:center;padding:0.5rem;background:rgba(10,10,15,0.03);border-radius:8px;}
+.pc-stat-val{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.4rem;line-height:1;color:var(--ink);}
+.pc-stat-lbl{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(10,10,15,0.35);}
+.pc-index-bar{margin:0.8rem 1.5rem 1.2rem;height:4px;background:rgba(10,10,15,0.06);border-radius:2px;overflow:hidden;}
+.pc-index-fill{height:100%;border-radius:2px;transition:width 1.5s cubic-bezier(0.25,0.46,0.45,0.94);}
+.pc-index-fill.orange{background:linear-gradient(90deg,var(--saffron),var(--yellow));}
+.pc-index-fill.blue{background:linear-gradient(90deg,var(--blue),var(--electric));}
+.pc-index-fill.gold{background:linear-gradient(90deg,#F7C800,#FFAB00);}
+.pc-index-fill.purple{background:linear-gradient(90deg,#6B3FA0,#9C6FD6);}
+.pc-index-fill.red{background:linear-gradient(90deg,#D4001A,#FF4444);}
+.pc-index-fill.teal{background:linear-gradient(90deg,#00897B,#00C4B4);}
+.pc-index-fill.crimson{background:linear-gradient(90deg,#D71921,#FF6B6B);}
+.pc-index-fill.navy{background:linear-gradient(90deg,#254AA5,#4A7FFF);}
+.pc-role{display:inline-block;margin:0 1.5rem 1.2rem;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;padding:0.25rem 0.7rem;border-radius:100px;background:rgba(255,107,0,0.08);color:var(--saffron);}
+
+/* ── AI ASSISTANT PREVIEW ── */
+#ai-section{position:relative;z-index:2;padding:7rem 4rem;background:var(--white);overflow:hidden;}
+.ai-layout{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
+.ai-chat-preview{background:var(--ink);border-radius:20px;padding:1.8rem;box-shadow:0 30px 80px rgba(10,10,15,0.2);transform:perspective(1000px) rotateY(-6deg) rotateX(3deg);transition:transform .5s;}
+.ai-chat-preview:hover{transform:perspective(1000px) rotateY(0deg) rotateX(0deg);}
+.acp-header{display:flex;align-items:center;gap:0.8rem;padding-bottom:1.2rem;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1.2rem;}
+.acp-dot{width:10px;height:10px;border-radius:50%;background:var(--green);animation:livePulse 2s ease-in-out infinite;}
+.acp-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.8rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.7);}
+.chat-bubble{padding:0.8rem 1.1rem;border-radius:12px;font-size:0.83rem;line-height:1.65;margin-bottom:0.8rem;position:relative;}
+.cb-user{background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.2);color:rgba(255,255,255,0.85);border-radius:12px 12px 2px 12px;margin-left:2rem;font-weight:500;}
+.cb-ai{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);border-radius:12px 12px 12px 2px;margin-right:2rem;}
+.cb-ai strong{color:var(--saffron);}
+.typing-dots{display:inline-flex;gap:4px;align-items:center;padding:0.8rem 1.1rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px 12px 12px 2px;margin-right:2rem;}
+.td{width:7px;height:7px;background:rgba(255,255,255,0.4);border-radius:50%;animation:typingDot 1.2s ease-in-out infinite;}
+.td:nth-child(2){animation-delay:.2s;}
+.td:nth-child(3){animation-delay:.4s;}
+@keyframes typingDot{0%,100%{transform:translateY(0);opacity:.4;}50%{transform:translateY(-4px);opacity:1;}}
+
+.ai-text-side .section-title{margin-bottom:1.2rem;}
+.ai-text-side p{font-size:0.95rem;color:rgba(10,10,15,0.55);line-height:1.8;margin-bottom:2rem;}
+.ai-capabilities{display:flex;flex-direction:column;gap:0.8rem;}
+.ai-cap{display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.2rem;background:var(--offwhite);border-radius:10px;border:1px solid var(--border);transition:border-color .3s,background .3s;}
+.ai-cap:hover{border-color:rgba(255,107,0,0.3);background:rgba(255,107,0,0.03);}
+.ai-cap-icon{font-size:1.3rem;flex-shrink:0;margin-top:.1rem;}
+.ai-cap-text strong{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.9rem;letter-spacing:0.04em;text-transform:uppercase;display:block;margin-bottom:0.2rem;}
+.ai-cap-text span{font-size:0.8rem;color:rgba(10,10,15,0.5);}
+
+/* ── TOP SCORERS ── */
+#top-scores{position:relative;z-index:2;padding:7rem 4rem;background:var(--offwhite);}
+.scores-grid{display:grid;grid-template-columns:2fr 1fr;gap:2rem;margin-top:3rem;}
+.leaderboard{background:var(--white);border-radius:16px;overflow:hidden;border:1.5px solid rgba(10,10,15,0.06);}
+.lb-head{background:linear-gradient(135deg,var(--saffron),var(--orange));padding:1.2rem 1.8rem;display:flex;justify-content:space-between;align-items:center;}
+.lb-head-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:800;font-size:1rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--white);}
+.lb-head-sub{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.7rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);}
+.lb-row{display:flex;align-items:center;gap:1rem;padding:1rem 1.8rem;border-bottom:1px solid rgba(10,10,15,0.04);transition:background .2s;}
+.lb-row:hover{background:rgba(255,107,0,0.03);}
+.lb-rank{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.6rem;line-height:1;color:rgba(10,10,15,0.15);width:28px;text-align:center;flex-shrink:0;}
+.lb-rank.gold{color:#F7C800;}
+.lb-rank.silver{color:#C0C0C0;}
+.lb-rank.bronze{color:#CD7F32;}
+.lb-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1rem;color:var(--white);flex-shrink:0;}
+.lb-player-name{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.95rem;letter-spacing:0.03em;text-transform:uppercase;flex:1;}
+.lb-team-badge{font-size:0.65rem;font-weight:600;color:rgba(10,10,15,0.35);display:block;letter-spacing:.08em;}
+.lb-score{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:1.8rem;line-height:1;}
+.lb-score span{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.65rem;font-weight:600;color:rgba(10,10,15,0.35);letter-spacing:.1em;vertical-align:middle;margin-left:2px;}
+
+.scores-side{display:flex;flex-direction:column;gap:1.5rem;}
+.mini-stat-card{background:var(--white);border-radius:14px;padding:1.8rem;border:1.5px solid rgba(10,10,15,0.06);transition:transform .3s,box-shadow .3s;}
+.mini-stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-orange);}
+.msc-label{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(10,10,15,0.4);margin-bottom:0.5rem;}
+.msc-value{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:2.8rem;line-height:1;color:var(--ink);}
+.msc-value span{color:var(--saffron);}
+.msc-sub{font-size:0.8rem;color:rgba(10,10,15,0.4);margin-top:0.4rem;}
+
+/* ── CTA ── */
+#cta{position:relative;z-index:2;padding:9rem 4rem;overflow:hidden;background:linear-gradient(135deg,var(--ink) 0%,#1a1a2e 50%,#0d1a3a 100%);}
+.cta-bg-ball{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;}
+.cba-1{width:500px;height:500px;background:rgba(255,107,0,0.12);top:-100px;right:-100px;}
+.cba-2{width:400px;height:400px;background:rgba(0,212,255,0.08);bottom:-100px;left:-50px;}
+.cta-inner{text-align:center;position:relative;z-index:1;}
+.cta-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:clamp(3.5rem,7vw,7rem);line-height:0.9;letter-spacing:0.03em;color:var(--white);margin-bottom:1.5rem;}
+.cta-title span{color:var(--saffron);}
+.cta-sub{font-size:1rem;color:rgba(255,255,255,0.45);letter-spacing:0.06em;margin-bottom:3.5rem;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.8;}
+.cta-form{display:flex;max-width:460px;margin:0 auto;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;}
+.cta-input{flex:1;background:transparent;border:none;color:var(--white);font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:0.9rem;padding:1.1rem 1.5rem;outline:none;}
+.cta-input::placeholder{color:rgba(255,255,255,0.3);}
+.cta-submit{background:var(--saffron);border:none;color:var(--white);font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.78rem;letter-spacing:0.18em;text-transform:uppercase;padding:0 2rem;cursor:pointer;transition:background .3s;}
+.cta-submit:hover{background:var(--orange);}
+
+/* ── FOOTER ── */
+footer{position:relative;z-index:2;background:var(--ink);padding:5rem 4rem 3rem;border-top:1px solid rgba(255,255,255,0.04);}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4rem;margin-bottom:4rem;}
+.footer-brand-name{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:2.2rem;letter-spacing:0.05em;color:var(--white);margin-bottom:0.8rem;}
+.footer-brand-name span{color:var(--saffron);}
+.footer-tagline{font-size:0.85rem;color:rgba(255,255,255,0.3);line-height:1.8;max-width:250px;}
+.footer-col-title{font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.7rem;letter-spacing:0.28em;text-transform:uppercase;color:var(--saffron);margin-bottom:1.4rem;}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.7rem;}
+.footer-links a{text-decoration:none;font-size:0.83rem;color:rgba(255,255,255,0.3);transition:color .3s;letter-spacing:0.04em;}
+.footer-links a:hover{color:var(--white);}
+.footer-bottom{border-top:1px solid rgba(255,255,255,0.05);padding-top:2rem;display:flex;justify-content:space-between;align-items:center;}
+.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2);letter-spacing:0.08em;}
+.footer-socials{display:flex;gap:1rem;}
+.soc-link{width:36px;height:36px;border:1px solid rgba(255,255,255,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:700;font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:none;transition:all .3s;}
+.soc-link:hover{border-color:var(--saffron);color:var(--saffron);}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .9s ease,transform .9s ease;}
+.reveal.in{opacity:1;transform:translateY(0);}
+.rd1{transition-delay:.12s;}
+.rd2{transition-delay:.24s;}
+.rd3{transition-delay:.36s;}
+.rd4{transition-delay:.48s;}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+<div id="particles"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div style="position:absolute;font-family: "Instrument Serif", ui-serif, Georgia, serif;font-size:18vw;color:rgba(255,255,255,0.02);pointer-events:none;letter-spacing:0.05em;">IPL</div>
+  <div class="ldr-logo-wrap">
+    <div class="ldr-cricket-icon">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="32" r="30" stroke="#FF6B00" stroke-width="2.5"/>
+        <path d="M32 8 C20 20, 20 44, 32 56" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
+        <path d="M32 8 C44 20, 44 44, 32 56" stroke="#FF6B00" stroke-width="2" stroke-linecap="round"/>
+        <line x1="14" y1="24" x2="50" y2="24" stroke="rgba(255,107,0,0.4)" stroke-width="1.5"/>
+        <line x1="10" y1="32" x2="54" y2="32" stroke="rgba(255,107,0,0.4)" stroke-width="1.5"/>
+        <line x1="14" y1="40" x2="50" y2="40" stroke="rgba(255,107,0,0.4)" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="ldr-brand">CRIC<span>PREDICT</span></div>
+  </div>
+  <div class="ldr-teams-strip" id="ldrTeams">
+    <div class="ldr-team-pill">MI</div><div class="ldr-team-pill">CSK</div>
+    <div class="ldr-team-pill">RCB</div><div class="ldr-team-pill">KKR</div>
+    <div class="ldr-team-pill">DC</div><div class="ldr-team-pill">SRH</div>
+    <div class="ldr-team-pill">PBKS</div><div class="ldr-team-pill">RR</div>
+    <div class="ldr-team-pill">GT</div><div class="ldr-team-pill">LSG</div>
+  </div>
+  <div class="ldr-progress-wrap">
+    <div class="ldr-progress-label"><span>Loading Match Data</span><span id="ldrNum">0%</span></div>
+    <div class="ldr-bar-bg"><div class="ldr-bar-fill" id="ldrFill"></div></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-brand">CRIC<span>PREDICT</span></a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#matchup">Predict</a></li>
+    <li><a href="#players">Players</a></li>
+    <li><a href="#top-scores">Top Scores</a></li>
+    <li><a href="#ai-section">AI Insights</a></li>
+  </ul>
+  <a href="#" class="nav-btn">Start Predicting</a>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-outer">
+  <div class="ticker-track" id="tickerTrack">
+    <div class="ticker-item">🏏 MI vs CSK <span class="ticker-sep"></span></div>
+    <div class="ticker-item">HEAD-TO-HEAD: 35 MATCHES <span class="ticker-sep"></span></div>
+    <div class="ticker-item">🔥 RCB vs KKR — PREDICTION LIVE <span class="ticker-sep"></span></div>
+    <div class="ticker-item">PLAYER INDEX: VIRAT KOHLI 94.7 <span class="ticker-sep"></span></div>
+    <div class="ticker-item">⚡ 1000+ MATCHES ANALYSED <span class="ticker-sep"></span></div>
+    <div class="ticker-item">TOP SCORER: SHARMA 627 RUNS <span class="ticker-sep"></span></div>
+    <div class="ticker-item">🏆 CSK WIN PROBABILITY: 61.3% <span class="ticker-sep"></span></div>
+    <div class="ticker-item">AI INSIGHTS POWERED BY RAG ENGINE <span class="ticker-sep"></span></div>
+    <div class="ticker-item">🏏 MI vs CSK <span class="ticker-sep"></span></div>
+    <div class="ticker-item">HEAD-TO-HEAD: 35 MATCHES <span class="ticker-sep"></span></div>
+    <div class="ticker-item">🔥 RCB vs KKR — PREDICTION LIVE <span class="ticker-sep"></span></div>
+    <div class="ticker-item">PLAYER INDEX: VIRAT KOHLI 94.7 <span class="ticker-sep"></span></div>
+    <div class="ticker-item">⚡ 1000+ MATCHES ANALYSED <span class="ticker-sep"></span></div>
+    <div class="ticker-item">TOP SCORER: SHARMA 627 RUNS <span class="ticker-sep"></span></div>
+    <div class="ticker-item">🏆 CSK WIN PROBABILITY: 61.3% <span class="ticker-sep"></span></div>
+    <div class="ticker-item">AI INSIGHTS POWERED BY RAG ENGINE <span class="ticker-sep"></span></div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg-shape hbs-1"></div>
+  <div class="hero-bg-shape hbs-2"></div>
+  <div class="hero-bg-shape hbs-3"></div>
+
+  <div class="hero-badge"><span class="dot"></span> Live IPL Intelligence — 2024 Season</div>
+  <h1 class="hero-title">
+    PREDICT<br>
+    <span class="line2">EVERY MATCH</span>
+    <span class="line3">powered by 1000+ matches of data & AI</span>
+  </h1>
+  <p class="hero-sub">
+    Build custom teams, compare <strong>player indexes</strong>, analyse batting & bowling stats, and get <strong>AI-powered insights</strong> — all from 1000+ IPL matches in one engine.
+  </p>
+  <div class="hero-actions">
+    <a href="#matchup" class="btn-orange">🏏 Predict a Match</a>
+    <a href="#players" class="btn-outline-blue">View Player Index</a>
+  </div>
+</section>
+
+<!-- TEAM SCROLLER -->
+<section id="team-scroller">
+  <div class="scroller-label">All 10 IPL Teams — Pick Your Side</div>
+  <div style="overflow:hidden;">
+    <div class="scroller-row scroll-fwd" id="row1">
+      <div class="team-pill tp-mi"><span class="tp-dot"></span>Mumbai Indians</div>
+      <div class="team-pill tp-csk"><span class="tp-dot"></span>Chennai Super Kings</div>
+      <div class="team-pill tp-rcb"><span class="tp-dot"></span>Royal Challengers Bangalore</div>
+      <div class="team-pill tp-kkr"><span class="tp-dot"></span>Kolkata Knight Riders</div>
+      <div class="team-pill tp-dc"><span class="tp-dot"></span>Delhi Capitals</div>
+      <div class="team-pill tp-srh"><span class="tp-dot"></span>Sunrisers Hyderabad</div>
+      <div class="team-pill tp-pk"><span class="tp-dot"></span>Kings XI Punjab</div>
+      <div class="team-pill tp-rr"><span class="tp-dot"></span>Rajasthan Royals</div>
+      <div class="team-pill tp-gt"><span class="tp-dot"></span>Gujarat Titans</div>
+      <div class="team-pill tp-lsg"><span class="tp-dot"></span>Lucknow Super Giants</div>
+      <!-- duplicate for seamless loop -->
+      <div class="team-pill tp-mi"><span class="tp-dot"></span>Mumbai Indians</div>
+      <div class="team-pill tp-csk"><span class="tp-dot"></span>Chennai Super Kings</div>
+      <div class="team-pill tp-rcb"><span class="tp-dot"></span>Royal Challengers Bangalore</div>
+      <div class="team-pill tp-kkr"><span class="tp-dot"></span>Kolkata Knight Riders</div>
+      <div class="team-pill tp-dc"><span class="tp-dot"></span>Delhi Capitals</div>
+      <div class="team-pill tp-srh"><span class="tp-dot"></span>Sunrisers Hyderabad</div>
+      <div class="team-pill tp-pk"><span class="tp-dot"></span>Kings XI Punjab</div>
+      <div class="team-pill tp-rr"><span class="tp-dot"></span>Rajasthan Royals</div>
+      <div class="team-pill tp-gt"><span class="tp-dot"></span>Gujarat Titans</div>
+      <div class="team-pill tp-lsg"><span class="tp-dot"></span>Lucknow Super Giants</div>
+    </div>
+    <div class="scroller-row scroll-rev" id="row2">
+      <div class="team-pill tp-rr"><span class="tp-dot"></span>Rajasthan Royals</div>
+      <div class="team-pill tp-gt"><span class="tp-dot"></span>Gujarat Titans</div>
+      <div class="team-pill tp-srh"><span class="tp-dot"></span>Sunrisers Hyderabad</div>
+      <div class="team-pill tp-mi"><span class="tp-dot"></span>Mumbai Indians</div>
+      <div class="team-pill tp-kkr"><span class="tp-dot"></span>Kolkata Knight Riders</div>
+      <div class="team-pill tp-csk"><span class="tp-dot"></span>Chennai Super Kings</div>
+      <div class="team-pill tp-lsg"><span class="tp-dot"></span>Lucknow Super Giants</div>
+      <div class="team-pill tp-dc"><span class="tp-dot"></span>Delhi Capitals</div>
+      <div class="team-pill tp-rcb"><span class="tp-dot"></span>Royal Challengers Bangalore</div>
+      <div class="team-pill tp-pk"><span class="tp-dot"></span>Kings XI Punjab</div>
+      <!-- duplicate -->
+      <div class="team-pill tp-rr"><span class="tp-dot"></span>Rajasthan Royals</div>
+      <div class="team-pill tp-gt"><span class="tp-dot"></span>Gujarat Titans</div>
+      <div class="team-pill tp-srh"><span class="tp-dot"></span>Sunrisers Hyderabad</div>
+      <div class="team-pill tp-mi"><span class="tp-dot"></span>Mumbai Indians</div>
+      <div class="team-pill tp-kkr"><span class="tp-dot"></span>Kolkata Knight Riders</div>
+      <div class="team-pill tp-csk"><span class="tp-dot"></span>Chennai Super Kings</div>
+      <div class="team-pill tp-lsg"><span class="tp-dot"></span>Lucknow Super Giants</div>
+      <div class="team-pill tp-dc"><span class="tp-dot"></span>Delhi Capitals</div>
+      <div class="team-pill tp-rcb"><span class="tp-dot"></span>Royal Challengers Bangalore</div>
+      <div class="team-pill tp-pk"><span class="tp-dot"></span>Kings XI Punjab</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-eyebrow reveal">What CricPredict Does</div>
+  <h2 class="section-title reveal rd1">Everything You Need<br>to <span>Predict IPL</span></h2>
+  <div class="features-grid">
+    <div class="feat-card orange reveal">
+      <div class="feat-icon orange">🏆</div>
+      <div class="feat-title">Match Winner Prediction</div>
+      <div class="feat-desc">Head-to-head win probability calculated from batting avg, bowling economy, toss advantage and 1000+ historical match outcomes using a weighted scoring model.</div>
+      <div class="feat-tag orange">Core Engine</div>
+    </div>
+    <div class="feat-card blue reveal rd1">
+      <div class="feat-icon blue">👤</div>
+      <div class="feat-title">Player Index Score</div>
+      <div class="feat-desc">Each player gets a composite index blending batting strike rate, avg runs, fours, sixes, bowling wickets, economy & strike rate into a single performance number.</div>
+      <div class="feat-tag blue">Analytics</div>
+    </div>
+    <div class="feat-card yellow reveal rd2">
+      <div class="feat-icon yellow">⚡</div>
+      <div class="feat-title">Custom Team Builder</div>
+      <div class="feat-desc">Pick any 11 players across all IPL teams. The engine computes batting and bowling scores for both sides and declares a predicted winner with full metric breakdown.</div>
+      <div class="feat-tag yellow">Builder</div>
+    </div>
+    <div class="feat-card green reveal rd1">
+      <div class="feat-icon green">📊</div>
+      <div class="feat-title">Top Scorer Rankings</div>
+      <div class="feat-desc">Season-wise and all-time top run scorers and wicket-takers, filterable by team. Supports both batting and bowling leaderboards from the full dataset.</div>
+      <div class="feat-tag green">Leaderboards</div>
+    </div>
+    <div class="feat-card blue reveal rd2">
+      <div class="feat-icon purple">🤖</div>
+      <div class="feat-title">AI Match Summariser</div>
+      <div class="feat-desc">RAG-powered AI chat that reads your custom matchup data and answers questions, generates narrative summaries, flags mismatches and gives tactical advice.</div>
+      <div class="feat-tag purple">AI Powered</div>
+    </div>
+    <div class="feat-card orange reveal rd3">
+      <div class="feat-icon red">🎯</div>
+      <div class="feat-title">Best Score Prediction</div>
+      <div class="feat-desc">Predicted innings score for any team batting first against a specific opponent — powered by historical run distribution, venue data and toss decision modelling.</div>
+      <div class="feat-tag red">Predictions</div>
+    </div>
+  </div>
+</section>
+
+<!-- MATCHUP PREVIEW -->
+<section id="matchup">
+  <div class="matchup-bg"></div>
+  <div class="section-eyebrow reveal" style="justify-content:center;">Live Matchup Preview</div>
+  <h2 class="section-title reveal rd1" style="text-align:center;max-width:600px;margin-left:auto;margin-right:auto;">Face Off<br><span>Two Teams</span></h2>
+  <div class="vs-arena">
+    <div class="team-side reveal">
+      <div class="team-crest tc-a">MI</div>
+      <div class="team-big-name" style="color:#004B8D;">Mumbai<br>Indians</div>
+      <div class="team-abbr">5× IPL Champions</div>
+      <div class="team-stat-row">
+        <div class="ts-chip"><div class="ts-num" style="color:#004B8D;">167</div><div class="ts-lbl">Avg Score</div></div>
+        <div class="ts-chip"><div class="ts-num" style="color:#004B8D;">58%</div><div class="ts-lbl">Win Rate</div></div>
+        <div class="ts-chip"><div class="ts-num" style="color:#004B8D;">7.9</div><div class="ts-lbl">Economy</div></div>
+      </div>
+    </div>
+    <div class="vs-center reveal rd1">
+      <div class="vs-badge">VS</div>
+      <button class="predict-btn-big">⚡ Predict Winner</button>
+      <div style="font-family: "Instrument Serif", ui-serif, Georgia, serif;font-weight:600;font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(10,10,15,.35);margin-top:.5rem;">Based on 35 H2H matches</div>
+    </div>
+    <div class="team-side reveal rd2">
+      <div class="team-crest tc-b">RCB</div>
+      <div class="team-big-name" style="color:#D4001A;">Royal Challengers<br>Bangalore</div>
+      <div class="team-abbr">The Challengers</div>
+      <div class="team-stat-row">
+        <div class="ts-chip"><div class="ts-num" style="color:#D4001A;">162</div><div class="ts-lbl">Avg Score</div></div>
+        <div class="ts-chip"><div class="ts-num" style="color:#D4001A;">42%</div><div class="ts-lbl">Win Rate</div></div>
+        <div class="ts-chip"><div class="ts-num" style="color:#D4001A;">8.2</div><div class="ts-lbl">Economy</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:600px;margin:2.5rem auto 0;">
+    <div class="win-prob-bar" style="background:rgba(10,10,15,0.06);border-radius:100px;height:10px;overflow:hidden;position:relative;">
+      <div class="wpb-fill-a"></div>
+      <div class="wpb-fill-b"></div>
+    </div>
+    <div class="wpb-labels" style="margin-top:.6rem;">
+      <span style="color:#004B8D;">MI — 58%</span>
+      <span style="color:rgba(10,10,15,.3);">WIN PROBABILITY</span>
+      <span style="color:#D4001A;">38% — RCB</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats-section">
+  <div class="stats-grid">
+    <div class="stat-block reveal">
+      <div class="stat-num"><span id="cnt1">0</span><span style="color:var(--yellow);">+</span></div>
+      <div class="stat-label">Matches Analysed</div>
+      <div class="stat-desc">Complete ball-by-ball data from IPL 2008 to present season.</div>
+    </div>
+    <div class="stat-block reveal rd1">
+      <div class="stat-num"><span id="cnt2">0</span><span style="color:var(--yellow);">+</span></div>
+      <div class="stat-label">Players Indexed</div>
+      <div class="stat-desc">Every batsman, bowler, and all-rounder with a composite index score.</div>
+    </div>
+    <div class="stat-block reveal rd2">
+      <div class="stat-num"><span id="cnt3">0</span><span style="color:var(--yellow);">%</span></div>
+      <div class="stat-label">Prediction Accuracy</div>
+      <div class="stat-desc">Historical win prediction accuracy across head-to-head matchups.</div>
+    </div>
+    <div class="stat-block reveal rd3">
+      <div class="stat-num"><span id="cnt4">0</span></div>
+      <div class="stat-label">IPL Seasons Covered</div>
+      <div class="stat-desc">From the inaugural 2008 season through IPL 2024.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PLAYERS -->
+<section id="players">
+  <div class="section-eyebrow reveal">Player Intelligence</div>
+  <h2 class="section-title reveal rd1">Player <span>Index</span> Cards</h2>
+  <div class="players-grid">
+    <div class="player-card reveal">
+      <div class="pc-header">
+        <div class="pc-avatar av-2">VK</div>
+        <div><div class="pc-name">Virat Kohli</div><div class="pc-team">Royal Challengers Bangalore</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">37.2</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">131</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">674</div><div class="pc-stat-lbl">4s</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">228</div><div class="pc-stat-lbl">6s</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill red" style="width:94.7%;"></div></div>
+      <span class="pc-role">Batsman · Index 94.7</span>
+    </div>
+    <div class="player-card reveal rd1">
+      <div class="pc-header">
+        <div class="pc-avatar av-1">RS</div>
+        <div><div class="pc-name">Rohit Sharma</div><div class="pc-team">Mumbai Indians</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">30.4</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">130</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">573</div><div class="pc-stat-lbl">4s</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">227</div><div class="pc-stat-lbl">6s</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill orange" style="width:91.2%;"></div></div>
+      <span class="pc-role">Batsman · Index 91.2</span>
+    </div>
+    <div class="player-card reveal rd2">
+      <div class="pc-header">
+        <div class="pc-avatar av-3">MS</div>
+        <div><div class="pc-name">MS Dhoni</div><div class="pc-team">Chennai Super Kings</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">39.1</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">136</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">319</div><div class="pc-stat-lbl">4s</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">229</div><div class="pc-stat-lbl">6s</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill gold" style="width:93.1%;"></div></div>
+      <span class="pc-role" style="background:rgba(247,200,0,0.12);color:#8B6800;">Finisher · Index 93.1</span>
+    </div>
+    <div class="player-card reveal rd3">
+      <div class="pc-header">
+        <div class="pc-avatar av-4">JB</div>
+        <div><div class="pc-name">Jasprit Bumrah</div><div class="pc-team">Mumbai Indians</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">7.1</div><div class="pc-stat-lbl">Eco</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">145</div><div class="pc-stat-lbl">Wkts</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">23.1</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">16.4</div><div class="pc-stat-lbl">BSR</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill purple" style="width:96.3%;"></div></div>
+      <span class="pc-role" style="background:rgba(120,80,255,0.1);color:#5020CC;">Bowler · Index 96.3</span>
+    </div>
+    <div class="player-card reveal">
+      <div class="pc-header">
+        <div class="pc-avatar av-5">RA</div>
+        <div><div class="pc-name">Ravindra Jadeja</div><div class="pc-team">Chennai Super Kings</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">26.8</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">127</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">124</div><div class="pc-stat-lbl">Wkts</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">7.6</div><div class="pc-stat-lbl">Eco</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill orange" style="width:89.5%;"></div></div>
+      <span class="pc-role">All-rounder · Index 89.5</span>
+    </div>
+    <div class="player-card reveal rd1">
+      <div class="pc-header">
+        <div class="pc-avatar av-6">HH</div>
+        <div><div class="pc-name">Hardik Pandya</div><div class="pc-team">Mumbai Indians</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">28.4</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">147</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">96</div><div class="pc-stat-lbl">Wkts</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">8.9</div><div class="pc-stat-lbl">Eco</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill teal" style="width:87.2%;"></div></div>
+      <span class="pc-role" style="background:rgba(0,137,123,0.1);color:#00574F;">All-rounder · Index 87.2</span>
+    </div>
+    <div class="player-card reveal rd2">
+      <div class="pc-header">
+        <div class="pc-avatar av-7">YS</div>
+        <div><div class="pc-name">Yuzvendra Chahal</div><div class="pc-team">Rajasthan Royals</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">7.8</div><div class="pc-stat-lbl">Eco</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">187</div><div class="pc-stat-lbl">Wkts</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">21.3</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">17.8</div><div class="pc-stat-lbl">BSR</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill crimson" style="width:88.6%;"></div></div>
+      <span class="pc-role" style="background:rgba(215,25,33,0.08);color:#B00E14;">Spinner · Index 88.6</span>
+    </div>
+    <div class="player-card reveal rd3">
+      <div class="pc-header">
+        <div class="pc-avatar av-8">KL</div>
+        <div><div class="pc-name">KL Rahul</div><div class="pc-team">Lucknow Super Giants</div></div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val">44.8</div><div class="pc-stat-lbl">Avg</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">136</div><div class="pc-stat-lbl">SR</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">421</div><div class="pc-stat-lbl">4s</div></div>
+        <div class="pc-stat"><div class="pc-stat-val">198</div><div class="pc-stat-lbl">6s</div></div>
+      </div>
+      <div class="pc-index-bar"><div class="pc-index-fill navy" style="width:92.0%;"></div></div>
+      <span class="pc-role" style="background:rgba(37,74,165,0.1);color:#1A3580;">Batsman · Index 92.0</span>
+    </div>
+  </div>
+</section>
+
+<!-- AI SECTION -->
+<section id="ai-section">
+  <div class="ai-layout">
+    <div class="ai-chat-preview reveal">
+      <div class="acp-header">
+        <div class="acp-dot"></div>
+        <div class="acp-title">CricPredict AI — Match Analysis</div>
+      </div>
+      <div class="chat-bubble cb-user">Who wins: Team A (Bumrah, Kohli) vs Team B (Dhoni, Chahal)?</div>
+      <div class="chat-bubble cb-ai">Based on the matchup data, <strong>Team A</strong> has a higher composite score of <strong>0.74</strong> vs 0.61.<br><br>Key advantage: <strong>Bumrah's bowling index (96.3)</strong> suppresses Team B's batting. Kohli's average of 37.2 is also superior head-to-head.</div>
+      <div class="chat-bubble cb-user">What's the predicted score for Team A batting first?</div>
+      <div class="chat-bubble cb-ai"><strong>Predicted score: 172–185</strong> based on Team A's batting strike rate (131) and Team B's average bowling economy (7.8). Toss factor slightly favours bat-first in this H2H history.</div>
+      <div class="typing-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+    </div>
+    <div class="ai-text-side">
+      <div class="section-eyebrow reveal">AI Insights Engine</div>
+      <h2 class="section-title reveal rd1">Ask the <span>AI</span><br>Anything</h2>
+      <p class="reveal rd2">Powered by a RAG (Retrieval Augmented Generation) engine that reads your custom matchup data and answers natural language questions about teams, players, and predictions.</p>
+      <div class="ai-capabilities reveal rd3">
+        <div class="ai-cap">
+          <div class="ai-cap-icon">📝</div>
+          <div class="ai-cap-text"><strong>Match Summaries</strong><span>Auto-generated narrative summaries of any matchup with key player highlights and predictions.</span></div>
+        </div>
+        <div class="ai-cap">
+          <div class="ai-cap-icon">⚖️</div>
+          <div class="ai-cap-text"><strong>Metric Comparisons</strong><span>Ask "who has a better bowling average?" and get instant data-backed answers.</span></div>
+        </div>
+        <div class="ai-cap">
+          <div class="ai-cap-icon">🧠</div>
+          <div class="ai-cap-text"><strong>Strategic Advice</strong><span>Toss decisions, batting order suggestions, and match tactics based on historical data.</span></div>
+        </div>
+        <div class="ai-cap">
+          <div class="ai-cap-icon">📈</div>
+          <div class="ai-cap-text"><strong>Score Projections</strong><span>Predicted innings scores, economy rates, and run-rate simulations for any matchup.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOP SCORES -->
+<section id="top-scores">
+  <div class="section-eyebrow reveal">All-Time Records</div>
+  <h2 class="section-title reveal rd1">Top <span>Scorers</span> &amp; Wicket-Takers</h2>
+  <div class="scores-grid">
+    <div class="leaderboard reveal">
+      <div class="lb-head"><div class="lb-head-title">🏏 All-Time Top Batsmen</div><div class="lb-head-sub">IPL 2008–2024</div></div>
+      <div class="lb-row">
+        <div class="lb-rank gold">1</div>
+        <div class="lb-av av-2">VK</div>
+        <div><div class="lb-player-name">Virat Kohli</div><div class="lb-team-badge">Royal Challengers Bangalore</div></div>
+        <div><div class="lb-score">7263<span>RUNS</span></div></div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank silver">2</div>
+        <div class="lb-av av-1">RS</div>
+        <div><div class="lb-player-name">Rohit Sharma</div><div class="lb-team-badge">Mumbai Indians</div></div>
+        <div><div class="lb-score">6211<span>RUNS</span></div></div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank bronze">3</div>
+        <div class="lb-av av-8">KL</div>
+        <div><div class="lb-player-name">KL Rahul</div><div class="lb-team-badge">Lucknow Super Giants</div></div>
+        <div><div class="lb-score">5402<span>RUNS</span></div></div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">4</div>
+        <div class="lb-av" style="background:linear-gradient(135deg,#F7C800,#FFAB00);">SK</div>
+        <div><div class="lb-player-name">Shubman Gill</div><div class="lb-team-badge">Gujarat Titans</div></div>
+        <div><div class="lb-score">3398<span>RUNS</span></div></div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">5</div>
+        <div class="lb-av" style="background:linear-gradient(135deg,#004B8D,#0066CC);">SA</div>
+        <div><div class="lb-player-name">Suresh Raina</div><div class="lb-team-badge">Chennai Super Kings</div></div>
+        <div><div class="lb-score">5528<span>RUNS</span></div></div>
+      </div>
+    </div>
+    <div class="scores-side reveal rd1">
+      <div class="mini-stat-card">
+        <div class="msc-label">Highest Individual Score</div>
+        <div class="msc-value">175<span>*</span></div>
+        <div class="msc-sub">Chris Gayle — RCB vs PWI, 2013. 66 balls, 13 fours, 17 sixes.</div>
+      </div>
+      <div class="mini-stat-card">
+        <div class="msc-label">Most Wickets (Career)</div>
+        <div class="msc-value">187</div>
+        <div class="msc-sub">Yuzvendra Chahal — across 133 matches at an average of 21.3.</div>
+      </div>
+      <div class="mini-stat-card">
+        <div class="msc-label">Highest Team Total</div>
+        <div class="msc-value">263<span>/5</span></div>
+        <div class="msc-sub">RCB vs PWI, IPL 2013. The highest team total in tournament history.</div>
+      </div>
+      <div class="mini-stat-card">
+        <div class="msc-label">Most Sixes (Career)</div>
+        <div class="msc-value">357</div>
+        <div class="msc-sub">Chris Gayle — the undisputed six-hitting machine of IPL history.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-bg-ball cba-1"></div>
+  <div class="cta-bg-ball cba-2"></div>
+  <div class="cta-inner">
+    <h2 class="cta-title reveal">BUILD YOUR<br><span>DREAM TEAM.</span><br>PREDICT THE WIN.</h2>
+    <p class="cta-sub reveal rd1">Join thousands of cricket analysts. No fluff — just data, AI, and predictions that actually make sense.</p>
+    <div class="cta-form reveal rd2">
+      <input type="email" class="cta-input" placeholder="Enter your email to get started">
+      <button class="cta-submit">Get Access</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-brand-name">CRIC<span>PREDICT</span></div>
+      <p class="footer-tagline">IPL match predictions, player indexes, and AI insights — all powered by 1000+ matches of real ball-by-ball data.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">Predict</div>
+      <ul class="footer-links">
+        <li><a href="#">Match Predictor</a></li>
+        <li><a href="#">Custom Team Builder</a></li>
+        <li><a href="#">Head to Head</a></li>
+        <li><a href="#">Toss Analysis</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Stats</div>
+      <ul class="footer-links">
+        <li><a href="#">Player Index</a></li>
+        <li><a href="#">Top Scorers</a></li>
+        <li><a href="#">Wicket-Takers</a></li>
+        <li><a href="#">Season Archive</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Platform</div>
+      <ul class="footer-links">
+        <li><a href="#">AI Insights</a></li>
+        <li><a href="#">Dashboard</a></li>
+        <li><a href="#">Sign In</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2024 CricPredict AI. Powered by IPL ball-by-ball data from 2008–2024.</div>
+    <div class="footer-socials">
+      <a class="soc-link" href="#">TW</a>
+      <a class="soc-link" href="#">IG</a>
+      <a class="soc-link" href="#">YT</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── LOADER ──
+let pct=0;
+const fill=document.getElementById('ldrFill');
+const num=document.getElementById('ldrNum');
+const ldr=document.getElementById('loader');
+const iv=setInterval(()=>{
+  pct=Math.min(pct+Math.random()*3+1,100);
+  fill.style.width=pct+'%';
+  num.textContent=Math.floor(pct)+'%';
+  if(pct>=100){clearInterval(iv);setTimeout(()=>ldr.classList.add('out'),400);}
+},55);
+
+// ── CONFETTI PARTICLES ──
+const canvas=document.getElementById('particles');
+const colors=['#FF6B00','#FFD600','#0052CC','#00D4FF','#00C853','#FF9500'];
+for(let i=0;i<50;i++){
+  const p=document.createElement('div');
+  p.className='particle';
+  const sz=Math.random()*4+2;
+  p.style.cssText=`width:${sz}px;height:${sz*2}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};opacity:${Math.random()*0.15+0.03};--d:${(Math.random()*12+6).toFixed(1)}s;--delay:${(Math.random()*8).toFixed(1)}s;transform:rotate(${Math.random()*360}deg);`;
+  canvas.appendChild(p);
+}
+
+// ── CURSOR ──
+const cur=document.getElementById('cur'),ring=document.getElementById('cur-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+function animCur(){
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+  rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  requestAnimationFrame(animCur);
+}
+animCur();
+document.querySelectorAll('a,button,.feat-card,.player-card,.team-pill,.lb-row,.mini-stat-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';ring.style.width='62px';ring.style.height='62px';ring.style.borderColor='var(--blue)';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='14px';cur.style.height='14px';ring.style.width='44px';ring.style.height='44px';ring.style.borderColor='var(--saffron)';});
+});
+
+// ── SCROLL REVEAL ──
+const reveals=document.querySelectorAll('.reveal');
+const robs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:0.1});
+reveals.forEach(el=>robs.observe(el));
+
+// ── COUNT UP ──
+const counters=[
+  {el:document.getElementById('cnt1'),target:1047},
+  {el:document.getElementById('cnt2'),target:350},
+  {el:document.getElementById('cnt3'),target:72},
+  {el:document.getElementById('cnt4'),target:17},
+];
+const cobs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const {el,target}=counters.find(c=>c.el===e.target)||{};
+    if(!el)return;
+    let start=0;const dur=2000;const t0=performance.now();
+    function step(now){
+      const prog=Math.min((now-t0)/dur,1);
+      const ease=1-Math.pow(1-prog,3);
+      el.textContent=Math.floor(ease*target);
+      if(prog<1)requestAnimationFrame(step);
+      else el.textContent=target;
+    }
+    requestAnimationFrame(step);
+    cobs.unobserve(e.target);
+  });
+},{threshold:0.5});
+counters.forEach(c=>cobs.observe(c.el));
+
+// ── PLAYER INDEX BAR ANIMATE ON SCROLL ──
+const bars=document.querySelectorAll('.pc-index-fill');
+bars.forEach(b=>{ b.dataset.w=b.style.width; b.style.width='0%'; });
+const bobs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){e.target.style.width=e.target.dataset.w;bobs.unobserve(e.target);}
+  });
+},{threshold:0.5});
+bars.forEach(b=>bobs.observe(b));
+
+// ── NAV ACTIVE LINK HIGHLIGHT ON SCROLL ──
+const sections=document.querySelectorAll('section[id]');
+const navLinks=document.querySelectorAll('.nav-links a');
+const sobs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navLinks.forEach(l=>l.style.color='');
+      const link=document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+      if(link)link.style.color='var(--saffron)';
+    }
+  });
+},{threshold:0.5});
+sections.forEach(s=>sobs.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WicketStats — User Dashboard</title>
+    <meta name="description" content="User Dashboard for Custom Matchups, Predictions, and AI Analysis.">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --WC_BLUE: #2563eb;
+            --WC_BLUE_GLOW: rgba(37, 99, 235, 0.2);
+            --WC_DARK: #0f172a;
+            --WC_LIGHT: #f8fafc;
+            --WC_RED: #e11d48;
+        }
+
+        @font-face { font-family: "Instrument Serif", ui-serif, Georgia, serif; src: url('fonts/samsungsharpsans.otf') format('opentype'); font-weight: 400; }
+        @font-face { font-family: "Instrument Serif", ui-serif, Georgia, serif; src: url('fonts/samsungsharpsans-medium.otf') format('opentype'); font-weight: 500; }
+        @font-face { font-family: "Instrument Serif", ui-serif, Georgia, serif; src: url('fonts/samsungsharpsans-bold.otf') format('opentype'); font-weight: 700; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            width: 100%; height: 100%;
+            overflow-x: hidden;
+            background: #f1f5f9;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            color: var(--WC_DARK);
+        }
+
+        /* ── Full-screen wrapper ── */
+        .hero-wrap {
+            position: relative;
+            width: 100vw; height: 35vh;
+            background: linear-gradient(to top, #f1f5f9 0%, rgba(255,255,255,0.5) 30%, #1e88e5 99%, #1e88e5 100%);
+        }
+
+        .bg-fade {
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 50%;
+            background: linear-gradient(to bottom, rgba(241,245,249,0) 0%, rgba(241,245,249,1) 60%, #f1f5f9 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .noise-layer {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            position: absolute; top: 28px; left: 50%; transform: translateX(-50%); width: 94%; max-width: 1500px;
+            display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-radius: 20px; z-index: 20;
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.3), -5px -5px 15px rgba(255, 255, 255, 0.05), inset 1px 1px 2px rgba(255, 255, 255, 0.2), inset -1px -1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .nav-brand { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: .5px; text-decoration: none; flex-shrink: 0; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+        .nav-center { display: flex; gap: 8px; align-items: center; }
+        .nav-center a {
+            position: relative; overflow: hidden; display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; padding: 9px 20px; border-radius: 10px; border: 1px solid transparent; transition: background .3s, border-color .3s, color .25s, box-shadow .3s;
+        }
+        .nav-center a:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: #fff; box-shadow: 0 4px 14px rgba(255,255,255,0.06); }
+        .btn-register {
+            position: relative; overflow: hidden; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(14px); color: #fff; padding: 11px 30px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: .5px; cursor: pointer; transition: transform .3s, box-shadow .3s;
+        }
+        .btn-register:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2); }
+
+        /* Dashboard Layout Grid */
+        .dash-container { max-width: 1400px; margin: -80px auto 100px; padding: 0 20px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 30px; position: relative; z-index: 10; }
+
+        .bento-card {
+            background: #ffffff; border-radius: 28px; padding: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.03); display: flex; flex-direction: column; overflow: hidden; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+        }
+        .bento-card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px rgba(0,0,0,0.08); }
+
+        .card-header { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #64748b; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
+        .card-header::after { content: ''; flex: 1; height: 2px; background: #f1f5f9; border-radius: 2px; }
+
+        /* Layout Regions */
+        .sidebar { grid-column: span 3; display: flex; flex-direction: column; gap: 30px; }
+        .main-content { grid-column: span 9; display: flex; flex-direction: column; }
+        
+        /* Premium Profile Styling */
+        .card-profile { 
+            grid-column: span 12; flex-direction: row; justify-content: space-between; align-items: center; padding: 35px 50px;
+            background: linear-gradient(135deg, var(--WC_DARK) 0%, #1e293b 100%);
+            border: 1px solid rgba(255,255,255,0.1); color: white; box-shadow: 0 20px 50px rgba(15,23,42,0.2);
+        }
+        .user-details { display: flex; gap: 30px; font-size: 18px; font-weight: 600; color: white; align-items: center;}
+        .user-name { font-size: 26px; font-weight: 900; background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logout-btn { 
+            background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 12px 28px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 14px; text-transform: uppercase; transition: all 0.3s ease; letter-spacing: 1px;
+        }
+        .logout-btn:hover { background: #ef4444; color: white; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); transform: translateY(-2px); }
+
+        /* Sidebar Elements */
+        .user-image-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 50px 20px; background: linear-gradient(to bottom, #ffffff, #f8fafc); }
+        .user-avatar {
+            width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white; display: flex; align-items: center; justify-content: center; margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(59,130,246,0.3); border: 6px solid #ffffff;
+        }
+
+        .feature-nav-card { padding: 30px; }
+        .feature-btn {
+            width: 100%; text-align: left; padding: 18px 24px; border-radius: 16px; background: transparent; border: 1px solid transparent;
+            font-weight: 800; color: #64748b; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 16px;
+            margin-bottom: 12px; font-family: "Instrument Serif", ui-serif, Georgia, serif; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; position: relative; overflow: hidden;
+        }
+        .feature-btn::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--WC_BLUE);
+            transform: scaleY(0); transition: transform 0.3s ease; border-radius: 0 5px 5px 0;
+        }
+        .feature-btn:hover { background: #f8fafc; color: var(--WC_DARK); transform: translateX(6px); }
+        .feature-btn.active { background: #eff6ff; color: var(--WC_BLUE); border-color: #bfdbfe; box-shadow: 0 12px 30px rgba(37, 99, 235, 0.15); transform: translateX(6px); }
+        .feature-btn.active::before { transform: scaleY(1); }
+
+        /* Tab Content */
+        .tab-content { display: none; height: 100%; }
+        .tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Premium Inputs & Forms */
+        input[type="text"] {
+            width: 100%; padding: 18px 24px; border-radius: 16px; border: 2px solid #e2e8f0; background: #ffffff;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif; font-size: 16px; font-weight: 600; margin-bottom: 18px; transition: all 0.3s ease;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.02); color: var(--WC_DARK);
+        }
+        input[type="text"]::placeholder { color: #94a3b8; font-weight: 500; }
+        input[type="text"]:focus { outline: none; border-color: var(--WC_BLUE); box-shadow: 0 0 0 5px var(--WC_BLUE_GLOW); transform: translateY(-2px); }
+
+        button.action-btn {
+            background: linear-gradient(135deg, var(--WC_BLUE), #3b82f6); color: white; border: none; padding: 22px 35px; border-radius: 18px;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; box-shadow: 0 15px 35px rgba(37,99,235,0.3);
+        }
+        button.action-btn:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 25px 50px rgba(37,99,235,0.4); }
+
+        /* Matchup Form Grid */
+        .matchup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; position: relative; }
+        .matchup-grid::after {
+            content: 'VS'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; background: var(--WC_DARK); color: white; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; font-weight: 900; font-size: 20px; border: 6px solid #ffffff; box-shadow: 0 15px 35px rgba(0,0,0,0.15); z-index: 2;
+        }
+        .team-col { padding: 35px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.05); position: relative; overflow: hidden;}
+        .team-col.team-a { background: linear-gradient(to bottom right, #ffffff, #eff6ff); }
+        .team-col.team-b { background: linear-gradient(to bottom right, #ffffff, #fff1f2); }
+        
+        .team-title { font-size: 26px; font-weight: 900; margin-bottom: 30px; text-align: center; text-transform: uppercase; letter-spacing: 2px;}
+        .team-col.team-a .team-title { color: var(--WC_BLUE); }
+        .team-col.team-b .team-title { color: var(--WC_RED); }
+        .player-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        /* AI Chat Bubble */
+        .chat-display {
+            background: linear-gradient(to bottom right, #f8fafc, #f1f5f9); border-radius: 20px; padding: 35px; min-height: 350px; max-height: 550px; overflow-y: auto;
+            margin-bottom: 25px; font-size: 16px; line-height: 1.8; color: #1e293b; font-weight: 500; border: 1px solid #e2e8f0; box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+        .chat-display p { margin-bottom: 15px; }
+        .chat-display b { color: var(--WC_BLUE); font-weight: 800; margin-right: 5px; }
+
+        /* Results Tables */
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; }
+        .results-box { background: #ffffff; padding: 35px; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: transform 0.3s ease; }
+        .results-box:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; font-size: 15px; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #64748b; padding: 18px; text-align: left; font-weight: 800; text-transform: uppercase; font-size: 13px; letter-spacing: 1px; border-bottom: 2px solid #e2e8f0;}
+        td { padding: 16px 18px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #334155; }
+        tbody tr { transition: background 0.2s ease; }
+        tbody tr:hover { background: #f8fafc; transform: scale(1.01); }
+        .score-huge { font-size: 72px; font-weight: 900; background: linear-gradient(to right, var(--WC_BLUE), #0ea5e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin: 30px 0; letter-spacing: -2px;}
+        
+        /* Footer */
+        .wc-footer { background: linear-gradient(to bottom, #ffffff 0%, rgba(255,255,255,0.5) 15%, var(--WC_BLUE) 70%, var(--WC_BLUE) 100%); color: white; padding: 120px 40px 80px; margin-top: 50px; }
+        .wc-footer-container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 60px; }
+        .wc-footer-brand img { width: 130px; margin-bottom: 10px; }
+        .wc-footer-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
+        .wc-footer-column { display: flex; flex-direction: column; gap: 10px; min-width: 160px; }
+        .wc-footer-column h3 { font-size: 1rem; margin-bottom: 10px; opacity: 0.9; }
+        .wc-footer-column a { color: rgba(255, 255, 255, 0.85); text-decoration: none; font-size: 0.9rem; transition: 0.2s ease; }
+        .wc-footer-column a:hover { color: white; transform: translateX(4px); }
+    </style>
+</head>
+<body>
+
+<div class="hero-wrap">
+    <div class="noise-layer"></div>
+    <div class="bg-fade"></div>
+
+    <nav class="navbar" id="main-navbar">
+        <span class="nav-brand">WicketStats</span>
+        <div class="nav-center">
+            <a href="{{ url_for('index') }}"><i data-lucide="home" style="width: 18px; height: 18px;"></i> Home</a>
+            <a href="{{ url_for('comparison_page') }}"><i data-lucide="git-compare" style="width: 18px; height: 18px;"></i> Comparison</a>
+            <a href="{{ url_for('top_scorer_page') }}"><i data-lucide="trophy" style="width: 18px; height: 18px;"></i> Top Scorer</a>
+        </div>
+        {% if logged_in %}
+            <a href="{{ url_for('dashboard') }}" class="btn-register">Dashboard</a>
+        {% else %}
+            <a href="#" class="btn-register">Register</a>
+        {% endif %}   
+    </nav>
+</div>
+
+<div class="dash-container">
+    
+    <!-- User Profile Header -->
+    <div class="bento-card card-profile">
+        <div class="user-details">
+            <div class="user-name">Welcome, {{ user[0] if user else 'User' }}</div>
+            <span style="color: #cbd5e1;">|</span>
+            <div style="color: #64748b;">{{ user[1] if user else 'user@example.com' }}</div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <div class="bento-card user-image-card">
+            <div class="user-avatar"><i data-lucide="user" style="width: 48px; height: 48px;"></i></div>
+            <div style="font-weight: 800; font-size: 18px;">{{ user[0] if user else 'User' }}</div>
+            <div style="font-size: 14px; color: #64748b; margin-top: 5px;">Dashboard Access</div>
+        </div>
+
+        <div class="bento-card feature-nav-card">
+            <div class="card-header" style="margin-bottom: 15px;">Features</div>
+            <button class="feature-btn active" data-tab="tab-custom">
+                <i data-lucide="swords"></i> Custom Match Up
+            </button>
+            <button class="feature-btn" data-tab="tab-whatif">
+                <i data-lucide="bot"></i> What If Engine
+            </button>
+            <button class="feature-btn" data-tab="tab-fantasy">
+                <i data-lucide="star"></i> Fantasy XI
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Main Content -->
+    <div class="main-content">
+
+        <!-- TAB 1: CUSTOM MATCH UP -->
+        <div class="bento-card tab-content active" id="tab-custom">
+            <div class="card-header">Custom Matchup Engine</div>
+            <form class="dashboard-form">
+                <input type="text" name="matchup" placeholder="Name this Matchup (e.g. Finals Clash)" required>
+                
+                <div class="matchup-grid">
+                    <div class="team-col team-a">
+                        <div class="team-title">Team A</div>
+                        <input type="text" name="teamA_name" placeholder="Team A Name" required>
+                        <div class="player-list">
+                            <input type="text" name="teamA[]" placeholder="Player 1" required>
+                            <input type="text" name="teamA[]" placeholder="Player 2" required>
+                            <input type="text" name="teamA[]" placeholder="Player 3" required>
+                            <input type="text" name="teamA[]" placeholder="Player 4" required>
+                            <input type="text" name="teamA[]" placeholder="Player 5" required>
+                            <input type="text" name="teamA[]" placeholder="Player 6" required>
+                            <input type="text" name="teamA[]" placeholder="Player 7" required>
+                            <input type="text" name="teamA[]" placeholder="Player 8" required>
+                            <input type="text" name="teamA[]" placeholder="Player 9" required>
+                            <input type="text" name="teamA[]" placeholder="Player 10" required>
+                            <input type="text" name="teamA[]" placeholder="Player 11" required>
+                        </div>
+                    </div>
+
+                    <div class="team-col team-b">
+                        <div class="team-title">Team B</div>
+                        <input type="text" name="teamB_name" placeholder="Team B Name" required>
+                        <div class="player-list">
+                            <input type="text" name="teamB[]" placeholder="Player 1" required>
+                            <input type="text" name="teamB[]" placeholder="Player 2" required>
+                            <input type="text" name="teamB[]" placeholder="Player 3" required>
+                            <input type="text" name="teamB[]" placeholder="Player 4" required>
+                            <input type="text" name="teamB[]" placeholder="Player 5" required>
+                            <input type="text" name="teamB[]" placeholder="Player 6" required>
+                            <input type="text" name="teamB[]" placeholder="Player 7" required>
+                            <input type="text" name="teamB[]" placeholder="Player 8" required>
+                            <input type="text" name="teamB[]" placeholder="Player 9" required>
+                            <input type="text" name="teamB[]" placeholder="Player 10" required>
+                            <input type="text" name="teamB[]" placeholder="Player 11" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="action-btn team-save-btn">Run Matchup Simulation</button>
+            </form>
+
+            <!-- Results container -->
+            <div id="resultsBlock" style="display: none; margin-top: 40px;">
+                <div class="card-header">Simulation Results</div>
+                <div class="results-grid">
+                    <div class="results-box">
+                        <h3 style="text-align:center; color:#64748b; font-size:14px; text-transform:uppercase;">Predicted Winner</h3>
+                        <div class="score-huge" id="winner">-</div>
+                    </div>
+                    <div class="results-box">
+                        <h3 style="text-align:center; color:#64748b; font-size:14px; text-transform:uppercase; margin-bottom:10px;">Overall Metrics</h3>
+                        <table id="metricsTable">
+                            <thead><tr><th>Metric</th><th>Team A</th><th>Team B</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="results-box">
+                        <h3 style="text-align:center; color:#64748b; font-size:14px; text-transform:uppercase;">Team A Predicted Score</h3>
+                        <div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:700;">
+                            <div id="bat1">Bat: -</div><div id="bowl1">Bowl: -</div><div id="total1" style="color:var(--WC_BLUE)">Total: -</div>
+                        </div>
+                    </div>
+                    <div class="results-box">
+                        <h3 style="text-align:center; color:#64748b; font-size:14px; text-transform:uppercase;">Team B Predicted Score</h3>
+                        <div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:700;">
+                            <div id="bat2">Bat: -</div><div id="bowl2">Bowl: -</div><div id="total2" style="color:var(--WC_BLUE)">Total: -</div>
+                        </div>
+                    </div>
+                    <!-- Detailed Stats -->
+                    <div style="grid-column: span 2; overflow-x: auto; margin-top: 20px;">
+                        <h3 style="margin: 20px 0 10px; font-size: 16px; color: var(--WC_DARK);">Team A - Batting</h3>
+                        <table id="individual_stats">
+                            <thead><tr><th>Batter</th><th>Mat</th><th>Runs</th><th>Balls</th><th>Avg</th><th>SR</th><th>4s</th><th>6s</th></tr></thead>
+                            <tbody></tbody>
+                            <tfoot><tr id="teamA_bat_total"><th>TOTAL</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+                        </table>
+                        <h3 style="margin: 30px 0 10px; font-size: 16px; color: var(--WC_DARK);">Team A - Bowling</h3>
+                        <table id="individual_stats_bowl">
+                            <thead><tr><th>Bowler</th><th>Wkts</th><th>Runs</th><th>Overs</th><th>Balls</th><th>Econ</th><th>Avg</th><th>SR</th></tr></thead>
+                            <tbody></tbody>
+                            <tfoot><tr id="teamA_bowl_total"><th>TOTAL</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+                        </table>
+                        <h3 style="margin: 30px 0 10px; font-size: 16px; color: var(--WC_DARK);">Team B - Batting</h3>
+                        <table id="individual_stats_bat_2">
+                            <thead><tr><th>Batter</th><th>Mat</th><th>Runs</th><th>Balls</th><th>Avg</th><th>SR</th><th>4s</th><th>6s</th></tr></thead>
+                            <tbody></tbody>
+                            <tfoot><tr id="teamB_bat_total"><th>TOTAL</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+                        </table>
+                        <h3 style="margin: 30px 0 10px; font-size: 16px; color: var(--WC_DARK);">Team B - Bowling</h3>
+                        <table id="individual_stats_bowl_2">
+                            <thead><tr><th>Bowler</th><th>Wkts</th><th>Runs</th><th>Overs</th><th>Balls</th><th>Econ</th><th>Avg</th><th>SR</th></tr></thead>
+                            <tbody></tbody>
+                            <tfoot><tr id="teamB_bowl_total"><th>TOTAL</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: WHAT IF ENGINE (Ask AI) -->
+        <div class="bento-card tab-content" id="tab-whatif">
+            <div class="card-header">What If Engine / AI Expert</div>
+            <div class="chat-display" id="response">
+                <p>Run a custom matchup first, then ask me anything about "What If" scenarios!</p>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <input type="text" name="query" id="question" placeholder="E.g. What if Team A bowled first?" spellcheck="false" style="margin-bottom:0;">
+                <button class="action-btn llm" id="send-btn" style="width: auto; padding: 0 30px; background: var(--WC_BLUE);"><i data-lucide="send"></i></button>
+            </div>
+        </div>
+
+        <!-- TAB 3: FANTASY XI -->
+        <div class="bento-card tab-content" id="tab-fantasy">
+            <div class="card-header">Fantasy XI Builder</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <input type="text" id="fantasyTeam1" placeholder="Enter Team 1 Name">
+                <input type="text" id="fantasyTeam2" placeholder="Enter Team 2 Name">
+            </div>
+            <button class="action-btn fantasyCreateBtn" style="margin-bottom: 30px;">Generate Fantasy XI</button>
+            
+            <div id="fantasyChatbotCard" style="display: none;">
+                <div class="card-header">AI Fantasy Analysis</div>
+                <div id="fantasyChatDisplay" class="chat-display">
+                    <p><i>Waiting for teams...</i></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<footer class="wc-footer">
+    <div class="wc-footer-container">
+        <div class="wc-footer-links">
+            <div class="wc-footer-brand">
+                <img src="static/images/glass-logo.png" alt="WicketStats">
+            </div>
+            <div class="wc-footer-column">
+                <h3>Platform</h3>
+                <a href="#">Match Predictor</a>
+                <a href="#">Player Index</a>
+                <a href="#">Bowler Index</a>
+                <a href="#">Team Graphs</a>
+                <a href="#">Comparison Engine</a>
+            </div>
+            <div class="wc-footer-column">
+                <h3>Intelligence</h3>
+                <a href="#">Custom Matchups</a>
+                <a href="#">Fantasy XI</a>
+                <a href="#">What If Engine</a>
+                <a href="#">WicketStats AI</a>
+                <a href="#">Top Scorers</a>
+            </div>
+            <div class="wc-footer-column">
+                <h3>Account</h3>
+                <a href="#">Sign Up</a>
+                <a href="#">Login</a>
+                <a href="#">Dashboard</a>
+                <a href="#">Match History</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    lucide.createIcons();
+
+    // Tab Switching Logic
+    const tabs = document.querySelectorAll('.feature-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            tab.classList.add('active');
+            document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+        });
+    });
+
+    let threadId = null;
+
+    document.querySelector(".dashboard-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        threadId = crypto.randomUUID();
+
+        const btn = document.querySelector('.team-save-btn');
+        btn.innerText = "Simulating...";
+        btn.style.opacity = "0.7";
+
+        const matchup     = document.querySelector('input[name="matchup"]').value;
+        const teamA_name  = document.querySelector('input[name="teamA_name"]').value;
+        const teamB_name  = document.querySelector('input[name="teamB_name"]').value;
+
+        const teamA_players = Array.from(document.querySelectorAll('input[name="teamA[]"]')).map(input => input.value);
+        const teamB_players = Array.from(document.querySelectorAll('input[name="teamB[]"]')).map(input => input.value);
+
+        try {
+            const response = await fetch("/customteam", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matchup, teamA_name, teamB_name, teamA_players, teamB_players })
+            });
+
+            const saveData = await response.json();
+            if (!saveData.redirect) {
+                console.error('No Redirect URL Returned');
+                return;
+            }
+
+            const res       = await fetch(saveData.redirect);
+            const matchData = await res.json();
+
+            await fetch("/llm_chat", { method: "POST" });
+
+            // Show Results
+            document.getElementById('resultsBlock').style.display = 'block';
+            
+            document.getElementById("winner").innerText = matchData.winner || "N/A";
+
+            const metrics = matchData.metrics || [];
+            const tbody   = document.querySelector("#metricsTable tbody");
+            tbody.innerHTML = "";
+            for (let i = 0; i < metrics.length; i++) {
+                let row = document.createElement("tr");
+                row.innerHTML =
+                    "<td>" + metrics[i].Metric           + "</td>" +
+                    "<td>" + Number(metrics[i].Team1).toFixed(2) + "</td>" +
+                    "<td>" + Number(metrics[i].Team2).toFixed(2) + "</td>";
+                tbody.appendChild(row);
+            }
+
+            const scores    = matchData.scores || {};
+            const team1Name = Object.keys(scores)[0] || 'Team A';
+            const team2Name = Object.keys(scores)[1] || 'Team B';
+
+            document.getElementById("bat1").innerText   = "Bat: "   + (scores[team1Name]?.bat1 || 0);
+            document.getElementById("bowl1").innerText  = "Bowl: "  + (scores[team1Name]?.bowl1 || 0);
+            document.getElementById("total1").innerText = "Total: " + (scores[team1Name]?.total1 || 0);
+
+            document.getElementById("bat2").innerText   = "Bat: "   + (scores[team2Name]?.bat2 || 0);
+            document.getElementById("bowl2").innerText  = "Bowl: "  + (scores[team2Name]?.bowl2 || 0);
+            document.getElementById("total2").innerText = "Total: " + (scores[team2Name]?.total2 || 0);
+
+            // Populate Individual tables (reusing original logic)
+            const individualBody = document.querySelector("#individual_stats tbody");
+            individualBody.innerHTML = "";
+            (matchData.team1_individual_bat || []).forEach(player => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${player.batter}</td><td>${player.Matches}</td><td>${player.Runs}</td><td>${player.Balls}</td><td>${player.Average.toFixed(2)}</td><td>${player.StrikeRate || 0}</td><td>${player.Fours}</td><td>${player.Sixes}</td>`;
+                individualBody.appendChild(row);
+            });
+
+            const individualBodyBowl = document.querySelector("#individual_stats_bowl tbody");
+            individualBodyBowl.innerHTML = "";
+            (matchData.team1_individual_bowl || []).forEach(player => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${player.bowler}</td><td>${player.Wickets}</td><td>${player.Runs}</td><td>${player.Overs}</td><td>${player.Balls}</td><td>${player.Economy}</td><td>${player.Avg}</td><td>${player.SR}</td>`;
+                individualBodyBowl.appendChild(row);
+            });
+
+            const individualBody2 = document.querySelector("#individual_stats_bat_2 tbody");
+            individualBody2.innerHTML = "";
+            (matchData.team2_individual_bat || []).forEach(player => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${player.batter}</td><td>${player.Matches}</td><td>${player.Runs}</td><td>${player.Balls}</td><td>${player.Average.toFixed(2)}</td><td>${player.StrikeRate || 0}</td><td>${player.Fours}</td><td>${player.Sixes}</td>`;
+                individualBody2.appendChild(row);
+            });
+
+            const individualBodyBowl2 = document.querySelector("#individual_stats_bowl_2 tbody");
+            individualBodyBowl2.innerHTML = "";
+            (matchData.team2_individual_bowl || []).forEach(player => {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${player.bowler}</td><td>${player.Wickets}</td><td>${player.Runs}</td><td>${player.Overs}</td><td>${player.Balls}</td><td>${player.Economy}</td><td>${player.Avg}</td><td>${player.SR}</td>`;
+                individualBodyBowl2.appendChild(row);
+            });
+
+            // Set Totals
+            const totalBatA = matchData.team1_total_bat?.[0];
+            const rowA      = document.querySelector("#teamA_bat_total");
+            if (rowA && totalBatA) { rowA.children[1].innerText = totalBatA['Matches'] || 0; rowA.children[2].innerText = totalBatA["Total Runs"] || 0; rowA.children[3].innerText = totalBatA["Total Balls"] || 0; rowA.children[4].innerText = totalBatA["Team Avg Score"] || 0; rowA.children[5].innerText = totalBatA["Team SR"] || 0; rowA.children[6].innerText = totalBatA["Total Fours"] || 0; rowA.children[7].innerText = totalBatA["Total Sixes"] || 0; }
+
+            const totalBowlA = matchData.team1_total_bowl?.[0];
+            const rowA2      = document.querySelector("#teamA_bowl_total");
+            if (rowA2 && totalBowlA) { rowA2.children[1].innerText = totalBowlA['Total Wickets'] || 0; rowA2.children[2].innerText = totalBowlA["Total Runs"] || 0; rowA2.children[3].innerText = totalBowlA["Total Overs"] || 0; rowA2.children[4].innerText = totalBowlA["Total Balls"] || 0; rowA2.children[5].innerText = totalBowlA["Team Economy"] || 0; rowA2.children[6].innerText = totalBowlA["Team Average"] || 0; rowA2.children[7].innerText = totalBowlA["Team Strike Rate"] || 0; }
+
+            const totalBatB = matchData.team2_total_bat?.[0];
+            const rowB      = document.querySelector("#teamB_bat_total");
+            if (rowB && totalBatB) { rowB.children[1].innerText = totalBatB['Matches'] || 0; rowB.children[2].innerText = totalBatB["Total Runs"] || 0; rowB.children[3].innerText = totalBatB["Total Balls"] || 0; rowB.children[4].innerText = totalBatB["Team Avg Score"] || 0; rowB.children[5].innerText = totalBatB["Team SR"] || 0; rowB.children[6].innerText = totalBatB["Total Fours"] || 0; rowB.children[7].innerText = totalBatB["Total Sixes"] || 0; }
+
+            const totalBowlB = matchData.team2_total_bowl?.[0];
+            const rowB2      = document.querySelector("#teamB_bowl_total");
+            if (rowB2 && totalBowlB) { rowB2.children[1].innerText = totalBowlB['Total Wickets'] || 0; rowB2.children[2].innerText = totalBowlB["Total Runs"] || 0; rowB2.children[3].innerText = totalBowlB["Total Overs"] || 0; rowB2.children[4].innerText = totalBowlB["Total Balls"] || 0; rowB2.children[5].innerText = totalBowlB["Team Economy"] || 0; rowB2.children[6].innerText = totalBowlB["Team Average"] || 0; rowB2.children[7].innerText = totalBowlB["Team Strike Rate"] || 0; }
+
+            document.getElementById("response").innerHTML = "<p>Matchup analyzed successfully. Ask me anything about it!</p>";
+        } catch(e) {
+            console.error(e);
+        } finally {
+            btn.innerText = "Run Matchup Simulation";
+            btn.style.opacity = "1";
+        }
+    });
+
+    document.querySelector(".llm").addEventListener("click", async () => {
+        const question    = document.getElementById("question").value;
+        const responseDiv = document.getElementById("response");
+
+        if (!question) { alert("Please enter a query!"); return; }
+        if (!threadId) { responseDiv.innerHTML = "<p style='color:red;'>Please submit a matchup in the Custom Matchup tab first.</p>"; return; }
+
+        responseDiv.innerHTML += `<p><b>You:</b> ${question}</p><p><i>Thinking...</i></p>`;
+        
+        // Scroll to bottom of chat
+        responseDiv.scrollTop = responseDiv.scrollHeight;
+
+        try {
+            const response = await fetch("/get_llm", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: question, thread_id: threadId })
+            });
+            const data = await response.json();
+            
+            // Replace "Thinking..." with answer
+            responseDiv.lastChild.innerHTML = `<b>AI:</b> ${data.status === "success" ? data.answer : "Error: " + data.message}`;
+            responseDiv.scrollTop = responseDiv.scrollHeight;
+            
+        } catch (err) { 
+            responseDiv.lastChild.innerHTML = "<span style='color:red;'>Failed to connect to server.</span>"; 
+        }
+        
+        document.getElementById("question").value = "";
+    });
+
+    let fantasyThreadId = null;
+
+    document.querySelector('.fantasyCreateBtn').addEventListener('click', async () => {
+        const firstteam  = document.getElementById('fantasyTeam1').value.trim();
+        const secondteam = document.getElementById('fantasyTeam2').value.trim();
+
+        if (!firstteam || !secondteam) { alert("Please select both teams!"); return; }
+        if (firstteam === secondteam) { alert("Please select two different teams!"); return; }
+
+        fantasyThreadId = crypto.randomUUID();
+
+        const chatDisplay = document.getElementById('fantasyChatDisplay');
+        const chatCard    = document.getElementById('fantasyChatbotCard');
+        
+        chatCard.style.display = 'block';
+        chatDisplay.innerHTML = `<p style="color:#2563eb"><b>AI:</b> Preparing matchup for <b>${firstteam}</b> vs <b>${secondteam}</b>... ⏳</p>`;
+
+        const btn = document.querySelector('.fantasyCreateBtn');
+        btn.innerText = "Building..."; btn.disabled = true;
+
+        try {
+            await fetch("/fantasy-matchup", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ team1: firstteam, team2: secondteam })
+            });
+
+            chatDisplay.innerHTML = `<p style="color:#2563eb"><b>AI:</b> Matchup ready! Building Fantasy XI... ⏳</p>`;
+
+            const response = await fetch('/fantasy-chat', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstteam, secondteam, threadIde: fantasyThreadId })
+            });
+
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const llmData = await response.json();
+
+            if (llmData.status === 'success') {
+                chatDisplay.innerHTML = `<p><b>AI:</b> ${llmData.answer.replace(/\n/g, '<br>')}</p>`;
+            } else {
+                chatDisplay.innerHTML = `<p style="color:red;"><b>Error:</b> ${llmData.message || 'Something went wrong.'}</p>`;
+            }
+        } catch (error) {
+            console.error(error);
+            chatDisplay.innerHTML = `<p style="color:red;"><b>Error:</b> Failed to connect to server.</p>`;
+        } finally {
+            btn.innerText = "Build Fantasy XI"; btn.disabled = false;
+        }
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Virtual environment
+Lib/
+Scripts/
+Include/
+share/
+pyvenv.cfg
+
+# Environment variables
+.env
+
+# Database / vector db
+*.db
+*.sqlite3
+vector_db/
+
+# Data files
+*.parquet
+deliveries.csv
+
+# Python cache
+__pycache__/
+*.pyc

@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WicketStats — Decode Every Wicket</title>
+    <meta name="description" content="WicketStats turns raw IPL ball-by-ball records into match predictions, player intelligence, fantasy lineups, and what-if scenarios — powered by AI.">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --WC_BLUE: oklch(62.3% .214 259.815);
+        }
+
+        @font-face {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            src: url('fonts/samsungsharpsans.otf') format('opentype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            src: url('fonts/samsungsharpsans-medium.otf') format('opentype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            src: url('fonts/samsungsharpsans-bold.otf') format('opentype');
+            font-weight: 700;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            width: 100%; height: 100%;
+            overflow-x: hidden;
+            background: #ffffff;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            color: #fff;
+             filter: brightness(.85) contrast(1.1);
+            
+        }
+
+        /* ── Full-screen wrapper ── */
+        .hero-wrap {
+            position: relative;
+            width: 100vw; height: 30vh;
+             background: linear-gradient(
+        to top, 
+        #ffffff 0%,           /* Start pure white at the very top edge */
+        rgba(255,255,255,0.5) 30%, /* Quick transition to semi-transparent */
+        #1e88e5 99%,    /* Fully blue by 40% of the way down */
+        #1e88e5 100%    /* Stay solid blue to the bottom */
+    );
+        }
+
+        /* ── Background image ── */
+        .bg-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        /* ── Bottom fade-out gradient ── */
+        .bg-fade {
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 60%, #ffffff 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* ── SVG noise texture (reusable) ── */
+        .noise-layer {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Navbar ── */
+       .navbar {
+    position: absolute;
+    top: 28px; left: 50%;
+    transform: translateX(-50%);
+    width: 94%; max-width: 1500px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-radius: 20px; /* Slightly rounder for the soft look */
+    z-index: 20;
+    
+    /* The Core Neomorphic Base */
+    background: rgba(255, 255, 255, 0.05); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    
+    /* One thin border for glass-like definition */
+
+    /* 
+       Proper Neomorphic Stack:
+       1. Soft Outer Shadow (Depth)
+       2. Soft Outer Highlight (Light Source)
+       3. Inset Highlight (Bevel effect)
+       4. Inset Shadow (Inner Depth)
+    */
+    box-shadow: 
+        10px 10px 20px rgba(0, 0, 0, 0.3),            /* Outer Shadow */
+        -5px -5px 15px rgba(255, 255, 255, 0.05),     /* Outer Glow */
+        inset 1px 1px 2px rgba(255, 255, 255, 0.2),   /* Top-left inner bevel */
+        inset -1px -1px 2px rgba(0, 0, 0, 0.2);       /* Bottom-right inner bevel */
+}
+
+        /* Navbar noise overlay */
+        .navbar::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            pointer-events: none;
+            border-radius: inherit;
+            z-index: 0;
+        }
+        .navbar > * { position: relative; z-index: 1; }
+
+        .nav-brand {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: .5px;
+            text-decoration: none;
+            flex-shrink: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,.3);
+        }
+
+        .nav-center {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .nav-center a {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding: 9px 20px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: background .3s, border-color .3s, color .25s, box-shadow .3s;
+        }
+        .nav-center a::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+        .nav-center a:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.18);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(255,255,255,0.06);
+        }
+        .nav-center a:hover::before { opacity: 1; }
+
+        .btn-register {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            color: #fff;
+            padding: 11px 30px;
+            border-radius: 12px;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            cursor: pointer;
+            transition: background .3s, transform .3s, box-shadow .3s;
+        }
+        .btn-register::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: inherit;
+        }
+        .btn-register:hover {
+               transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+        }
+
+    
+.wc-footer {
+    position: relative;
+    /* This creates the smooth 'entry' from the white page into the blue footer */
+    background: linear-gradient(
+        to bottom, 
+        #ffffff 10%,           /* Start pure white at the very top edge */
+        rgba(255,255,255,0.5) 18%, /* Quick transition to semi-transparent */
+        var(--WC_BLUE) 70%,    /* Fully blue by 40% of the way down */
+        var(--WC_BLUE) 100%    /* Stay solid blue to the bottom */
+    );
+    
+    color: white;
+    padding: 120px 40px 80px; /* Increased top padding to give the fade space */
+    margin-top: 14rem; /* Reduced margin since the fade acts as visual space */
+}
+
+
+
+
+/* STACK LAYOUT (NO FLEX ROW) */
+.wc-footer-container {
+    max-width: 1200px;
+    margin: 5rem;
+
+    display: flex;
+    flex-direction: column;  /* KEY CHANGE */
+    gap: 60px;
+}
+
+/* ===== CTA SECTION ===== */
+.launch-wc {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    max-width: 700px;
+}
+.wc-other-brand {
+    width: 250px; 
+    aspect-ratio: 1 / 1; 
+    border-radius: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Base color (important for neumorphism) */
+ background: linear-gradient(
+        to bottom,
+        15deg, 
+        #ffffff 0%, 
+        rgba(255, 255, 255, 0.5) 15%, 
+        var(--WC_BLUE) 95%, 
+        var(--WC_BLUE) 100%
+    );
+    /* Classic neumorphic dual shadow */
+    box-shadow:
+        12px 12px 25px rgba(0, 0, 0, 0.15),   /* dark shadow */
+        -12px -12px 25px rgba(255, 255, 255, 0.9); /* light highlight */
+
+    transform: rotate(-15deg);
+
+    border-radius: 40px;
+    overflow: hidden;
+}
+
+.wc-other-brand:active {
+    box-shadow:
+        inset 8px 8px 18px rgba(0,0,0,0.15),
+        inset -8px -8px 18px rgba(255,255,255,0.9);
+}
+
+.wc-other-brand img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* FIX: Scale the image up to remove the built-in padding of the file */
+    transform: scale(1.4); 
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+}
+
+
+
+
+
+/* ===== LINKS SECTION ===== */
+.wc-footer-links {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+/* Logo */
+.wc-footer-brand img {
+    width: 130px;
+    margin-bottom: 10px;
+}
+
+/* Columns */
+.wc-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.wc-footer-column h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.wc-footer-column a {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: 0.2s ease;
+}
+
+.wc-footer-column a:hover {
+    color: white;
+    transform: translateX(4px);
+}
+        .problem-section {
+            background-color: #ffffff;
+            margin: 24px;
+            margin-top: 50px;
+            padding: 14px;
+            display: flex;
+            justify-content: flex-start;
+            position: relative; /* Allows 'top' to work */
+        }
+        
+        .problem-container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        .problem-container p{
+            margin-top: 10px;
+            color: #000000;
+            font-size: 1rem;
+            font-weight: 888px;
+        }
+
+
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--WC_BLUE);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        
+        .section-label .label-line {
+            width: 40px;
+            height: 2px;
+            background-color: var(--WC_BLUE);
+        }
+
+        .problem-title {
+            font-size: clamp(2.2rem, 4vw, 3.5rem);
+            font-weight: 700;
+            color: #000000;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+
+        .problem-title .highlight {
+            color: var(--WC_BLUE);
+            font-style: italic;
+        }
+
+.wc-compare {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px auto 60px;
+    padding: 0;
+    max-width: 900px;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    position: relative;
+}
+
+.input-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.input-row input {
+    width: 42%;
+    font-size: 18px;
+    padding: 20px 25px;
+    border-radius: 60px;
+    border: 3px solid transparent;
+    background: #ffffff;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    text-align: center;
+    font-weight: 800;
+    color: #0f172a;
+    transition: all 0.3s ease;
+    flex: none;
+}
+
+.input-row input:focus {
+    outline: none;
+    border-color: var(--WC_BLUE);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(30, 136, 229, 0.2);
+}
+
+.wc-compare button {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--WC_BLUE);
+    color: white;
+    border: 6px solid #ffffff;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 24px;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(30, 136, 229, 0.4);
+    z-index: 10;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.wc-compare button:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 15px 40px rgba(30, 136, 229, 0.6);
+}
+
+.arena {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 40px auto 100px;
+    padding: 0 20px;
+    position: relative;
+}
+
+.player-card {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 40px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.03);
+    padding-bottom: 40px;
+    max-width: 500px;
+}
+
+.p1-card {
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 20%);
+}
+
+.p2-card {
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 20%);
+}
+
+.photo-wrapper {
+    width: 100%;
+    height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: relative;
+    padding-top: 50px;
+    background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.photo-wrapper img {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    z-index: 2;
+    filter: drop-shadow(0 20px 20px rgba(0,0,0,0.1));
+}
+
+.neon-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(30,136,229,0.1) 0%, rgba(30,136,229,0) 70%);
+    z-index: 1;
+}
+
+.p2-card .neon-ring {
+    background: radial-gradient(circle, rgba(233,30,99,0.1) 0%, rgba(233,30,99,0) 70%);
+}
+
+.stats-wrapper {
+    padding: 0 40px;
+}
+
+.stat-category {
+    font-size: 14px;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 2px;
+    margin: 40px 0 20px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-category::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: #f1f5f9;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.stat-grid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.stat-box {
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 15px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 1px solid #f1f5f9;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border-color: var(--WC_BLUE);
+}
+
+.highlight-box {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.p2-card .highlight-box {
+    background: #fff1f2;
+    border-color: #fecdd3;
+}
+.p2-card .stat-box:hover {
+    border-color: #e11d48;
+}
+
+.s-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.s-val {
+    font-size: 20px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.highlight-box .s-val {
+    color: var(--WC_BLUE);
+}
+
+.p2-card .highlight-box .s-val {
+    color: #e11d48;
+}
+
+.arena-vs {
+    position: sticky;
+    top: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 60px;
+    height: 60px;
+    background: #0f172a;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 900;
+    font-style: italic;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+    z-index: 10;
+    margin-top: 200px;
+}
+    </style>
+</head>
+<body>
+
+<div class="hero-wrap">
+    <!-- Background -->
+    <div class="noise-layer"></div>
+    <div class="bg-fade"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="main-navbar">
+        <span class="nav-brand">WicketStats</span>
+        <div class="nav-center">
+            <a href="#"><i data-lucide="home" style="width: 18px; height: 18px;"></i> Home</a>
+            <a href="#"><i data-lucide="git-compare" style="width: 18px; height: 18px;"></i> Comparison</a>
+            <a href="{{ url_for('teamgraph') }}"><i data-lucide="users" style="width: 18px; height: 18px;"></i>Team Stats</a>
+        </div>
+        <button class="btn-register" id="btn-open-modal">Register</button>
+    </nav>
+</div>
+
+<section class="problem-section">
+    <div class="problem-container">
+        <div class="section-label">
+            <span class="label-line"></span> PLAYER COMPARISON
+        </div>
+        <h2 class="problem-title">
+            Head-to-head.<br>
+            <span class="highlight">Every stats.</span>
+        </h2>
+        <p>
+            compare any two IPl players across 24 career metrics - batting, bowling, and fielding
+        </p>
+    </div>
+</section>
+
+<div class="wc-compare">
+    <div class="input-row">
+        <input type="text" id="player1Input" placeholder="Player 1">
+        <button type="submit" class="save-team">VS</button>
+        <input type="text" id="player2Input" placeholder="Player 2">
+    </div>
+</div>
+
+
+<div class="arena">
+    <!-- Player 1 Profile -->
+    <div class="player-card p1-card">
+        <div class="photo-wrapper">
+            <img id="playerImage" src="" alt="Player 1" style="display: none;">
+            <div class="neon-ring"></div>
+        </div>
+        <div class="stats-wrapper">
+            <div class="stat-category">BATTING</div>
+            <div class="stat-grid">
+                <div class="stat-box"><span class="s-label">Matches</span><span class="s-val" id="p1_matches">0</span></div>
+                <div class="stat-box"><span class="s-label">Inns</span><span class="s-val" id="p1_inns">0</span></div>
+                <div class="stat-box"><span class="s-label">Runs</span><span class="s-val" id="p1_runs">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Average</span><span class="s-val" id="p1_avg">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Strike Rate</span><span class="s-val" id="p1_sr">0</span></div>
+                <div class="stat-box"><span class="s-label">Highest</span><span class="s-val" id="p1_high">0</span></div>
+                <div class="stat-box"><span class="s-label">100s</span><span class="s-val" id="p1_100s">0</span></div>
+                <div class="stat-box"><span class="s-label">50s</span><span class="s-val" id="p1_50s">0</span></div>
+                <div class="stat-box"><span class="s-label">4s</span><span class="s-val" id="p1_4s">0</span></div>
+                <div class="stat-box"><span class="s-label">6s</span><span class="s-val" id="p1_6s">0</span></div>
+                <div class="stat-box"><span class="s-label">Balls</span><span class="s-val" id="p1_balls">0</span></div>
+            </div>
+
+            <div class="stat-category">BOWLING</div>
+            <div class="stat-grid">
+                <div class="stat-box"><span class="s-label">Inns</span><span class="s-val" id="p1_b_inns">0</span></div>
+                <div class="stat-box"><span class="s-label">Wickets</span><span class="s-val" id="p1_wkts">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Economy</span><span class="s-val" id="p1_econ">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Average</span><span class="s-val" id="p1_b_avg">0</span></div>
+                <div class="stat-box"><span class="s-label">Strike Rate</span><span class="s-val" id="p1_b_sr">0</span></div>
+                <div class="stat-box"><span class="s-label">Runs Conceded</span><span class="s-val" id="p1_runs_con">0</span></div>
+                <div class="stat-box"><span class="s-label">4W Haul</span><span class="s-val" id="p1_4w">0</span></div>
+                <div class="stat-box"><span class="s-label">5W Haul</span><span class="s-val" id="p1_5w">0</span></div>
+            </div>
+
+            <div class="stat-category">FIELDING</div>
+            <div class="stat-grid3">
+                <div class="stat-box"><span class="s-label">Catches</span><span class="s-val" id="p1_catch">0</span></div>
+                <div class="stat-box"><span class="s-label">Stumpings</span><span class="s-val" id="p1_stump">0</span></div>
+                <div class="stat-box"><span class="s-label">Runouts</span><span class="s-val" id="p1_runout">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Center VS Badge -->
+    <div class="arena-vs">VS</div>
+
+    <!-- Player 2 Profile -->
+    <div class="player-card p2-card">
+        <div class="photo-wrapper">
+            <img id="playerImage1" src="" alt="Player 2" style="display: none;">
+            <div class="neon-ring"></div>
+        </div>
+        <div class="stats-wrapper">
+            <div class="stat-category">BATTING</div>
+            <div class="stat-grid">
+                <div class="stat-box"><span class="s-label">Matches</span><span class="s-val" id="p2_matches">0</span></div>
+                <div class="stat-box"><span class="s-label">Inns</span><span class="s-val" id="p2_inns">0</span></div>
+                <div class="stat-box"><span class="s-label">Runs</span><span class="s-val" id="p2_runs">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Average</span><span class="s-val" id="p2_avg">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Strike Rate</span><span class="s-val" id="p2_sr">0</span></div>
+                <div class="stat-box"><span class="s-label">Highest</span><span class="s-val" id="p2_high">0</span></div>
+                <div class="stat-box"><span class="s-label">100s</span><span class="s-val" id="p2_100s">0</span></div>
+                <div class="stat-box"><span class="s-label">50s</span><span class="s-val" id="p2_50s">0</span></div>
+                <div class="stat-box"><span class="s-label">4s</span><span class="s-val" id="p2_4s">0</span></div>
+                <div class="stat-box"><span class="s-label">6s</span><span class="s-val" id="p2_6s">0</span></div>
+                <div class="stat-box"><span class="s-label">Balls</span><span class="s-val" id="p2_balls">0</span></div>
+            </div>
+
+            <div class="stat-category">BOWLING</div>
+            <div class="stat-grid">
+                <div class="stat-box"><span class="s-label">Inns</span><span class="s-val" id="p2_b_inns">0</span></div>
+                <div class="stat-box"><span class="s-label">Wickets</span><span class="s-val" id="p2_wkts">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Economy</span><span class="s-val" id="p2_econ">0</span></div>
+                <div class="stat-box highlight-box"><span class="s-label">Average</span><span class="s-val" id="p2_b_avg">0</span></div>
+                <div class="stat-box"><span class="s-label">Strike Rate</span><span class="s-val" id="p2_b_sr">0</span></div>
+                <div class="stat-box"><span class="s-label">Runs Conceded</span><span class="s-val" id="p2_runs_con">0</span></div>
+                <div class="stat-box"><span class="s-label">4W Haul</span><span class="s-val" id="p2_4w">0</span></div>
+                <div class="stat-box"><span class="s-label">5W Haul</span><span class="s-val" id="p2_5w">0</span></div>
+            </div>
+
+            <div class="stat-category">FIELDING</div>
+            <div class="stat-grid3">
+                <div class="stat-box"><span class="s-label">Catches</span><span class="s-val" id="p2_catch">0</span></div>
+                <div class="stat-box"><span class="s-label">Stumpings</span><span class="s-val" id="p2_stump">0</span></div>
+                <div class="stat-box"><span class="s-label">Runouts</span><span class="s-val" id="p2_runout">0</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="wc-footer">
+
+    <div class="wc-footer-container">
+
+        <!-- LEFT CTA SECTION -->
+        <div class="launch-wc">
+            <div class="wc-other-brand">
+                <img src="static/images/logo.png" alt="WicketStats">
+            </div>
+        </div>
+<hr>
+        <!-- RIGHT LINKS SECTION -->
+        <div class="wc-footer-links">
+
+            <div class="wc-footer-brand">
+                <img src="static/images/glass-logo.png" alt="WicketStats">
+            </div>
+
+            <div class="wc-footer-column">
+                <h3>Platform</h3>
+                <a href="#">Match Predictor</a>
+                <a href="#">Player Index</a>
+                <a href="#">Bowler Index</a>
+                <a href="#">Team Graphs</a>
+                <a href="#">Comparison Engine</a>
+            </div>
+
+            <div class="wc-footer-column">
+                <h3>Intelligence</h3>
+                <a href="#">Custom Matchups</a>
+                <a href="#">Fantasy XI</a>
+                <a href="#">What If Engine</a>
+                <a href="#">WicketStats AI</a>
+                <a href="#">Top Scorers</a>
+            </div>
+
+            <div class="wc-footer-column">
+                <h3>Account</h3>
+                <a href="#">Sign Up</a>
+                <a href="#">Login</a>
+                <a href="#">Dashboard</a>
+                <a href="#">Match History</a>
+            </div>
+
+        </div>
+
+    </div>
+
+</footer>
+
+<script>
+lucide.createIcons();
+document.querySelector(".save-team").addEventListener('click', async () => {
+    const player1 = document.getElementById('player1Input').value;
+    const player2 = document.getElementById('player2Input').value;
+
+    if (!player1 || !player2) {
+        alert("Please enter both players!");
+        return;
+    }
+
+    if (player1 === player2) {
+        alert("Please enter two different players!");
+        return;
+    }
+
+    const btn = document.querySelector(".save-team");
+    btn.classList.add("loading");
+    btn.disabled = true;
+
+    try {
+        const response = await fetch("/comparison", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ player1, player2 })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const matchData = await response.json();
+        const imgElement = document.getElementById("playerImage");
+        imgElement.src = matchData.image_url;
+        imgElement.style.display = "block";
+
+        const imgElement1 = document.getElementById("playerImage1");
+        imgElement1.src = matchData.image_url1;
+        imgElement1.style.display = "block";
+
+
+        // Player 1 stats
+
+        document.getElementById("p1_matches").innerText = matchData.user1.batting.total_matches_played;
+        document.getElementById("p1_inns").innerText = matchData.user1.batting.total_innings;
+        document.getElementById("p1_runs").innerText = matchData.user1.batting.total_runs;
+        document.getElementById("p1_balls").innerText = matchData.user1.batting.total_balls_faced;
+        document.getElementById("p1_high").innerText = matchData.user1.batting.highest_score;
+        document.getElementById("p1_avg").innerText = matchData.user1.batting.batting_average;
+        document.getElementById("p1_sr").innerText = matchData.user1.batting.strike_rate;
+        document.getElementById("p1_100s").innerText = matchData.user1.batting.total_100s;
+        document.getElementById("p1_50s").innerText = matchData.user1.batting.total_50s;
+        document.getElementById("p1_4s").innerText = matchData.user1.batting.total_fours;
+        document.getElementById("p1_6s").innerText = matchData.user1.batting.total_sixes;
+
+        document.getElementById("p1_b_inns").innerText = matchData.user1.bowling.bowling_innings;
+        document.getElementById("p1_runs_con").innerText = matchData.user1.bowling.total_runs_conceded;
+        document.getElementById("p1_wkts").innerText = matchData.user1.bowling.wickets;
+        document.getElementById("p1_econ").innerText = matchData.user1.bowling.bowling_economy;
+        document.getElementById("p1_b_avg").innerText = matchData.user1.bowling.bowling_average;
+        document.getElementById("p1_b_sr").innerText = matchData.user1.bowling.bowling_strike_rate;
+        document.getElementById("p1_4w").innerText = matchData.user1.bowling.four_wicket_haul;
+        document.getElementById("p1_5w").innerText = matchData.user1.bowling.five_wicket_haul;
+
+        document.getElementById("p1_catch").innerText = matchData.user1.fielding.catches;
+        document.getElementById("p1_stump").innerText = matchData.user1.fielding.stumpings;
+        document.getElementById("p1_runout").innerText = matchData.user1.fielding.runout;
+
+
+        // Player 2 stats
+        document.getElementById("p2_matches").innerText = matchData.user2.batting.total_matches_played;
+        document.getElementById("p2_inns").innerText = matchData.user2.batting.total_innings;
+        document.getElementById("p2_runs").innerText = matchData.user2.batting.total_runs;
+        document.getElementById("p2_balls").innerText = matchData.user2.batting.total_balls_faced;
+        document.getElementById("p2_high").innerText = matchData.user2.batting.highest_score;
+        document.getElementById("p2_avg").innerText = matchData.user2.batting.batting_average;
+        document.getElementById("p2_sr").innerText = matchData.user2.batting.strike_rate;
+        document.getElementById("p2_100s").innerText = matchData.user2.batting.total_100s;
+        document.getElementById("p2_50s").innerText = matchData.user2.batting.total_50s;
+        document.getElementById("p2_4s").innerText = matchData.user2.batting.total_fours;
+        document.getElementById("p2_6s").innerText = matchData.user2.batting.total_sixes;
+
+        document.getElementById("p2_b_inns").innerText = matchData.user2.bowling.bowling_innings;
+        document.getElementById("p2_runs_con").innerText = matchData.user2.bowling.total_runs_conceded;
+        document.getElementById("p2_wkts").innerText = matchData.user2.bowling.wickets;
+        document.getElementById("p2_econ").innerText = matchData.user2.bowling.bowling_economy;
+        document.getElementById("p2_b_avg").innerText = matchData.user2.bowling.bowling_average;
+        document.getElementById("p2_b_sr").innerText = matchData.user2.bowling.bowling_strike_rate;
+        document.getElementById("p2_4w").innerText = matchData.user2.bowling.four_wicket_haul;
+        document.getElementById("p2_5w").innerText = matchData.user2.bowling.five_wicket_haul;
+
+        document.getElementById("p2_catch").innerText = matchData.user2.fielding.catches;
+        document.getElementById("p2_stump").innerText = matchData.user2.fielding.stumpings;
+        document.getElementById("p2_runout").innerText = matchData.user2.fielding.runout;
+
+    } catch (error) {
+        alert("Error fetching player data: " + error.message);
+    } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+    }
+});
+</script>
+</body>
+</html>

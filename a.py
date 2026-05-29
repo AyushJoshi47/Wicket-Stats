@@ -1,0 +1,2500 @@
+from flask import Flask, render_template, request, jsonify, session
+import pandas as pd
+import matplotlib.pyplot as plt
+import sqlite3
+from flask import redirect, url_for
+import smtplib
+import random
+import os
+from email.mime.text import MIMEText
+from dotenv import load_dotenv
+import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+import json 
+import rag_engine
+import numpy as np
+import polars as pl
+import systemprompts
+import urllib.request
+import urllib.parse
+import json
+import os
+import image_mapping
+
+
+
+app = Flask(__name__)
+
+pl.Config.set_float_precision(2)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.precision', 3)
+df = pd.read_parquet('IPL.parquet')
+df_new = pd.read_parquet('IPL.parquet')
+df_new = df_new[df_new['season'].isin(['2024', '2025'])]
+df_2026 = pd.read_parquet('2026.parquet')
+
+
+
+
+dataframe = pl.read_parquet('IPL.parquet')
+df1 = pd.read_parquet('2026.parquet')
+
+df_2026['batting_team'] = df_2026['batting_team'].replace({
+    'RCB': 'Royal Challengers Bangalore',
+    'DC':  'Delhi Capitals',
+    'PBKS': 'Punjab Kings',
+    'MI':  'Mumbai Indians',
+    'CSK': 'Chennai Super Kings',
+    'KKR': 'Kolkata Knight Riders',
+    'RR':  'Rajasthan Royals',
+    'SRH': 'Sunrisers Hyderabad',
+    'LSG': 'Lucknow Super Giants',
+    'GT':  'Gujarat Titans',
+
+})
+df_2026['bowling_team'] = df_2026['bowling_team'].replace(
+    {
+    'RCB': 'Royal Challengers Bangalore',
+    'DC':  'Delhi Capitals',
+    'PBKS': 'Punjab Kings',
+    'MI':  'Mumbai Indians',
+    'CSK': 'Chennai Super Kings',
+    'KKR': 'Kolkata Knight Riders',
+    'RR':  'Rajasthan Royals',
+    'SRH': 'Sunrisers Hyderabad',
+    'LSG': 'Lucknow Super Giants',
+    'GT':  'Gujarat Titans',
+}
+)
+
+df['date'] = pd.to_datetime(df['date'])
+
+load_dotenv()
+app.secret_key = os.getenv('SECRET_KEY')  # required for session storage
+SECRET_KEY = app.secret_key
+EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+def init_db():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT UNIQUE,
+            plan TEXT,
+            password TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );''')
+       
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS teamname (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team TEXT,
+            user_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );''')
+        
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS otp_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            otp TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );''')
+    cursor.execute('''
+       CREATE TABLE IF NOT EXISTS custom_matchups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,               
+    matchup_name TEXT NOT NULL,
+    teamA TEXT NOT NULL,
+    teamB TEXT NOT NULL,
+    teamA_players TEXT NOT NULL,   
+    teamB_players TEXT,            
+    metrics TEXT,
+    teamA_bat_stats TEXT,
+    teamA_bat_total TEXT,          
+    teamA_bowl_stats TEXT,
+    teamA_bowl_total TEXT,
+    teamB_bat_stats TEXT,
+    teamB_bat_total TEXT,
+    teamB_bowl_stats TEXT,
+    teamB_bowl_total TEXT,
+    teamScores TEXT,
+    winner TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+''')
+    
+    conn.commit()
+    conn.close()
+
+init_db()
+
+
+
+
+replacements = {
+    'Royal Challengers Bengaluru': 'Royal Challengers Bangalore',
+    'Delhi Daredevils': 'Delhi Capitals',
+    'Punjab Kings': 'Kings XI Punjab',
+}
+
+replacement = {
+    "2007/08": "2008",
+    "2009/10": "2010", 
+    "2020/21": "2020"
+}
+
+dataframe = dataframe.with_columns(
+    pl.col(['batting_team', 'bowling_team']).replace(replacements)
+)
+
+dataframe = dataframe.with_columns(
+    pl.col("season").replace(replacement)
+)
+df_new['batting_team'] = df_new['batting_team'].replace({
+    'Royal Challengers Bengaluru': 'Royal Challengers Bangalore',
+    'Delhi Daredevils':            'Delhi Capitals',
+    'Punjab Kings':                'Kings XI Punjab',
+})
+df_new['bowling_team'] = df_new['bowling_team'].replace({
+    'Royal Challengers Bengaluru': 'Royal Challengers Bangalore',
+    'Delhi Daredevils':            'Delhi Capitals',
+    'Punjab Kings':                'Kings XI Punjab',
+})
+df_new['season'] = (
+    df_new['season']
+    .replace({'2007/08': '2008', '2009/10': '2010', '2020/21': '2020'})
+    .astype(str)
+)
+
+
+# ===== Normalize team names here =====
+df['batting_team'] = df['batting_team'].replace({'Royal Challengers Bengaluru': 'Royal Challengers Bangalore'})
+df['bowling_team'] = df['bowling_team'].replace({'Royal Challengers Bengaluru': 'Royal Challengers Bangalore'})
+df['match_won_by'] = df['match_won_by'].replace({'Royal Challengers Bengaluru': 'Royal Challengers Bangalore'})
+df['toss_winner'] = df['toss_winner'].replace({'Royal Challengers Bengaluru': 'Royal Challengers Bangalore'})
+# =====================================
+df['batting_team'] = df['batting_team'].replace({'Delhi Daredevils': 'Delhi Capitals'})
+df['bowling_team'] = df['bowling_team'].replace({'Delhi Daredevils': 'Delhi Capitals'})
+df['match_won_by'] = df['match_won_by'].replace({'Delhi Daredevils': 'Delhi Capitals'})
+df['toss_winner'] = df['toss_winner'].replace({'Delhi Daredevils': 'Delhi Capitals'})
+# =====================================
+df['batting_team'] = df['batting_team'].replace({'Punjab Kings': 'Kings XI Punjab'})
+df['bowling_team'] = df['bowling_team'].replace({'Punjab Kings': 'Kings XI Punjab'})
+df['match_won_by'] = df['match_won_by'].replace({'Punjab Kings': 'Kings XI Punjab'})
+df['toss_winner'] = df['toss_winner'].replace({'Punjab Kings': 'Kings XI Punjab'})
+# =====================================
+df['season'] = df['season'].replace({'2007/08': '2008'})
+df['season'] = df['season'].replace({'2009/10': '2010'})
+df['season'] = df['season'].replace({'2020/21': '2020'})    
+df_new = df_new[df_new['season'].isin(['2024', '2025'])]
+
+
+
+@app.route('/')
+def index():
+    teams = df['batting_team'].unique().tolist()
+    logged_in = 'user_id' in session  # True if user is logged in
+    return render_template('index.html', teams=teams, logged_in=logged_in)
+
+@app.route("/whatif")
+def whatif():
+    return render_template('whatif.html')
+
+@app.route('/team_graph')
+def team_graph():
+    return render_template('teamgraph.html')
+
+@app.route('/newindex')
+def newindex():
+    return render_template('new_index.html')
+
+@app.route('/player_index1')
+def player_index1():
+    return render_template('player_index.html')
+
+@app.route('/fantasy')
+def fantasy():
+    return render_template('fantasy.html')
+
+@app.route('/bowlerindex')
+def bowlerindex():
+    return render_template('bowler_index.html')
+
+@app.route('/player_comparison')
+def player_comparison():
+    return render_template('comparison.html')
+
+@app.route('/new_comparison')
+def new_comparison():
+    return render_template('new_comparison.html')
+
+@app.route('/new_teamgraph')
+def new_teamgraph():
+    return render_template('new_teamgraph.html')
+
+@app.route('/top_scorer_page')
+def top_scorer_page():
+    return render_template('top_score.html')
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+def get_h2h_match(team1, team2):
+      h2h = df[
+        ((df['batting_team'] == team1) & (df['bowling_team'] == team2)) |
+        ((df['batting_team'] == team2) & (df['bowling_team'] == team1))
+    ]
+      return h2h
+def get_h2h_matches(team1, team2):
+    h2h = df_new[
+        (
+            ((df_new['batting_team'] == team1) & (df_new['bowling_team'] == team2)) |
+            ((df_new['batting_team'] == team2) & (df_new['bowling_team'] == team1))
+        )
+    ]
+    return h2h
+
+
+
+def get_h2h_matches_2026(team1, team2):
+    h2h = df_2026[
+        (
+            ((df_2026['batting_team'] == team1) & (df_2026['bowling_team'] == team2)) |
+            ((df_2026['batting_team'] == team2) & (df_2026['bowling_team'] == team1))
+        )
+    ]
+    return h2h
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()
+    team1 = data['team1']
+    team2 = data['team2']
+
+    h2h = get_h2h_match(team1, team2)
+
+    # ── Total matches ──────────────────────────────────────────
+    total_matches = h2h['match_id'].nunique()
+
+    # ── Runs ───────────────────────────────────────────────────
+    team1_runs = h2h[h2h['batting_team'] == team1].groupby('match_id')['runs_total'].sum().sum()
+    team2_runs = h2h[h2h['batting_team'] == team2].groupby('match_id')['runs_total'].sum().sum()
+
+    team1_average_runs = team1_runs / total_matches if total_matches else 0
+    team2_average_runs = team2_runs / total_matches if total_matches else 0
+
+    # ── Match wins ─────────────────────────────────────────────
+    match_results = h2h[['match_id', 'match_won_by']].drop_duplicates()
+    team1_wins = match_results[match_results['match_won_by'] == team1].shape[0]
+    team2_wins = match_results[match_results['match_won_by'] == team2].shape[0]
+
+    # ── Toss stats ─────────────────────────────────────────────
+    toss_df = h2h[['match_id', 'match_won_by', 'toss_decision', 'toss_winner']].drop_duplicates()
+
+    def toss_stats(team):
+        toss_wins = toss_df[toss_df['toss_winner'] == team]
+        total = toss_wins.shape[0]
+        match_won = toss_wins[toss_wins['match_won_by'] == team].shape[0]
+        won_field = toss_wins[(toss_wins['match_won_by'] == team) & (toss_wins['toss_decision'] == 'field')].shape[0]
+        won_bat   = toss_wins[(toss_wins['match_won_by'] == team) & (toss_wins['toss_decision'] == 'bat')].shape[0]
+        return total, match_won, won_field, won_bat
+
+    team1_toss_wins, team1toss_matchwon, team1toss_field, team1toss_bat = toss_stats(team1)
+    team2_toss_wins, team2toss_matchwon, team2toss_field, team2toss_bat = toss_stats(team2)
+
+    # ── Venue stats ────────────────────────────────────────────
+    venue_df = h2h[['match_id', 'match_won_by', 'venue']].drop_duplicates()
+
+    def top_venue(team):
+        vc = venue_df[venue_df['match_won_by'] == team]['venue'].value_counts()
+        if vc.empty:
+            return None, 0
+        return vc.index[0], int(vc.iloc[0])
+
+    top_venue_team1, top_venue_count_team1 = top_venue(team1)
+    top_venue_team2, top_venue_count_team2 = top_venue(team2)
+
+    # ── Score extremes ─────────────────────────────────────────
+    match_scores = h2h.groupby(['match_id', 'batting_team'])['runs_total'].sum().reset_index()
+    t1_scores = match_scores[match_scores['batting_team'] == team1]
+    t2_scores = match_scores[match_scores['batting_team'] == team2]
+
+    def score_info(scores_df, label):
+        if scores_df.empty:
+            return 0, None, 0, None
+        hi_id  = scores_df.loc[scores_df['runs_total'].idxmax(), 'match_id']
+        lo_id  = scores_df.loc[scores_df['runs_total'].idxmin(), 'match_id']
+        hi_won = h2h[h2h['match_id'] == hi_id]['match_won_by'].iloc[0]
+        lo_won = h2h[h2h['match_id'] == lo_id]['match_won_by'].iloc[0]
+        return int(scores_df['runs_total'].max()), hi_won, int(scores_df['runs_total'].min()), lo_won
+
+    t1_high, t1_high_winner, t1_low, t1_low_winner = score_info(t1_scores, team1)
+    t2_high, t2_high_winner, t2_low, t2_low_winner = score_info(t2_scores, team2)
+
+    # ── Powerplay (overs 1–6) ──────────────────────────────────
+    pp = h2h[h2h['over'] <= 6]
+    team1_pp_avg = pp[pp['batting_team'] == team1].groupby('match_id')['runs_total'].sum().mean() or 0
+    team2_pp_avg = pp[pp['batting_team'] == team2].groupby('match_id')['runs_total'].sum().mean() or 0
+
+    # ── Death overs (15+) ──────────────────────────────────────
+    death = h2h[h2h['over'] >= 15]
+    team1_death_avg = death[death['batting_team'] == team1].groupby('match_id')['runs_total'].sum().mean() or 0
+    team2_death_avg = death[death['batting_team'] == team2].groupby('match_id')['runs_total'].sum().mean() or 0
+
+    # ══ PREDICTION SCORE ══════════════════════════════════════
+    # Each factor normalised to a ratio between the two teams,
+    # then weighted and summed into a 0–100 score per team.
+
+    def safe_ratio(a, b):
+        """Returns (ratio_a, ratio_b) that add to 1.0"""
+        total = a + b
+        if total == 0:
+            return 0.5, 0.5
+        return a / total, b / total
+
+    r_wins     = safe_ratio(team1_wins,       team2_wins)
+    r_avg      = safe_ratio(team1_average_runs, team2_average_runs)
+    r_pp       = safe_ratio(team1_pp_avg,     team2_pp_avg)
+    r_death    = safe_ratio(team1_death_avg,  team2_death_avg)
+    r_toss_win = safe_ratio(team1toss_matchwon, team2toss_matchwon)
+
+    WEIGHTS = {
+        'wins':     0.40,   # h2h win rate — strongest indicator
+        'avg_runs': 0.20,   # overall batting strength
+        'powerplay':0.15,   # early momentum
+        'death':    0.15,   # finishing ability
+        'toss_win': 0.10,   # toss advantage
+    }
+
+    team1_score = round(
+        r_wins[0]     * WEIGHTS['wins']     * 100 +
+        r_avg[0]      * WEIGHTS['avg_runs'] * 100 +
+        r_pp[0]       * WEIGHTS['powerplay']* 100 +
+        r_death[0]    * WEIGHTS['death']    * 100 +
+        r_toss_win[0] * WEIGHTS['toss_win'] * 100,
+        2
+    )
+    team2_score = round(100 - team1_score, 2)
+
+    predicted_winner = team1 if team1_score > team2_score else team2
+    confidence = round(abs(team1_score - team2_score), 2)   # margin = confidence gap
+
+    # ── Return ─────────────────────────────────────────────────
+    return jsonify({
+        # Teams
+        "team1": team1,
+        "team2": team2,
+
+        # Match overview
+        "total_matches": int(total_matches),
+
+        # Runs
+        "total_team1_runs":    int(team1_runs),
+        "total_team2_runs":    int(team2_runs),
+        "team1_average_runs":  round(team1_average_runs, 2),
+        "team2_average_runs":  round(team2_average_runs, 2),
+
+        # Match wins
+        "team1_wins": team1_wins,
+        "team2_wins": team2_wins,
+
+        # Toss stats
+        "team1_toss_wins":       team1_toss_wins,
+        "team1_toss_match_won":  team1toss_matchwon,
+        "team1_toss_won_field":  team1toss_field,
+        "team1_toss_won_bat":    team1toss_bat,
+
+        "team2_toss_wins":       team2_toss_wins,
+        "team2_toss_match_won":  team2toss_matchwon,
+        "team2_toss_won_field":  team2toss_field,
+        "team2_toss_won_bat":    team2toss_bat,
+
+        "team1_top_venue":       top_venue_team1,
+        "team1_top_venue_wins":  top_venue_count_team1,
+        "team2_top_venue":       top_venue_team2,
+        "team2_top_venue_wins":  top_venue_count_team2,
+
+        "team1_highest_score":        t1_high,
+        "team1_highest_score_won_by": t1_high_winner,
+        "team1_lowest_score":         t1_low,
+        "team1_lowest_score_won_by":  t1_low_winner,
+
+        "team2_highest_score":        t2_high,
+        "team2_highest_score_won_by": t2_high_winner,
+        "team2_lowest_score":         t2_low,
+        "team2_lowest_score_won_by":  t2_low_winner,
+
+            "team1_powerplay_avg": round(float(team1_pp_avg), 2),
+        "team2_powerplay_avg": round(float(team2_pp_avg), 2),
+        "team1_death_avg":     round(float(team1_death_avg), 2),
+        "team2_death_avg":     round(float(team2_death_avg), 2),
+
+        # ★ Prediction
+        "team1_prediction_score": team1_score,
+        "team2_prediction_score": team2_score,
+        "predicted_winner":       predicted_winner,
+        "confidence_gap":         confidence,
+    })
+
+def shorten_name(name: str) -> str:
+    """'Virat Kohli' → 'V Kohli', 'MS Dhoni' → 'MS Dhoni'."""
+    parts = name.split()
+    if len(parts) == 1:
+        return name
+    first = parts[0]
+    if len(parts) >= 3:
+        last = " ".join(parts[1:])
+        return f"{first[0]} {last}"
+    last = parts[-1]
+    return f"{first[0]} {last}"
+ 
+
+df_new['batter'] = df_new['batter'].apply(shorten_name)
+df_2026['striker'] = df_2026['striker'].apply(shorten_name)
+
+
+@app.route('/top_scorer', methods=['POST'])
+def top_scorer():
+    data  = request.json
+    team1 = data.get('team1')
+    team2 = data.get('team2')
+
+
+ 
+    # ── 2024/25 data ──────────────────────────────────────────────────────────
+    h2h_2025 = get_h2h_matches(team1, team2)   # uses df_new (2024+2025 only)
+ 
+    batter_scores =  h2h_2025.groupby(["match_id", "date", "batter", "batting_team"], as_index=False).agg(
+            runs_total=('runs_total', 'sum'),
+            balls_faced=('valid_ball', 'sum')
+    )
+       
+        
+    
+ 
+    overall_totals =batter_scores.groupby(['batter', 'batting_team'], as_index=False).agg(
+            runs_total = ('runs_total', "sum"),
+            balls_faced= ('balls_faced', 'sum'),
+            match_id = ('match_id', 'nunique')
+        )
+        
+    
+ 
+    highest_score = (
+        batter_scores
+        .groupby(['batter', 'batting_team'])['runs_total']
+        .max()
+        .reset_index()
+    )
+ 
+    max_runs_old = overall_totals['runs_total'].max()
+    max_peak_old = highest_score['runs_total'].max()
+ 
+    overall_totals['total_norm'] = overall_totals['runs_total'] / max_runs_old if max_runs_old else 0
+    highest_score['peak_norm']   = highest_score['runs_total']  / max_peak_old if max_peak_old else 0
+ 
+    prediction_df = pd.merge(overall_totals, highest_score,
+                             on=['batter', 'batting_team'],
+                             suffixes=('_total', '_peak'))
+    prediction_df['predicted_score'] = (
+        70 * prediction_df['total_norm'] + 30 * prediction_df['peak_norm']
+    )
+    prediction_top_scorer = prediction_df[['batter', 'batting_team', 'predicted_score']]
+ 
+    # ── 2026 data ─────────────────────────────────────────────────────────────
+    h2h_2026 = get_h2h_matches_2026(team1, team2)
+ 
+    batter_scores_2026 = h2h_2026.groupby(["match_no", "date", "striker", "batting_team"], as_index=False).agg(
+        runs_of_bat=('runs_of_bat', 'sum'),
+        extras=('extras', 'sum'),
+        wide=('wide', 'sum'),
+        ball=('over', 'nunique')
+    )
+
+    batter_scores_2026['total_runs'] = (
+        batter_scores_2026['runs_of_bat'] +
+        batter_scores_2026['extras'] +
+        batter_scores_2026['wide']
+    )
+ 
+    overall_totals_2026 = (
+    batter_scores_2026
+    .groupby(['striker', 'batting_team'], as_index=False)
+    .agg(
+        total_runs=('total_runs', 'sum'),
+        balls=('ball', 'sum'),
+        match_no=('match_no', 'nunique')
+    )
+    )
+ 
+    highest_score_2026 = (
+        batter_scores_2026
+        .groupby(['striker', 'batting_team'])['total_runs']
+        .max()
+        .reset_index()
+    )
+ 
+    max_runs_new = overall_totals_2026['total_runs'].max()
+    max_peak_new = highest_score_2026['total_runs'].max()
+ 
+    overall_totals_2026['total_norm'] = (
+        overall_totals_2026['total_runs'] / max_runs_new if max_runs_new else 0
+    )
+    highest_score_2026['peak_norm'] = (
+        highest_score_2026['total_runs'] / max_peak_new if max_peak_new else 0
+    )
+ 
+    prediction_df_2026 = pd.merge(overall_totals_2026, highest_score_2026,
+                                  on=['striker', 'batting_team'],
+                                  suffixes=('_total', '_peak'))
+    prediction_df_2026['predicted_score'] = (
+        70 * prediction_df_2026['total_norm'] + 30 * prediction_df_2026['peak_norm']
+    )
+    prediction_df_2026 = prediction_df_2026.rename(columns={'striker': 'batter'})
+    prediction_top_scorer_2026 = prediction_df_2026[['batter', 'batting_team', 'predicted_score']]
+ 
+    # ── FIX: OUTER JOIN so players in only one season are kept ───────────────
+    overall_score = pd.merge(
+        prediction_top_scorer,
+        prediction_top_scorer_2026,
+        on=['batter', 'batting_team'],
+        how='outer',                        # ← was inner (default), dropping players
+        suffixes=('_old', '_new')
+    )
+    # Fill NaN scores (player appeared in only one dataset)
+    overall_score['predicted_score_old'] = overall_score['predicted_score_old'].fillna(0)
+    overall_score['predicted_score_new'] = overall_score['predicted_score_new'].fillna(0)
+ 
+    overall_score['final_prediction'] = (
+        0.5 * overall_score['predicted_score_old'] +
+        0.5 * overall_score['predicted_score_new']
+    )
+    overall_score = (
+        overall_score
+        .sort_values('final_prediction', ascending=False)
+        .reset_index(drop=True)
+    )
+ 
+    top_scorer_details = []
+ 
+    for idx, row in overall_score.head(7).iterrows():
+        batter      = row['batter']
+        bat_team    = row['batting_team']
+ 
+        # ── Peak score ───────────────────────────────────────────────────────
+        peak_old_row = highest_score[
+            (highest_score['batter'] == batter) &
+            (highest_score['batting_team'] == bat_team)
+        ]
+        peak_new_row = highest_score_2026[
+            (highest_score_2026['striker'] == batter) &
+            (highest_score_2026['batting_team'] == bat_team)
+        ]
+        peak_old_val = peak_old_row['runs_total'].iloc[0]  if not peak_old_row.empty else 0
+        peak_new_val = peak_new_row['total_runs'].iloc[0]  if not peak_new_row.empty else 0
+        best_peak    = max(peak_old_val, peak_new_val)
+ 
+        # ── Totals ───────────────────────────────────────────────────────────
+        total_old_row = overall_totals[
+            (overall_totals['batter'] == batter) &
+            (overall_totals['batting_team'] == bat_team)
+        ]
+        total_new_row = overall_totals_2026[
+            (overall_totals_2026['striker'] == batter) &
+            (overall_totals_2026['batting_team'] == bat_team)
+        ]
+ 
+        matches_old = int(total_old_row['match_id'].sum())   if not total_old_row.empty else 0
+        matches_new = int(total_new_row['match_no'].sum())   if not total_new_row.empty else 0
+        total_matches = matches_old + matches_new
+ 
+        runs_old  = int(total_old_row['runs_total'].iloc[0])  if not total_old_row.empty else 0
+        balls_old = int(total_old_row['balls_faced'].iloc[0]) if not total_old_row.empty else 0
+        runs_new  = int(total_new_row['total_runs'].iloc[0])  if not total_new_row.empty else 0
+        balls_new = int(total_new_row['balls'].iloc[0])       if not total_new_row.empty else 0
+ 
+        total_runs  = runs_old  + runs_new
+        total_balls = balls_old + balls_new
+ 
+        strike_rate   = (total_runs / total_balls) * 100 if total_balls > 0 else 0
+        avg_per_match = total_runs / max(1, total_matches)
+ 
+        
+        num = image_mapping.batter_map_short().get(batter)
+        if num:
+            if str(num).isdigit():
+                image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2026/{num}.png"
+            else:
+                image_url = None
+        else:
+            image_url = None
+
+        top_scorer_details.append({
+            "batter":           batter,
+            "batting_team":     bat_team,
+            "final_prediction": float(row['final_prediction']),
+            "total_runs":       total_runs,
+            "highest_runs":     int(best_peak),
+            "strike_rate":      round(strike_rate, 2),
+            "avg_per_match":    round(avg_per_match, 2),
+            "matches":          total_matches,
+            "image_url":        image_url
+        })
+ 
+    return jsonify({
+        'team1': team1,
+        'team2': team2,
+        'detailed_top_scorers': top_scorer_details
+    })
+ 
+
+def batter_index(batter, team, role):
+
+    df_bat = df[df['batter'] == batter]
+
+    if team:
+        df_bat = df_bat[df_bat['batting_team'] == team]
+    
+    df1 = df_bat.drop_duplicates(subset='match_id')
+
+    match_batter = df_bat.groupby(['match_id', 'season'])['runs_batter'].sum().reset_index()
+
+
+    matches_played = df_bat.groupby('season')['match_id'].nunique()
+
+    matches_won = df1[df1['match_won_by'] == team]
+    matches_won = len(matches_won)
+
+    no_result = len(df1[df1['match_won_by'] == 'Unknown'])
+
+    matches_lost = df1[df1['match_won_by'] != team]
+    matches_lost = len(matches_lost)
+
+    print(no_result)
+
+    sixes = df_bat.groupby(['season']).apply(
+        lambda x: (x['runs_batter'] == 6).sum()
+    ).reset_index(name='Total_Sixes')
+
+    print(sixes)
+
+    six = df_bat[df_bat['runs_batter'] == 6]
+    six = len(six)
+
+    fours = df_bat[df_bat['runs_batter'] == 4]
+    fours = len(fours)
+
+    value = df_bat[df_bat['player_out'] == batter]
+
+    wicket_kind = value['wicket_kind'].value_counts().sort_values(ascending=False)
+    wicket_kind = f"Most common mode of dismissal: {wicket_kind.index[0]} ({wicket_kind.iloc[0]} times)."
+
+
+    player_stats = match_batter.groupby('season').agg(
+        matches_played=('match_id', 'count'),
+        total_runs=('runs_batter', 'sum'),
+        avg_runs=('runs_batter', 'mean'),
+        std_runs=('runs_batter', 'std')
+    ).reset_index()
+
+    matches_played_all = df_bat.groupby('season')['match_id'].nunique().sum().item()
+
+    
+    boundaries = df_bat.groupby('season').agg(
+    sixes=('runs_batter', lambda x: (x == 6).sum()),
+    fours=('runs_batter', lambda x: (x == 4).sum())
+    ).reset_index()
+
+    player_stats = player_stats.merge(boundaries, on='season', how='left')
+
+    player_stats['consistency'] = player_stats.apply(
+        lambda x: x['avg_runs'] / x['std_runs'] if x['std_runs'] and not pd.isna(x['std_runs']) else x['avg_runs'], axis=1
+    )
+    player_stats_sorted = player_stats.sort_values(by='season', ascending=True).reset_index(drop=True)
+    player_stats_one = player_stats.sort_values(by='season', ascending=False).reset_index(drop=True)
+
+    player_stats_sorted = player_stats.sort_values(by='consistency', ascending=False).reset_index(drop=True)
+
+    best_season = player_stats.sort_values(by='total_runs', ascending=False).iloc[0]
+    best_average = player_stats.sort_values(by='avg_runs', ascending=False).iloc[0]
+
+    total_seasons = player_stats['season'].nunique()
+    peak_consistency = player_stats_sorted['season'].iloc[0]
+
+    player_stats_sorted1 = player_stats.sort_values(by='season')
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    ax1.plot(player_stats_sorted1['season'],
+            player_stats_sorted1['total_runs'],
+            marker='o', linewidth=2,
+            color='#1f77b4',
+            label='Total Runs')
+
+    best_season_year = best_season['season']
+    best_runs = best_season['total_runs']
+
+    ax1.scatter(best_season_year, best_runs,
+                color="#FF0000", s=200, marker='*',
+                zorder=15, label='Best Season')
+
+    ax1.set_xlabel('Season', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Total Runs', fontsize=12, fontweight='bold')
+
+    ax1.set_ylim(0, 
+        player_stats_sorted1['total_runs'].max()
+    * 1.2)
+
+    ax2 = ax1.twinx()
+
+    ax2.plot(player_stats_sorted1['season'],
+            player_stats_sorted1['avg_runs'],
+            marker='s', linestyle='--',
+            color='#ff7f0e',
+            label='Average Runs')
+
+    ax2.plot(sixes['season'],
+            sixes['Total_Sixes'],
+            marker='x', linestyle='-.',
+            color='#d62728',
+            label='Sixes')
+
+    ax2.set_ylabel('Average Runs / Sixes', fontsize=12, fontweight='bold')
+
+    ax2.set_ylim(0, max(
+        player_stats_sorted1['avg_runs'].max(),
+        sixes['Total_Sixes'].max()
+    ) * 1.2)
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+
+    for x,y in zip(sixes['season'], sixes['Total_Sixes']):
+        ax2.annotate(
+            str(y),
+            (x,y),
+            textcoords= 'offset points',
+            xytext=(0,8),
+            ha='center',
+            fontsize=10,
+            fontweight='bold',
+            color='black'
+        )
+
+    plt.title(f'{batter} Performance Across Seasons', fontsize=16, fontweight='bold')
+    plt.tight_layout(pad=1.5)
+
+    ax1.grid(True, linestyle='--', linewidth=0.8, alpha=0.5, color='black')
+
+    ax2.grid(True, linestyle=':', linewidth=0.6, alpha=0.3, color='black')
+    plt_image = 'static/images/batsmen.png'
+    plt.savefig(plt_image, dpi=300)
+    plt.close()
+    batting_data = []
+
+    for row in player_stats_one.to_dict(orient='records'):
+        text = f"""
+                Player: {batter}
+                Season: {row['season']}
+                Matches Played: {row['matches_played']}
+                Total Runs: {row['total_runs']}
+                Average Runs: {row['avg_runs']}
+                Sixes: {row['sixes']}
+                Fours: {row['fours']}
+                Consistency: {row['consistency']}
+                """
+        batting_data.append({
+            'id': f"{batter.replace(' ', '_')}_{row['season']}",
+            'text': text.strip()
+        })
+    question = f"""
+               Geneate me a summary on the given data for the Batter: {batter}, across all seasons the batter have played and give me an overview of the batter performance
+               over all the season's while also summarise what the batter's strength's and short-cummings are, with proper evaluation on how he can can improve.
+                """
+    rag_engine.team_store(batting_data)
+    batting = rag_engine.ask_team(question)
+
+    if role == 'batter':
+        return batting_data
+
+    return {
+    "total_seasons": total_seasons,
+    "best_season": best_season,
+    "best_average": best_average,
+    "peak_consistency": peak_consistency,
+    "player_stats_one": player_stats_one,
+    "six": six,
+    "fours": fours,
+    "wicket_kind": wicket_kind,
+    "matches_played": matches_played_all,
+    "matches_lost": matches_lost,
+    "playerstats": plt_image,
+    'batter_llm': batting
+}
+
+@app.route('/player_index', methods=['POST'])
+def player_index():
+    data = request.get_json() 
+
+    team = data.get('team')
+    batter = data.get('player')
+
+    # TATA IPL 2025 Player Headshot ID Map
+    # Base URL: https://documents.iplt20.com{ID}.png
+
+
+    batter_id = image_mapping.batter_map().get(batter)
+    image_url = None
+    if batter_id:
+        image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id}.png"
+    else:   
+        image_url = f"https://documents.iplt20.com/ipl/assets/images/{batter_id}.png"
+    role = ""
+
+    bat_index = batter_index(batter, team, role)
+    
+    return jsonify({
+    "player": batter,
+    "image_url": image_url,
+    "player_plot": bat_index['playerstats'],
+    "team": team,
+    "total_seasons_played": int(bat_index["total_seasons"]),
+    "best_season_by_runs": int(bat_index["best_season"]["season"]),
+    "highest_average": round(float(bat_index["best_average"]["avg_runs"]), 2),
+    "peak_consistency": int(bat_index["peak_consistency"]),
+    "season_stats": bat_index["player_stats_one"].to_dict(orient='records'),
+    "total_sixes": bat_index["six"],
+    "total_fours": bat_index["fours"],
+    "dismissible": bat_index["wicket_kind"],
+    "matches_played": bat_index["matches_played"],
+    "matches_lost": int(bat_index["matches_lost"]),
+    'batting_data': bat_index['batter_llm']
+})
+
+@app.route('/send-otp', methods=['POST'])
+def send_otp():
+    email = request.form.get('email')
+    if not email:
+        return jsonify({'message': 'Email required'}), 400
+
+    otp = (111111)
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO otp_codes (email, otp) VALUES (?, ?)",
+        (email, otp)
+    )
+    conn.commit()
+    conn.close()
+    msg = MIMEText(f"Your OTP is: {otp}")
+    msg['Subject'] = 'OTP Verification'
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = email
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+        return jsonify({'message': 'OTP sent successfully'})
+    except Exception as e:
+        print(e)
+        return jsonify({'message': 'Failed to send OTP'}), 500
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    plan = request.form.get('plan')
+    password = request.form.get('password')
+    user_otp = request.form.get('otp')
+
+    if not all([name, email, password, user_otp]):
+        return jsonify({'message': 'All fields required'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+        (email,)
+    )
+    result = cursor.fetchone()
+
+    if not result:
+        conn.close()
+        return jsonify({'message': 'No OTP found for this email'}), 400
+
+    db_otp, created_at = result
+
+    if db_otp != user_otp:
+        conn.close()
+        return jsonify({'message': 'Invalid OTP'}), 400
+
+    otp_time = datetime.datetime.fromisoformat(created_at)
+    if datetime.datetime.utcnow() - otp_time > datetime.timedelta(minutes=5):
+        conn.close()
+        return jsonify({'message': 'OTP expired'}), 400
+
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'message': 'Email already registered'}), 400
+
+    hashed_password = generate_password_hash(password)
+    cursor.execute(
+        "INSERT INTO users (name, email,plan, password) VALUES (?, ?, ?, ?)",
+        (name, email,plan, hashed_password)
+    )
+    conn.commit()
+
+    user_id = cursor.lastrowid
+    session['user_id'] = user_id
+    session['email'] = email
+
+    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+# Flask
+    return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    user_id = session['user_id']
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        'SELECT name, email, plan, created_at FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+    conn.close()
+
+    return render_template('dashboard.html', user=user)
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        'SELECT id, name, email, password FROM users WHERE email = ?',
+        (email,)
+    ).fetchone()
+
+    conn.close()
+
+    if user and check_password_hash(user[3], password):
+        session['user_id'] = user[0]
+        session['email'] = user[2]    
+        return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
+    
+    return "Invalid email or password", 401
+
+def get_batting_stats(df, players):
+    df_bat = df[df['batter'].isin(players)].copy()
+    
+    if df_bat.empty:
+        return None
+
+    df_bat['is_six'] = (df_bat['runs_batter'] == 6)
+    df_bat['is_four'] = (df_bat['runs_batter'] == 4)
+
+    player_stats = df_bat.groupby('batter').apply(
+        lambda x: pd.Series({
+            'Matches'    : x['match_id'].nunique(),
+            'Runs'       : x['runs_batter'].sum(),
+            'Balls'      : x['balls_faced'].sum(),
+            'Average'    : x['runs_batter'].sum() / x['match_id'].nunique(),
+            'StrikeRate': (x['runs_batter'].sum() / x['balls_faced'].sum() * 100),
+            'Fours'      : x['is_four'].sum(),
+            'Sixes'      : x['is_six'].sum()
+        }), include_groups=False
+    ).reset_index()
+
+    total_matches = df_bat['match_id'].nunique()
+    total_runs = df_bat['runs_batter'].sum()
+    total_balls = df_bat['balls_faced'].sum()
+
+    total_stats = pd.DataFrame({
+        'Matches': [total_matches],
+        "Total Runs": [total_runs],
+        "Total Balls": [total_balls],
+        "Team Avg Score": [player_stats['Average'].sum()],
+        "Team SR": [(total_runs / total_balls * 100) if total_balls > 0 else 0],
+        "Total Fours": [df_bat['is_four'].sum()],
+        "Total Sixes": [df_bat['is_six'].sum()]
+    })
+    player_stats_bat = player_stats.to_dict(orient="records")
+    total_stats_bat = total_stats.to_dict(orient="records")
+
+    return {
+        'player_stats': player_stats_bat,
+        'total_stats' : total_stats_bat,
+        "total_runs"  : total_runs,
+        "strike_rate" : total_stats["Team SR"].iloc[0],
+        "avg_runs"    : total_stats["Team Avg Score"].iloc[0],
+        "fours"       : total_stats["Total Fours"].iloc[0],
+        "sixes"       : total_stats["Total Sixes"].iloc[0]
+    }
+
+def get_bowling_stats(df, players):
+    df_bowl = df[df['bowler'].isin(players)].copy()
+
+    if df_bowl.empty:
+        return None
+
+    def bowler_row(x):
+        wickets = x['bowler_wicket'].sum()
+        runs    = x['runs_bowler'].sum()
+        total_overs = x.groupby('match_id')['over'].nunique().sum()
+        total_balls = x.groupby(['match_id', 'over'])['ball'].nunique().sum()
+
+        return pd.Series({
+            'Wickets' : wickets,
+            'Runs'    : runs,
+            'Overs'   : total_overs,
+            'Balls'   : total_balls,
+            'Economy' : (runs / total_overs) if total_overs > 0 else 0,
+            'Avg'     : (runs / wickets) if wickets > 0 else 0,
+            'SR'      : (total_balls / wickets) if wickets > 0 else 0,
+        })
+
+    player_bowl_stats = df_bowl.groupby('bowler').apply(
+        bowler_row, include_groups=False
+    ).reset_index()
+
+    t_wickets = player_bowl_stats['Wickets'].sum()
+    t_runs    = player_bowl_stats['Runs'].sum()
+    t_overs   = player_bowl_stats['Overs'].sum()
+    t_balls   = player_bowl_stats['Balls'].sum()
+
+    total_stats = pd.DataFrame({
+        'Total Wickets'   : [t_wickets],
+        'Total Runs'      : [t_runs],
+        'Total Overs'     : [t_overs],
+        'Total Balls'     : [t_balls],
+        'Team Economy'    : [(t_runs / t_overs) if t_overs > 0 else 0],
+        'Team Average'    : [(t_runs / t_wickets) if t_wickets > 0 else 0],
+        'Team Strike Rate': [(t_balls / t_wickets) if t_wickets > 0 else 0]
+    })
+
+    player_bowl_stats = player_bowl_stats.to_dict(orient="records")
+    total_bowl_stats = total_stats.to_dict(orient="records")
+
+    return {
+        "player_bowl_stats": player_bowl_stats,
+        'total_bowl_stats': total_bowl_stats,
+        "total_wickets" : total_stats['Total Wickets'].iloc[0],
+        "economy"       : total_stats['Team Economy'].iloc[0],
+        "bowl_avg"      : total_stats['Team Average'].iloc[0],
+        "strike_rate"   : total_stats['Team Strike Rate'].iloc[0]
+    }
+
+def build_team(df, teamname, xiplayers):
+    team_name = teamname    
+    players = xiplayers
+    
+    bat_stats  = get_batting_stats(df, players)
+    bowl_stats = get_bowling_stats(df, players)
+    if not bat_stats or not bowl_stats:
+        print(f"Incomplete data for {team_name}. Check player names.")
+        return None
+
+    return {
+        "name"    : team_name,
+        "players" : players,
+        "batting" : bat_stats,
+        "bowling" : bowl_stats
+    }
+
+
+
+def calculate_score(team):
+    bat  = team['batting']
+    bowl = team['bowling']
+
+    bat_score = (
+        bat['avg_runs'] * 3.0 +
+        bat['strike_rate'] * 25.0 +
+        bat['sixes'] * 5.0
+    )
+
+    bowl_score = (
+        (15 - bowl['economy']) * 25.0 +
+        (30 - bowl['strike_rate']) * 15.0 +
+        bowl['total_wickets'] * 1.0
+    )
+
+    total_score = bat_score + bowl_score
+    return total_score, bat_score, bowl_score
+
+def decide_winner(team1, team2, matchup, teamA_players, teamB_players):
+    score1, bat1, bowl1 = calculate_score(team1)
+    score2, bat2, bowl2 = calculate_score(team2)
+
+    metrics = ['Average Runs(bat)', 'Strike Rate', 'Fours', 'Sixes',
+               'Wickets', 'Bowler Economy', 'Bowling Average', 'Bowler Strike Rate']
+
+    answer = pd.DataFrame({
+        "Metric": metrics,
+        "Team1": [
+            team1['batting']['avg_runs'],
+            team1['batting']['strike_rate'],
+            team1['batting']['fours'],
+            team1['batting']['sixes'],
+            team1['bowling']['total_wickets'],
+            team1['bowling']['economy'],
+            team1['bowling']['bowl_avg'],
+            team1['bowling']['strike_rate']
+        ],
+        "Team2": [
+            team2['batting']['avg_runs'],
+            team2['batting']['strike_rate'],
+            team2['batting']['fours'],
+            team2['batting']['sixes'],
+            team2['bowling']['total_wickets'],
+            team2['bowling']['economy'],
+            team2['bowling']['bowl_avg'],
+            team2['bowling']['strike_rate']
+        ]
+    })
+    result_teams = {
+                                         team1['name']: {"bat1": float(bat1), "bowl1": float(bowl1), "total1": float(score1)},
+                                         team2['name']: {"bat2": float(bat2), "bowl2": float(bowl2), "total2": float(score2)}
+                                     }
+
+    winner = team1['name'] if score1 > score2 else team2['name'] if score2 > score1 else "Tie"
+    user_id = session['user_id']
+
+    conn= sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute(
+    'INSERT INTO custom_matchups(user_id, matchup_name, teamA, teamB, teamA_players, teamB_players, metrics, teamA_bat_stats,teamA_bat_total, teamA_bowl_stats, teamA_Bowl_total, teamB_bat_stats,teamB_bat_total, teamB_bowl_stats, teamB_bowl_total, teamScores, winner) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'  ,    
+        (
+            user_id,
+            matchup, 
+            str(team1['name']), 
+            str(team2['name']), 
+            json.dumps(teamA_players), 
+            json.dumps(teamB_players), 
+            json.dumps(answer.to_dict(orient="records")), 
+            json.dumps(team1['batting']['player_stats']), 
+            json.dumps(team1['batting']['total_stats']), 
+            json.dumps(team1['bowling']['player_bowl_stats']), 
+            json.dumps(team1['bowling']['total_bowl_stats']),
+            json.dumps(team2['batting']['player_stats']), 
+            json.dumps(team2['batting']['total_stats']),
+            json.dumps(team2['bowling']['player_bowl_stats']),
+            json.dumps(team2['bowling']['total_bowl_stats']), 
+            json.dumps(result_teams),
+            winner
+        )  
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+
+    return jsonify(
+        {
+            "Status": "ok",
+            "matchup_id": new_id,
+            "redirect": url_for('get_matchup_by_id', matchup_id=new_id)
+        }
+    )
+
+@app.route('/dashboard/customteam/latest', methods=['GET'])
+def get_latest_matchup():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        with sqlite3.connect('database.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id FROM custom_matchups
+                WHERE user_id = ?
+                ORDER BY id DESC LIMIT 1
+            """, (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"error": "No matchups found"}), 404
+            return get_matchup_by_id(row[0])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/dashboard/customteam/all', methods=['GET'])
+def get_all_matchups():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        with sqlite3.connect('database.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, matchup_name, teamA, teamB, created_at
+                FROM custom_matchups
+                WHERE user_id = ?
+                ORDER BY id DESC
+            """, (user_id,))
+            rows = cursor.fetchall()
+            matchups = [
+                {"id": r[0], "matchup_name": r[1], "teamA": r[2], "teamB": r[3], "created_at": r[4]}
+                for r in rows
+            ]
+            return jsonify({"matchups": matchups})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/dashboard/customteam/<int:matchup_id>', methods=['GET'])
+def get_matchup_by_id(matchup_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        with sqlite3.connect('database.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM custom_matchups
+                WHERE id = ? AND user_id = ?
+            """, (matchup_id, user_id))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"error": "Not found"}), 404
+
+            columns = [col[0] for col in cursor.description]
+            result = dict(zip(columns, row))
+
+            for field in ['teamA_players', 'teamB_players', 'metrics',
+                          'teamA_bat_stats', 'teamA_bat_total',
+                          'teamA_bowl_stats', 'teamA_bowl_total',
+                          'teamB_bat_stats', 'teamB_bat_total',
+                          'teamB_bowl_stats', 'teamB_bowl_total', 'teamScores']:
+                if result.get(field):
+                    result[field] = json.loads(result[field])
+
+            return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/customteam', methods=['POST'])
+def customteam():
+
+    data = request.get_json()
+
+    matchup_name = data.get('matchup')
+
+    teamA = data.get('teamA_players')
+    teamB = data.get('teamB_players')
+
+    teamA_name = data.get('teamA_name', 'Team A')
+    teamB_name = data.get('teamB_name', 'Team B')
+
+    team1_stats = build_team(df, teamA_name, teamA)
+    team2_stats = build_team(df, teamB_name, teamB)
+
+    if team1_stats and team2_stats:
+        return decide_winner(team1_stats, team2_stats, matchup_name, teamA, teamB)
+    else:
+        return jsonify({"error": "Could not build both teams. Check player names."}), 400
+
+
+@app.route('/llm_chat', methods=['POST'])
+def llm_chat():
+    user_id = session.get('user_id')
+    data = request.get_json() or {}
+    matchup_id = data.get('matchup_id')
+
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if matchup_id:
+        cursor.execute("""
+            SELECT id, matchup_name, teamA, teamB, teamA_players, teamB_players, metrics,
+                   teamA_bat_stats, teamA_bat_total, teamA_bowl_stats, teamA_bowl_total,
+                   teamB_bat_stats, teamB_bat_total, teamB_bowl_stats, teamB_bowl_total,
+                   teamScores, winner
+            FROM custom_matchups
+            WHERE user_id = ? AND id = ?
+        """, (user_id, matchup_id))
+    else:
+        cursor.execute("""
+            SELECT id, matchup_name, teamA, teamB, teamA_players, teamB_players, metrics,
+                   teamA_bat_stats, teamA_bat_total, teamA_bowl_stats, teamA_bowl_total,
+                   teamB_bat_stats, teamB_bat_total, teamB_bowl_stats, teamB_bowl_total,
+                   teamScores, winner
+            FROM custom_matchups
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+        """, (user_id,))
+
+    rows = cursor.fetchall()
+    conn.close()
+    chunks = []
+
+    for row in rows:
+        row_id       = row['id']
+        matchup_name = row['matchup_name']
+        teamA        = row['teamA']
+        teamB        = row['teamB']
+        winner       = row['winner']
+
+        # â”€â”€ FIX 2: parse every JSON field before use â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        def p(field):
+            raw = row[field]
+            if not raw:
+                return []
+            try:
+                return json.loads(raw)
+            except Exception:
+                return []
+
+        tA_bat_players  = p('teamA_bat_stats')   # list of player dicts
+        tA_bat_total    = p('teamA_bat_total')    # list with one summary dict
+        tA_bowl_players = p('teamA_bowl_stats')
+        tA_bowl_total   = p('teamA_bowl_total')
+        tB_bat_players  = p('teamB_bat_stats')
+        tB_bat_total    = p('teamB_bat_total')
+        tB_bowl_players = p('teamB_bowl_stats')
+        tB_bowl_total   = p('teamB_bowl_total')
+        metrics_list    = p('metrics')
+        scores          = p('teamScores')
+        teamA_players   = p('teamA_players')
+        teamB_players   = p('teamB_players')
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+        # â”€â”€ CHUNK 1: matchup summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        tA_summary = tA_bat_total[0]  if tA_bat_total  else {}
+        tB_summary = tB_bat_total[0]  if tB_bat_total  else {}
+        tA_bowl_s  = tA_bowl_total[0] if tA_bowl_total else {}
+        tB_bowl_s  = tB_bowl_total[0] if tB_bowl_total else {}
+
+        # Build readable roster strings from the player lists
+        tA_roster = ", ".join(teamA_players) if teamA_players else "N/A"
+        tB_roster = ", ".join(teamB_players) if teamB_players else "N/A"
+
+        chunks.append({
+            "id": f"{row_id}_summary",
+            "text": f"""
+Matchup: {matchup_name}
+{teamA} vs {teamB}
+Winner: {winner}
+
+{teamA} Players: {tA_roster}
+{teamB} Players: {tB_roster}
+
+{teamA} batting Ã¢â‚¬â€ Total Runs: {tA_summary.get('Total Runs', 'N/A')},
+  Team Avg Score: {tA_summary.get('Team Avg Score', 'N/A')},
+  Strike Rate: {tA_summary.get('Team SR', 'N/A')},
+  Fours: {tA_summary.get('Total Fours', 'N/A')},
+  Sixes: {tA_summary.get('Total Sixes', 'N/A')}
+
+{teamB} batting Ã¢â‚¬â€ Total Runs: {tB_summary.get('Total Runs', 'N/A')},
+  Team Avg Score: {tB_summary.get('Team Avg Score', 'N/A')},
+  Strike Rate: {tB_summary.get('Team SR', 'N/A')},
+  Fours: {tB_summary.get('Total Fours', 'N/A')},
+  Sixes: {tB_summary.get('Total Sixes', 'N/A')}
+
+{teamA} bowling Ã¢â‚¬â€ Wickets: {tA_bowl_s.get('Total Wickets', 'N/A')},
+  Economy: {tA_bowl_s.get('Team Economy', 'N/A')},
+  Avg: {tA_bowl_s.get('Team Average', 'N/A')},
+  Strike Rate: {tA_bowl_s.get('Team Strike Rate', 'N/A')}
+
+{teamB} bowling Ã¢â‚¬â€ Wickets: {tB_bowl_s.get('Total Wickets', 'N/A')},
+  Economy: {tB_bowl_s.get('Team Economy', 'N/A')},
+  Avg: {tB_bowl_s.get('Team Average', 'N/A')},
+  Strike Rate: {tB_bowl_s.get('Team Strike Rate', 'N/A')}
+""".strip()
+        })
+
+        # â”€â”€ CHUNK 2: metrics comparison â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        metrics_lines = "\n".join(
+            f"  {m.get('Metric', '')}: {teamA} = {m.get('Team1', 'N/A')}, "
+            f"{teamB} = {m.get('Team2', 'N/A')}"
+            for m in metrics_list
+        )
+        chunks.append({
+            "id": f"{row_id}_metrics",
+            "text": f"""
+Head-to-head metrics for matchup '{matchup_name}' ({teamA} vs {teamB}):
+{metrics_lines}
+Winner: {winner}
+""".strip()
+        })
+
+        # â”€â”€ CHUNK 3: per-player batting â€” Team A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        for player in tA_bat_players:
+            name = player.get('batter', 'Unknown')
+            chunks.append({
+                "id": f"{row_id}_bat_A_{name.replace(' ', '_')}",
+                "text": f"""
+Batting stats for {name} (Team: {teamA}, Matchup: {matchup_name}):
+  Matches: {player.get('Matches', 'N/A')}
+  Runs: {player.get('Runs', 'N/A')}
+  Balls: {player.get('Balls', 'N/A')}
+  Average: {player.get('Average', 'N/A')}
+  Strike Rate: {player.get('StrikeRate', 'N/A')}
+  Fours: {player.get('Fours', 'N/A')}
+  Sixes: {player.get('Sixes', 'N/A')}
+""".strip()
+            })
+
+        # â”€â”€ CHUNK 4: per-player batting â€” Team B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        for player in tB_bat_players:
+            name = player.get('batter', 'Unknown')
+            chunks.append({
+                "id": f"{row_id}_bat_B_{name.replace(' ', '_')}",
+                "text": f"""
+Batting stats for {name} (Team: {teamB}, Matchup: {matchup_name}):
+  Matches: {player.get('Matches', 'N/A')}
+  Runs: {player.get('Runs', 'N/A')}
+  Balls: {player.get('Balls', 'N/A')}
+  Average: {player.get('Average', 'N/A')}
+  Strike Rate: {player.get('StrikeRate', 'N/A')}
+  Fours: {player.get('Fours', 'N/A')}
+  Sixes: {player.get('Sixes', 'N/A')}
+""".strip()
+            })
+
+        # â”€â”€ CHUNK 5: per-player bowling â€” Team A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        for player in tA_bowl_players:
+            name = player.get('bowler', 'Unknown')
+            chunks.append({
+                "id": f"{row_id}_bowl_A_{name.replace(' ', '_')}",
+                "text": f"""
+Bowling stats for {name} (Team: {teamA}, Matchup: {matchup_name}):
+  Wickets: {player.get('Wickets', 'N/A')}
+  Runs: {player.get('Runs', 'N/A')}
+  Overs: {player.get('Overs', 'N/A')}
+  Economy: {player.get('Economy', 'N/A')}
+  Bowling Average: {player.get('Avg', 'N/A')}
+  Strike Rate: {player.get('SR', 'N/A')}
+""".strip()
+            })
+
+        # â”€â”€ CHUNK 6: per-player bowling â€” Team B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        for player in tB_bowl_players:
+            name = player.get('bowler', 'Unknown')
+            chunks.append({
+                "id": f"{row_id}_bowl_B_{name.replace(' ', '_')}",
+                "text": f"""
+Bowling stats for {name} (Team: {teamB}, Matchup: {matchup_name}):
+  Wickets: {player.get('Wickets', 'N/A')}
+  Runs: {player.get('Runs', 'N/A')}
+  Overs: {player.get('Overs', 'N/A')}
+  Economy: {player.get('Economy', 'N/A')}
+  Bowling Average: {player.get('Avg', 'N/A')}
+  Strike Rate: {player.get('SR', 'N/A')}
+""".strip()
+            })
+
+    data_response = rag_engine.store(chunks, user_id)
+    return data_response
+
+@app.route('/get_llm', methods=['POST'])
+def get_llm():
+    user_id = session.get('user_id')
+    data = request.get_json()
+    question = data.get('question')
+    thread = data.get('thread_id')
+    system_prompt = systemprompts.systemPrompts.custom_matchup_prompt
+    if not question:
+        return {"status": "error",
+                "message": "No question provided."
+                }, 400
+
+    answer = rag_engine.ask(question, thread, user_id, system_prompt)
+    return jsonify({"status": "success",
+                    "answer": answer})
+
+def comp_player(player):
+    
+    player1 = player
+    df_compare_bat = df[df['batter'] == player1]
+
+    player1_matches = df[
+        (df['batter'] == player1) |
+        (df['bowler'] == player1) |
+        (df['non_striker'] == player1)
+    ]
+    player1_total_matches_played = player1_matches['match_id'].nunique()
+    player1_innings = (
+        df_compare_bat[df_compare_bat['innings'] <= 2]
+        .groupby('match_id')['balls_faced']
+        .sum()
+    )
+    player1_innings = (player1_innings > 0).sum()
+    player1_total_runs = df_compare_bat['runs_batter'].sum()
+    player1_total_balls_faced = df_compare_bat['balls_faced'].sum()
+    player1_highest_score = df_compare_bat.groupby(['match_id', 'innings'])['runs_batter'].sum().max()
+    player1_bat_average = player1_total_runs / player1_innings
+    player1_strike_rate = (player1_total_runs / player1_total_balls_faced * 100)
+    player1_runs_per_innings = df_compare_bat.groupby(['match_id', 'innings'])['runs_batter'].sum()
+    total_100 = (player1_runs_per_innings >= 100).sum()
+    total_50 = ((player1_runs_per_innings >= 50) & (player1_runs_per_innings < 100)).sum()
+    player1_total_sixes = (df_compare_bat['runs_batter'] == 6).sum()
+    player1_total_fours = (df_compare_bat['runs_batter'] == 4).sum()
+
+
+    df_compare_bowl = df[df['bowler'] == player1]
+    player1_bowl_stats = df_compare_bowl[['match_id', 'innings']].drop_duplicates().shape[0]
+    player1_runs_bowl = df_compare_bowl['runs_bowler'].sum()
+    player1_total_bowl_balls = df_compare_bowl.groupby(['match_id', 'over'])['ball'].nunique().sum()
+    player1_total_bowl_overs = df_compare_bowl.groupby('match_id')['over'].nunique().sum()
+    player1_wickets = df_compare_bowl['bowler_wicket'].sum()
+    player1_bowl_eco  = player1_runs_bowl / player1_total_bowl_overs if player1_total_bowl_overs else 0
+    player1_bowl_avg = player1_runs_bowl / player1_wickets if player1_wickets else 0
+    player1_bowl_strike_rate = player1_total_bowl_balls / player1_wickets if player1_wickets else 0
+    player1_4_wicket_haul = df_compare_bowl.groupby(['match_id', 'innings'])['bowler_wicket'].sum()
+    four_wkt_haul = player1_4_wicket_haul == 4
+    four_wkt_haul=four_wkt_haul[four_wkt_haul].count()
+    player1_5_wicket_haul = df_compare_bowl.groupby(['match_id', 'innings'])['bowler_wicket'].sum()
+    five_wkt_haul = player1_5_wicket_haul == 5
+    five_wkt_haul=five_wkt_haul[five_wkt_haul].count()
+
+
+    catches = df[(df['wicket_kind'] == 'caught') & (df['fielders'] == player1)].shape[0]
+    stumping = df[(df['wicket_kind'] == 'stumped') & (df['fielders'] == player1)].shape[0]
+    runout = df[
+    (df['wicket_kind'] == 'run out') &
+    (df['fielders'].notna()) &
+    (df['fielders'].str.contains(player1, case=False))
+    ].shape[0]
+
+    stats = {
+        'player_name': player1,
+        'batting': {
+            'total_matches_played': player1_total_matches_played,
+            'total_innings': player1_innings,
+            'total_runs': player1_total_runs,
+            'total_balls_faced': player1_total_balls_faced,
+            'highest_score': player1_highest_score,
+            'batting_average': player1_bat_average,
+            'strike_rate': player1_strike_rate,
+            'total_100s': total_100,
+            'total_50s': total_50,
+            'total_sixes': player1_total_sixes,
+            'total_fours': player1_total_fours
+        },
+        'bowling': {
+            'bowling_innings': player1_bowl_stats,
+            'total_runs_conceded': player1_runs_bowl,
+            'total_balls_bowled': player1_total_bowl_balls,
+            'total_overs': player1_total_bowl_overs,
+            'wickets': player1_wickets,
+            'bowling_economy': player1_bowl_eco,
+            'bowling_average': player1_bowl_avg,
+            'bowling_strike_rate': player1_bowl_strike_rate,
+            'four_wicket_haul': four_wkt_haul,
+            'five_wicket_haul': five_wkt_haul
+        },
+        'fielding':{
+            'catches': catches,
+            'stumpings': stumping,
+            'runout': runout
+        }
+    }
+    def convert(obj):
+        if isinstance(obj, (np.integer,)): return int(obj)
+        if isinstance(obj, (np.floating,)): return round(float(obj), 2)
+        if isinstance(obj, np.ndarray): return obj.tolist()
+        return obj
+
+    def deep_convert(d):
+        if isinstance(d, dict):
+            return {k: deep_convert(v) for k, v in d.items()}
+        return convert(d)
+    return deep_convert(stats)
+
+@app.route('/comparison', methods=['POST'])
+def player_compare():
+    data = request.json
+    p1 = data.get('player1')
+    p2 = data.get('player2')
+    user1 = comp_player(p1)
+    user2 = comp_player(p2)
+
+    batter_map_dict = image_mapping.batter_map()
+
+    batter_id1 = batter_map_dict.get(p1)
+    batter_id2 = batter_map_dict.get(p2)
+
+    image_url1 = (
+        f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id1}.png"
+        if batter_id1
+        else "https://documents.iplt20.com/ipl/assets/images/default.png"
+    )
+
+    image_url2 = (
+        f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id2}.png"
+        if batter_id2
+        else "https://documents.iplt20.com/ipl/assets/images/default.png"
+    )
+
+
+    index = ['Total Matches Played', 'Batting Innings', 'Total Runs', 'Total Balls Faced', 'Highest Score', 'Batting Average', 'Strike Rate', 'Centuries(100)', 'Half-centuries(50)', 'Fours', 'Sixes', 'Bowling Innings', 'Runs Conceded', 'Balls Bowled', 'Total Overs', 'Wickets', 'Bowling Economy', 'Bowling Average', 'Bowling Strike Rate', '4 Wicket Haul', '5 Wicket Haul', 'Catches', 'Stumpings', 'Runout']    
+    Data = pd.DataFrame(
+        {
+            user1['player_name']: [
+                user1['batting']['total_matches_played'],
+                user1['batting']['total_innings'],
+                user1['batting']['total_runs'],
+                user1['batting']['total_balls_faced'],
+                user1['batting']['highest_score'],
+                user1['batting']['batting_average'],
+                user1['batting']['strike_rate'],
+                user1['batting']['total_100s'],
+                user1['batting']['total_50s'],
+                user1['batting']['total_fours'],
+                user1['batting']['total_sixes'],
+                user1['bowling']['bowling_innings'],
+                user1['bowling']['total_runs_conceded'],
+                user1['bowling']['total_balls_bowled'],
+                user1['bowling']['total_overs'],
+                user1['bowling']['wickets'],
+                user1['bowling']['bowling_economy'],
+                user1['bowling']['bowling_average'],
+                user1['bowling']['bowling_strike_rate'],
+                user1['bowling']['four_wicket_haul'],
+                user1['bowling']['five_wicket_haul'],
+                user1['fielding']['catches'],
+                user1['fielding']['stumpings'],
+                user1['fielding']['runout']
+            ],
+
+            user2['player_name']: [
+                user2['batting']['total_matches_played'],
+                user2['batting']['total_innings'],
+                user2['batting']['total_runs'],
+                user2['batting']['total_balls_faced'],
+                user2['batting']['highest_score'],
+                user2['batting']['batting_average'],
+                user2['batting']['strike_rate'],
+                user2['batting']['total_100s'],
+                user2['batting']['total_50s'],
+                user2['batting']['total_fours'],
+                user2['batting']['total_sixes'],
+                user2['bowling']['bowling_innings'],
+                user2['bowling']['total_runs_conceded'],
+                user2['bowling']['total_balls_bowled'],
+                user2['bowling']['total_overs'],
+                user2['bowling']['wickets'],
+                user2['bowling']['bowling_economy'],
+                user2['bowling']['bowling_average'],
+                user2['bowling']['bowling_strike_rate'],
+                user2['bowling']['four_wicket_haul'],
+                user2['bowling']['five_wicket_haul'],
+                user2['fielding']['catches'],
+                user2['fielding']['stumpings'],
+                user2['fielding']['runout']
+            ]
+        },
+        index=index
+    )
+
+    return jsonify({'user1': user1, 'user2': user2, 'image_url': image_url1, 'image_url1': image_url2})
+
+@app.route('/fantasy-matchup', methods=['POST'])
+def fantasy_matchup():
+    data = request.get_json(force=True)
+    team1 = data.get('team1')
+    team2 = data.get('team2')
+    df22 = pl.read_parquet('2026.parquet')
+    pl.Config.set_tbl_rows(-1)
+    pl.Config.set_tbl_cols(-1)
+
+    replacements = {
+        'RCB': 'Royal Challengers Bangalore',
+        'DC': 'Delhi Capitals',
+        'PBKS': 'Kings XI Punjab',
+        'SRH': 'Sunrisers Hyderabad',
+        'CSK': 'Chennai Super Kings',
+        'GT': 'Gujarat Titans',
+        'RR': 'Rajasthan Royals',
+        'LSG': 'Lucknow Super Giants',
+        'KKR': 'Kolkata Knight Riders',
+        'MI': 'Mumbai Indians'
+    }
+    df22 = df22.with_columns(pl.col('batting_team', 'bowling_team').replace(replacements))
+
+    firstteam = team1
+    secondteam = team2
+
+    df_filtered22 = df22.filter(
+        (pl.col("batting_team").is_in([firstteam, secondteam])) |
+        (pl.col("bowling_team").is_in([firstteam, secondteam]))
+    )
+
+    print(f"Filtered rows: {df_filtered22.height}")
+
+    # -----------------------------
+    # Batter stats
+    # -----------------------------
+    batter_overall = (
+        df_filtered22.group_by('striker')
+        .agg([
+            pl.sum('runs_of_bat').alias('total_runs'),
+            pl.n_unique('match_no').alias('matches_played'),
+            (pl.sum('runs_of_bat') / pl.n_unique('over') * 100).alias('overall_strike_rate'),
+        ])
+    ).sort('total_runs', descending=True)
+
+    batter_vs_opponent = (
+        df_filtered22.group_by(['striker', 'bowling_team'])
+        .agg([
+            pl.sum('runs_of_bat').alias('runs_vs_opponent'),
+            pl.n_unique('match_no').alias('matches_vs_opponent'),
+            (pl.sum('runs_of_bat') / pl.n_unique('over') * 100).alias('strike_rate_vs_opponent'),
+        ])
+    ).sort(['striker', 'bowling_team'])
+
+    batter_summary = batter_vs_opponent.join(batter_overall, on='striker', how='left')
+
+    print("\n===== BATTER SUMMARY =====")
+    print(batter_summary)
+
+    # -----------------------------
+    # Bowler stats
+    # -----------------------------
+    bowler_overall = (
+        df_filtered22.group_by('bowler')
+        .agg([
+            pl.sum('runs_of_bat').alias('runs_conceded'),
+            pl.n_unique('match_no').alias('matches_played'),
+            (pl.col('wicket_type') != '').sum().alias('wickets_taken'),
+            (pl.n_unique('over') / 6).alias('total_overs'),
+            (pl.sum('runs_of_bat') / pl.n_unique('over')).alias('economy')
+        ])
+    ).sort('wickets_taken', descending=True)
+
+    bowler_vs_opponent = (
+        df_filtered22.group_by(['bowler', 'batting_team'])
+        .agg([
+            pl.sum('runs_of_bat').alias('runs_vs_opponent'),
+            pl.n_unique('match_no').alias('matches_vs_opponent'),
+            (pl.col('wicket_type') != '').sum().alias('wickets_vs_opponent'),
+            (pl.n_unique('over') / 6).alias('overs_vs_opponent'),
+            (pl.sum('runs_of_bat') / pl.n_unique('over')).alias('economy_vs_opponent')
+        ])
+    ).sort(['bowler', 'batting_team'])
+
+    bowler_summary = bowler_vs_opponent.join(bowler_overall, on='bowler', how='left')
+
+    print("\n===== BOWLER SUMMARY =====")
+    print(bowler_summary)
+
+
+    dream_team = []
+
+    matches = df_filtered22['match_no'].unique().to_list()
+
+    for match in matches:
+        match_df = df_filtered22.filter(pl.col('match_no') == match)
+        date = match_df['date'][0]
+        venue = match_df['venue'][0]
+
+        text_content = f"Match Number: {match}\nDate: {date}\nVenue: {venue}\n\n"
+
+        for team in [firstteam, secondteam]:
+            opponent = secondteam if team == firstteam else firstteam
+            text_content += f"Team: {team}\n"
+
+            # --- Batting ---
+            text_content += "  Batting:\n"
+            team_batters = match_df.filter(pl.col('batting_team') == team)['striker'].unique().to_list()
+        
+            for batter in team_batters:
+                overall_row = batter_overall.filter(pl.col('striker') == batter)
+                # All vs-opponent records for this batter, not just tonight's opponent
+                vs_rows = batter_vs_opponent.filter(pl.col('striker') == batter)
+
+                if overall_row.height == 0:
+                    continue
+
+                o = overall_row.row(0, named=True)
+                text_content += f"    - {batter}:\n"
+                text_content += f"        Overall: {o['total_runs']} runs across {o['matches_played']} matches, Strike Rate: {o['overall_strike_rate']:.2f}\n"
+
+                if vs_rows.height > 0:
+                    text_content += f"        vs Opponents:\n"
+                    for v in vs_rows.iter_rows(named=True):
+                        text_content += (
+                            f"            vs {v['bowling_team']}: {v['runs_vs_opponent']} runs across "
+                            f"{v['matches_vs_opponent']} matches, Strike Rate: {v['strike_rate_vs_opponent']:.2f}\n"
+                        )
+                else:
+                    text_content += f"        vs Opponents: No previous data\n"
+
+            # --- Bowling ---
+            text_content += "  Bowling:\n"
+            team_bowlers = match_df.filter(pl.col('bowling_team') == team)['bowler'].unique().to_list()
+
+            for bowler in team_bowlers:
+                overall_row = bowler_overall.filter(pl.col('bowler') == bowler)
+                # All vs-opponent records for this bowler
+                vs_rows = bowler_vs_opponent.filter(pl.col('bowler') == bowler)
+
+                if overall_row.height == 0:
+                    continue
+
+                o = overall_row.row(0, named=True)
+                text_content += f"    - {bowler}:\n"
+                text_content += (
+                    f"        Overall: {o['wickets_taken']} wickets, {o['runs_conceded']} runs conceded "
+                    f"across {o['matches_played']} matches, Economy: {o['economy']:.2f}\n"
+                )
+
+                if vs_rows.height > 0:
+                    text_content += f"        vs Opponents:\n"
+                    for v in vs_rows.iter_rows(named=True):
+                        text_content += (
+                            f"            vs {v['batting_team']}: {v['wickets_vs_opponent']} wickets, {v['runs_vs_opponent']} runs conceded "
+                            f"across {v['matches_vs_opponent']} matches, "
+                            f"Overs: {v['overs_vs_opponent']:.1f}, Economy: {v['economy_vs_opponent']:.2f}\n"
+                        )
+                else:
+                    text_content += f"        vs Opponents: No previous data\n"
+
+            text_content += "\n"
+
+        dream_team.append({
+            'id': f"Match Number: {match}",
+            'text': text_content.strip()
+        })
+
+    to_embedding = rag_engine.store_fantasy(dream_team, team1, team2)
+    return to_embedding
+
+@app.route('/fantasy-chat', methods=['POST'])
+def fantasy_chat():
+    data = request.get_json()
+    firstteam = data.get('firstteam')
+    secondteam = data.get('secondteam')
+    user_id = session.get('user_id')
+    thread_id = data.get('threadId')
+    question = f"Create me a XI Player Fantasy MatchUp with the top Players for {firstteam} vs {secondteam}"
+    system_prompt = systemprompts.systemPrompts.fantasy_xi_prompt
+    print('data is here =================================================================================================================================================')
+    fanatsyXI = rag_engine.ask_fantasy(question, thread_id, user_id, system_prompt, firstteam, secondteam)
+    return jsonify({"status": "success",
+                    "answer": fanatsyXI})
+
+
+def whatif_matchup(season, first_team, second_team, match_id, delete_player):
+    inp = str(season)
+    first = first_team
+    second = second_team
+
+    matchid = str(match_id)
+
+    df = pl.read_parquet('IPL.parquet')
+
+    pl.Config.set_tbl_rows(-1)
+
+    replacements = {
+        'Royal Challengers Bengaluru': 'Royal Challengers Bangalore',
+        'Delhi Daredevils': 'Delhi Capitals',
+        'Punjab Kings': 'Kings XI Punjab',
+    }
+
+    replacement = {
+        "2007/08": "2008",
+        "2009/10": "2010",
+        "2020/21": "2020"
+    }
+
+    df = df.with_columns(
+        pl.col(['batting_team', 'bowling_team']).replace(replacements)
+    )
+    df = df.with_columns(
+        pl.col("season").replace(replacement)
+    )
+    # Cast match_id column to String so is_in comparison is always str vs str
+    df = df.with_columns(
+        pl.col("match_id").cast(pl.Utf8)
+    )
+
+    df = df.filter(pl.col('season') == inp)
+
+    df = df.filter(
+        pl.col('batting_team').is_in([first, second]) &
+        pl.col('bowling_team').is_in([first, second])
+    )
+
+    df = df.filter(
+        ~pl.col('batting_team').is_in(['Kochi Tuskers Kerala', 'Pune Warriors']) &
+        ~pl.col('bowling_team').is_in(['Kochi Tuskers Kerala', 'Pune Warriors'])
+    )
+
+    df = df.filter(
+        pl.col('match_id').is_in([matchid])
+    )
+
+    batsmen_played = df.group_by(['match_id', 'batter', 'batting_team', 'bowler', 'bowling_team']).agg(
+        [
+            pl.sum('runs_batter').alias('Runs Scored in a match'),
+            pl.sum('runs_extras').alias('Extra Runs'),
+            pl.sum('balls_faced').alias('Balls Played'),
+            pl.sum('runs_bowler').alias('Bowler Runs'),
+            pl.sum('bowler_wicket').alias('bowler wickets')
+        ]
+    ).sort(['batting_team', 'bowling_team'])
+
+    print("\nCurrent Data:\n")
+    print(batsmen_played)
+
+    batting_runs = batsmen_played.group_by(['batter', 'batting_team']).agg(
+        [
+            pl.sum('Runs Scored in a match').alias('runs_scored'),
+            pl.sum('Extra Runs').alias('Extra Runs'),
+            pl.sum('Balls Played').alias('Balls Faced')
+        ]
+    ).sort('batting_team')
+    print(f"Individual Batter Runs per team: {batting_runs}")
+
+    bowling_runs = batsmen_played.group_by(['bowler', 'bowling_team']).agg(
+        [
+            (pl.sum('Runs Scored in a match') + pl.sum('Extra Runs')).alias('Runs Given'),
+            pl.sum('Balls Played').alias('Balls Delivered'),
+            pl.sum('bowler wickets').alias('Wickets Taken')
+        ]
+    ).sort(['bowling_team', 'Wickets Taken'], descending=[False, True])
+    print(f"Bowling Stats: {bowling_runs}")
+
+    team_totals = batsmen_played.group_by(['batting_team']).agg(
+        [
+            (pl.sum('Runs Scored in a match') + pl.sum('Extra Runs')).alias('Total Runs'),
+            pl.sum('Balls Played').alias('Total Balls'),
+            pl.sum('bowler wickets').alias('Total Wickets')
+        ]
+    ).sort('batting_team')
+
+    print("\nTeam Totals (Runs + Wickets):\n")
+    print(team_totals)
+
+    del_player = delete_player
+
+    df = df.filter(
+        (pl.col("batter") != del_player) &
+        (pl.col("bowler") != del_player)
+    )
+
+    V = []
+
+    for row in df.iter_rows(named=True):
+        V.append({
+            "match_id": row["match_id"],
+            "batter": row["batter"],
+            "bowler": row["bowler"],
+            "batting_team": row["batting_team"],
+            "bowling_team": row["bowling_team"],
+            "runs_scored": row["runs_batter"],
+            "extras": row["runs_extras"],
+            "balls": row["balls_faced"],
+            "bowler_runs": row["runs_bowler"],
+            "wickets": row["bowler_wicket"]
+        })
+
+    print("\nList V Data:\n")
+    for item in V:
+        print(item)
+
+    original_df = batsmen_played
+
+    original_batters = original_df.group_by(['batter', 'batting_team']).agg([
+        pl.sum('Runs Scored in a match').alias('runs_scored'),
+        pl.sum('Balls Played').alias('balls_faced'),
+        pl.sum('Extra Runs').alias('extras')
+    ]).sort('batting_team')
+
+    original_bowlers = original_df.group_by(['bowler', 'bowling_team']).agg([
+        (pl.sum('Runs Scored in a match') + pl.sum('Extra Runs')).alias('runs_given'),
+        pl.sum('Balls Played').alias('balls_delivered'),
+        pl.sum('bowler wickets').alias('wickets_taken')
+    ]).sort(['bowling_team', 'wickets_taken'], descending=[False, True])
+
+    original_teams = original_df.group_by(['batting_team']).agg([
+        (pl.sum('Runs Scored in a match') + pl.sum('Extra Runs')).alias('total_runs'),
+        pl.sum('Balls Played').alias('total_balls'),
+        pl.sum('bowler wickets').alias('total_wickets_lost')
+    ]).sort('batting_team')
+
+    whatif_batters = df.group_by(['batter', 'batting_team']).agg([
+        pl.sum('runs_batter').alias('runs_scored'),
+        pl.sum('balls_faced').alias('balls_faced'),
+        pl.sum('runs_extras').alias('extras')
+    ]).sort('batting_team')
+
+    whatif_bowlers = df.group_by(['bowler', 'bowling_team']).agg([
+        (pl.sum('runs_batter') + pl.sum('runs_extras')).alias('runs_given'),
+        pl.sum('balls_faced').alias('balls_delivered'),
+        pl.sum('bowler_wicket').alias('wickets_taken')
+    ]).sort('bowling_team')
+
+    whatif_teams = df.group_by(['batting_team']).agg([
+        (pl.sum('runs_batter') + pl.sum('runs_extras')).alias('total_runs'),
+        pl.sum('balls_faced').alias('total_balls'),
+        pl.sum('bowler_wicket').alias('total_wickets_lost')
+    ]).sort('batting_team')
+
+    original_lines = []
+    original_lines.append(f"=== ORIGINAL MATCH DATA (with all players including {del_player}) ===")
+
+    original_lines.append("\n-- Batting --")
+    for row in original_batters.iter_rows(named=True):
+        original_lines.append(
+            f"{row['batter']} ({row['batting_team']}): {row['runs_scored']} runs off {row['balls_faced']} balls, extras {row['extras']}."
+        )
+
+    original_lines.append("\n-- Bowling --")
+    for row in original_bowlers.iter_rows(named=True):
+        original_lines.append(
+            f"{row['bowler']} ({row['bowling_team']}): gave {row['runs_given']} runs in {row['balls_delivered']} balls, took {row['wickets_taken']} wicket(s)."
+        )
+
+    original_lines.append("\n-- Team Totals --")
+    for row in original_teams.iter_rows(named=True):
+        original_lines.append(
+            f"{row['batting_team']}: {row['total_runs']} runs in {row['total_balls']} balls, lost {row['total_wickets_lost']} wicket(s)."
+        )
+
+    whatif_lines = []
+    whatif_lines.append(f"\n=== WHAT-IF DATA (with {del_player} removed) ===")
+
+    whatif_lines.append("\n-- Batting --")
+    for row in whatif_batters.iter_rows(named=True):
+        whatif_lines.append(
+            f"{row['batter']} ({row['batting_team']}): {row['runs_scored']} runs off {row['balls_faced']} balls, extras {row['extras']}."
+        )
+
+    whatif_lines.append("\n-- Bowling --")
+    for row in whatif_bowlers.iter_rows(named=True):
+        whatif_lines.append(
+            f"{row['bowler']} ({row['bowling_team']}): gave {row['runs_given']} runs in {row['balls_delivered']} balls, took {row['wickets_taken']} wicket(s)."
+        )
+
+    whatif_lines.append("\n-- Team Totals --")
+    for row in whatif_teams.iter_rows(named=True):
+        whatif_lines.append(
+            f"{row['batting_team']}: {row['total_runs']} runs in {row['total_balls']} balls, lost {row['total_wickets_lost']} wicket(s)."
+        )
+
+    combined_text = (
+        f"Match ID: {matchid} | Season: {inp} | {first} vs {second}\n\n"
+        + "\n".join(original_lines)
+        + "\n"
+        + "\n".join(whatif_lines)
+    )
+
+    whatif_match = [
+        {
+            "id": str(matchid),
+            "text": combined_text
+        }
+    ]
+
+    print(f"\nTotal RAG documents generated: {len(whatif_match)}")
+    print("\nRAG Document:\n")
+    for doc in whatif_match:
+        print(f"ID: {doc['id']}")
+        print(f"Text:\n{doc['text']}")
+
+    return whatif_match
+
+@app.route('/query', methods=['POST'])
+def give_query():
+    pipeline = f"whatif{np.random.randint(100000, 1000000)}"
+    data = request.get_json()
+    query = data.get('query')
+    thread_id = data.get('thread_id')
+    user_id = session.get('user_id')
+    answer = rag_engine.whatif_llm(query, user_id, thread_id, pipeline)
+    return jsonify({"answer": answer})
+
+def bowler_pipeline(bowl, bowl_team, role, pipeline):
+    df = dataframe.filter(pl.col('bowler') == bowl)
+    if bowl_team:
+        df = df.filter(pl.col('bowling_team') == bowl_team)
+
+    value = df.group_by(['match_id', 'season', 'bowler', 'bowling_team']).agg([
+        pl.sum('bowler_wicket').alias('Wickets Taken'),
+        pl.sum('balls_faced').alias('balls bowled'),
+        (pl.sum('balls_faced') / 6).alias('overs faced'),
+        pl.sum('runs_bowler').alias('Total runs'),
+        (pl.sum('runs_bowler') / (pl.sum('balls_faced') / 6)).alias('Economy'),
+        (pl.sum('runs_bowler') / pl.sum('bowler_wicket')).alias("Average"),
+        (pl.sum('balls_faced') / pl.sum('bowler_wicket')).alias('Strike Rate')
+    ])
+
+    total = value.group_by(['season', 'bowler', 'bowling_team']).agg([
+        pl.n_unique('match_id').alias('Matches'),
+        pl.sum('Wickets Taken').alias('Total_Wickets'),
+        pl.sum('overs faced').alias('Total_Overs'),
+        pl.sum('Total runs').alias('Total_Runs'),
+        pl.mean('Economy').alias('Seasonal_Economy'),
+        (pl.sum('Total runs') / pl.sum('Wickets Taken')).alias('Seasonal_Average'),
+        (pl.sum('balls bowled') / pl.sum('Wickets Taken')).alias('Seasonal_Strike_Rate')
+    ]).sort('season')
+
+    season_df = total.to_pandas()
+
+    best_wickets = season_df.loc[season_df['Total_Wickets'].idxmax(), ['season', 'Total_Wickets']]
+    best_avg     = season_df.loc[season_df['Seasonal_Average'].idxmin(), ['season', 'Seasonal_Average']]
+    best_eco     = season_df.loc[season_df['Seasonal_Economy'].idxmin(), ['season', 'Seasonal_Economy']]
+    best_sr      = season_df.loc[season_df['Seasonal_Strike_Rate'].idxmin(), ['season', 'Seasonal_Strike_Rate']]
+
+    labels = season_df['season'].astype(str) + '\n(' + season_df['Matches'].astype(str) + ' matches)'
+
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+    
+    ax1.plot(season_df['season'], season_df['Total_Wickets'],
+             color='#1f77b4', marker='8', linewidth=2, label='Total Wickets')   
+    ax1.scatter(best_wickets['season'], best_wickets['Total_Wickets'],
+                color='red', s=100, zorder=5, label='Best Season')
+
+    ax2 = ax1.twinx()
+    ax2.plot(season_df['season'], season_df['Seasonal_Economy'],
+             color='#ff7f0e', marker='s', linestyle='--', linewidth=2, label='Economy')
+    ax2.plot(season_df['season'], season_df['Seasonal_Average'],
+             color='#d62728', marker='^', linestyle='-.', linewidth=2, label='Bowling Average')
+    ax2.plot(season_df['season'], season_df['Seasonal_Strike_Rate'],
+             color='#2ca02c', marker='D', linestyle=':', linewidth=2, label='Strike Rate')
+
+    ax1.set_xlabel('Season & Matches Played', fontsize=12)
+    ax1.set_ylabel('Wickets', fontsize=12)
+
+    ax2.set_ylabel('Economy / Average / Strike Rate', fontsize=12)
+
+    ax1.set_xticks(season_df['season'])
+    ax1.set_xticklabels(labels, rotation=20)
+    ax1.grid(True, linestyle='--', color='black', alpha=0.4)
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+
+    plt.title(f"{bowl} â€” {'All Seasons' if not bowl_team else bowl_team}", fontsize=16, fontweight='bold')
+    plt.tight_layout(pad=1.5)
+    plt.savefig('static/images/filename.png', dpi=300)
+    plt.close(fig)
+
+   
+    bowler_data = []
+    rows = total.to_dicts()
+
+    for row in rows:
+        text = (
+            f"Bowler {row['bowler']} from {row['bowling_team']} in season {row['season']} "
+            f"played {row['Matches']} matches, took {row['Total_Wickets']} wickets, "
+            f"bowled {row['Total_Overs']:.1f} overs, conceded {row['Total_Runs']} runs. "
+            f"Economy: {row['Seasonal_Economy']:.2f}, "
+            f"Average: {row['Seasonal_Average']:.2f}, "
+            f"Strike Rate: {row['Seasonal_Strike_Rate']:.2f}."
+        )
+
+        bowler_data.append({
+            "id": f"{pipeline}_{row['bowler']}_{row['season']}",
+            "text": text
+        })
+
+    if role == 'bowler':
+        return bowler_data
+
+    question = f"""
+               Geneate me a summary on the given data for the Bowler: {bowl}, across all seasons the bowler have played and give me an overview of the bowler performance
+               over all the season's while also summarise what the bowlers's strength's and short-cummings are, with proper evaluation on how he can can improve.
+                """
+    rag_engine.team_store(bowler_data)
+    bowler_data = rag_engine.ask_team(question)
+    
+    return ({
+        'stats_image': '/static/images/filename.png',
+        'total':     season_df.to_dict(orient='records'),
+        'high_wkt':  best_wickets.to_dict(),
+        'best_avg':  best_avg.to_dict(),
+        'best_eco':  best_eco.to_dict(),
+        'best_sr':   best_sr.to_dict(),
+        'bowler_data': bowler_data
+    })
+
+@app.route('/bowler_index', methods=['POST'])
+def bowler_index():
+    data = request.get_json()
+    bowl_team = data.get('bowl_team')
+    bowl = data.get('bowl_player')
+    batter_id = image_mapping.batter_map().get(bowl)
+    role = ""
+    pipeline = ""
+    image_url = None
+    if batter_id:
+        image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id}.png"
+    else:
+        image_url = "https://documents.iplt20.com/ipl/assets/images/default.png"
+
+    bowler_stats = bowler_pipeline(bowl, bowl_team, role, pipeline)
+
+    return jsonify({
+        'stats_image': bowler_stats['stats_image'],
+        'total': bowler_stats['total'],
+        'high_wkt': bowler_stats['high_wkt'],
+        'best_avg': bowler_stats['best_avg'],
+        'best_eco': bowler_stats['best_eco'],
+        'best_sr': bowler_stats['best_sr'],
+        'image_url': image_url,
+        'bowler_data': bowler_stats['bowler_data']
+    })
+
+@app.route('/teamgraph', methods=['POST'])
+def teamgraph():
+    data = request.get_json() 
+    
+    if not data:
+        return jsonify({"error": "No data received"}), 400
+    team = data.get('teamname')
+
+    matches = df.drop_duplicates(subset='match_id')
+
+    batting_dframe = df[df['batting_team'] == team]
+    batting_matches = batting_dframe.drop_duplicates('match_id')
+
+    bowling_dframe = df[df['bowling_team'] == team]
+
+    team_matches = matches[(matches['batting_team'] == team) | (matches['bowling_team'] == team)]
+    no_result = len(team_matches[team_matches['match_won_by'] == 'Unknown'])
+
+    match_played = team_matches['match_id'].nunique()
+
+    match_won = team_matches[team_matches['match_won_by'] == team]
+    match_won1 = len(match_won)
+
+    match_lost = team_matches[
+        (team_matches['match_won_by'] != team) &
+        (team_matches['match_won_by'] != 'Unknown')
+    ]
+    match_lost = len(match_lost)
+
+    wins_per_season = match_won.groupby('season').size().reset_index(name='wins')
+
+    finals = matches.groupby('season').last().reset_index()
+    titles = finals[finals['match_won_by'] == team]
+
+    runs_per_season = batting_dframe.groupby('season')['runs_batter'].sum().reset_index(name='runs_scored')
+
+    wickets_per_season = bowling_dframe.groupby('season')['bowler_wicket'].sum().reset_index(name='wickets_taken')
+    Total_wins = titles['season'].tolist() if not titles.empty else []
+
+    runs_per_season = runs_per_season.sort_values('season')
+    wins_per_season = wins_per_season.sort_values('season')
+    
+    combined = wins_per_season.merge(
+        wickets_per_season,
+        on='season',
+        how='left'
+    ).merge(
+        runs_per_season,
+        on='season',
+        how='left'
+    )
+    
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+
+    ax1.plot(
+        wins_per_season['season'],
+        wins_per_season['wins'],
+        color="#175FAD",
+        marker='s',
+        linestyle='-',
+        label='Matches Won Per Season'
+    )
+
+
+    ax1.plot(
+        wickets_per_season['season'],
+        wickets_per_season['wickets_taken'],
+        color="#F52A18",
+        marker='o',
+        linewidth=2,
+        linestyle='--',
+        label='Wickets Taken Per Season'
+    )
+
+
+    ax2 = ax1.twinx()
+
+    ax2.plot(
+        runs_per_season['season'],
+        runs_per_season['runs_scored'],
+        color="#0D7901",
+        marker='D',
+        linestyle='-.',
+        linewidth=2,
+        label='Runs Scored Per Season'
+    )
+
+
+    ax2.set_ylabel('Total Runs Made Per season', fontsize=12, fontweight='bold')
+
+
+    title_seasons = titles['season']
+
+    title_wins = wins_per_season[
+        wins_per_season['season'].isin(title_seasons)
+    ]
+
+    ax1.scatter(
+        title_wins['season'],
+        title_wins['wins'],
+        marker='*',
+        zorder=5,
+        label='Season Winner',
+        color= "#CF9400",
+        s=400
+    )
+
+
+
+    for x, y in zip(wins_per_season['season'], wins_per_season['wins']):
+        ax1.annotate(
+            str(y),
+            (x, y),
+            textcoords="offset points",
+            xytext=(0, 8),   # moves text above the point
+            ha='center',
+            fontsize=10,
+            fontweight='bold',
+            color='black'
+        )
+
+
+    line1, label1 = ax1.get_legend_handles_labels()
+    line2, label2 = ax2.get_legend_handles_labels()
+
+    ax1.legend(line1 + line2 , label1 + label2 , loc='upper left')
+
+
+    ax1.set_title(f"'{team}' - Performance Across Seasons", fontsize=16, fontweight='bold')
+    ax1.set_xlabel("Season", fontsize=12, fontweight='bold')
+    ax1.set_ylabel("Total Matches won / Total Wickets Taken",fontweight='bold', fontsize=12)
+
+    ax1.grid(True, linestyle='--', color='black', alpha=0.5) 
+
+    plt.tight_layout(pad=1.5)
+    filename = "static/images/team.png"
+    plt.savefig(filename)
+    question = f"""
+               Geneate me a summary on the given data for the team: {team}, across all seasons the team have played and give me an overview of the team performance
+               over all the season's while also summarise what the team's strength's and short-cummings are, with proper evaluation on how they can improve.
+                """
+    Data = []
+
+    for idx, row in combined.iterrows():
+        Data.append({
+            "id": f"{team}_{row['season']}_{idx}",
+            "text": f"{row['season']}: {team} won {row['wins']} matches in {row['season']} "
+                    f"and took {row['wickets_taken']} wickets while scoring {row['runs_scored']} runs in that season."
+        })
+
+    rag_engine.team_store(Data)
+    image_summary = rag_engine.ask_team(question)
+
+    return jsonify(
+        {
+            'Total_matches': int(match_played),
+            'Total_won': int(match_won1),      
+            'Total_lost': int(match_lost),     
+            'Total_null': int(no_result),
+            'Team_graph': "static/images/team.png",
+            'Total_wins': Total_wins,
+            'image_summary': image_summary
+        }
+    )
+
+def whatif_weather(date):
+
+    df_filtered = df[df['date'] == date]
+
+    grp = df_filtered.groupby(
+        ['match_id', 'season', 'batting_team', 'bowling_team', 'batter', 'bowler']
+    )[['runs_total', 'balls_faced']].sum().reset_index()
+
+    grp1 = df_filtered.groupby(
+        ['match_id', 'season', 'batting_team', 'bowling_team', 'bowler', 'batter']
+    )['bowler_wicket'].sum().reset_index()
+
+    merged = pd.merge(
+        grp,
+        grp1,
+        on=['match_id', 'season', 'batting_team', 'bowling_team', 'batter', 'bowler'],
+        how='left'
+    )
+
+    match_data = []
+
+    for _, row in merged.iterrows():
+        text = (
+            f"{row['batter']} from {row['batting_team']} scored "
+            f"{row['runs_total']} against {row['bowler']} "
+            f"in {row['balls_faced']} balls."
+        )
+
+        if row['bowler_wicket'] > 0:
+            text += f" He was dismissed by {row['bowler']}."
+
+        match_data.append({
+           "id": f"{row['match_id']}_{row['batter']}_{row['bowler']}",
+            "text": text
+        })
+
+    venue = df_filtered['venue'].unique().tolist()
+    location = ",".join(venue)
+
+    API_KEY = os.getenv('WEATHER_API')
+    unit_group = "metric"
+
+    url = f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{urllib.parse.quote_plus(location)}/{date}?unitGroup={unit_group}&key={API_KEY}&contentType=json"
+
+    try:
+        with urllib.request.urlopen(url) as response:
+            if response.status != 200:
+                raise Exception(f"Error! Status code: {response.status}")
+
+            weather_data = json.loads(response.read().decode('utf-8'))
+            day = weather_data['days'][0]
+            conditions = day.get('conditions', 'unknown')
+            weather_sentence = (
+                f"Weather for {weather_data['resolvedAddress']} on {day['datetime']} "
+                f"is  {conditions} with a temperature of {day['temp']}°C."
+            )
+
+    except Exception as e:
+        return str(e)
+
+    for item in match_data:
+        item["text"] += f" Weather on match day: {weather_sentence}"
+    print(match_data)
+    return match_data
+
+if __name__ == '__main__':
+    app.run(debug=True)

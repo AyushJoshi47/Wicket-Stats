@@ -1,0 +1,242 @@
+def batter_map_short():
+    return {
+    "M Dhoni": 1,
+    "R Jadeja": 'Default-Men',
+    "R Gaikwad": 102,
+    "S Dube": 211,
+    "M Pathirana": 1014,
+    "D Chahar": 140,
+    "A Rahane": 135,
+    "M Santner": 190,
+    "R Ravindra": 1030,
+    "D Mitchell": 1031,
+    "S Raina": 14,
+
+    # Royal Challengers Bengaluru (RCB)
+    "V Kohli": 2,
+    "F du Plessis": 24,
+    "G Maxwell": 28,
+    "M Siraj": 63,
+    "R Patidar": 166,
+    "C Green": 1001,
+    "W Jacks": 1002,
+    "Y Dayal": 170,
+    "A Rawat": 175,
+    "K Karthik": 7,
+
+    # Mumbai Indians (MI)
+    "R Sharma": 6,
+    "H Pandya": 21,
+    "J Bumrah": 9,
+    "S Yadav": 108,
+    "I Kishan": 164,
+    "T Varma": 250,
+    "T David": 1010,
+    "G Coetzee": 1011,
+    "P Chawla": 43,
+    "A Madhwal": 260,
+
+    # Kolkata Knight Riders (KKR)
+    "S Iyer": 12,
+    "A Russell": 50,
+    "S Narine": 48,
+    "R Singh": 152,
+    "M Starc": 1020,
+    "C Varun": 140,
+    "V Iyer": 155,
+    "R Gurbaz": 1021,
+    "N Rana": 52,
+    "R Singh": 270,
+
+    # Delhi Capitals (DC)
+    "K Rahul": 19,
+    "K Yadav": 17,
+    "A Patel": 110,
+    "R Pant": 23,
+    "D Warner": 40,
+    "M Marsh": 1035,
+    "J Fraser-McGurk": 1036,
+    "A Nortje": 1037,
+    "T Stubbs": 1038,
+    "K Ahmed": 160,
+
+    # Gujarat Titans (GT)
+    "S Gill": 62,
+    "R Khan": 71,
+    "B Sai Sudharsan": 280,
+    "M Shami": 47,
+    "D Miller": 128,
+    "K Williamson": 65,
+    "R Tewatia": 120,
+    "M Sharma": 55,
+    "S Johnson": 1040,
+    "S Khan": 180,
+
+    # Rajasthan Royals (RR)
+    "S Samson": 78,
+    "Y Chahal": 10,
+    "J Buttler": 39,
+    "Y Jaiswal": 133,
+    "R Parag": 150,
+    "T Boult": 64,
+    "S Hetmyer": 210,
+    "R Ashwin": 8,
+    "S Sharma": 58,
+    "A Khan": 109,
+
+    # Lucknow Super Giants (LSG)
+    "N Pooran": 1050,
+    "Q de Kock": 170,
+    "M Stoinis": 175,
+    "R Bishnoi": 113,
+    "A Badoni": 220,
+    "K Pandya": 112,
+    "M Khan": 225,
+    "D Padikkal": 130,
+    "Naveen-ul-Haq": 1051,
+    "M Yadav": 290,
+
+    # Sunrisers Hyderabad (SRH)
+    "P Cummins": 1060,
+    "T Head": 37,
+    "A Sharma": 212,
+    "H Klaasen": 202,
+    "B Kumar": 15,
+    "T Natarajan": 145,
+    "N Reddy": 300,
+    "W Sundar": 20,
+    "R Tripathi": 148,
+    "M Jansen": 1063,
+
+    # Punjab Kings (PBKS)
+    "S Dhawan": 41,
+    "S Curran": 1070,
+    "L Livingstone": 1071,
+    "K Rabada": 1072,
+    "A Singh": 115,
+    "J Sharma": 185,
+    "H Patel": 114,
+    "P Singh": 116,
+    "H Brar": 117,
+    "R Chahar": 118
+}
+
+
+def batter_map():
+
+    return {
+        "MS_Dhoni": 1,
+        "RA Jadeja": 'Default-Men',
+        "RD Gaikwad": 102,
+        "S Dube": 211,
+        "M Pathirana": 1014,
+        "DL Chahar": 140,
+        "AM Rahane": 135,
+        "MJ Santner": 190,
+        "R Ravindra": 1030,
+        "DJ Mitchell": 1031,
+        'SK Raina': 14,
+
+        # Royal Challengers Bengaluru (RCB)
+        "V Kohli": 2,
+        "F du Plessis": 24,
+        "GJ Maxwell": 28,
+        "M Siraj": 63,
+        "R Patidar": 166,
+        "C Green": 1001,
+        "WG Jacks": 1002,
+        "Yash Dayal": 170,
+        "Anuj Rawat": 175,
+        "KD Karthik": 7,
+
+        # Mumbai Indians (MI)
+        "RG Sharma": 6,
+        "HH Pandya": 21,
+        "JJ Bumrah": 9,
+        "SA Yadav": 108,
+        "Ishan Kishan": 164,
+        "Tilak Varma": 250,
+        "TH David": 1010,
+        "G Coetzee": 1011,
+        "PP Chawla": 43,
+        "Akash Madhwal": 260,
+
+        # Kolkata Knight Riders (KKR)
+        "SS Iyer": 12,
+        "AD Russell": 50,
+        "SP Narine": 48,
+        "Rinku Singh": 152,
+        "MA Starc": 1020,
+        "CV Varun": 140,
+        "V Iyer": 155,
+        "R Gurbaz": 1021,
+        "N Rana": 52,
+        "Ramandeep Singh": 270,
+
+        # Delhi Capitals (DC)
+        "KL Rahul": 19,
+        "Kuldeep Yadav": 17,
+        "AR Patel": 110,
+        "RR Pant": 23,
+        "DA Warner": 40,
+        "MR Marsh": 1035,
+        "J Fraser-McGurk": 1036,
+        "A Nortje": 1037,
+        "T Stubbs": 1038,
+        "KK Ahmed": 160,
+
+        # Gujarat Titans (GT)
+        "S Gill": 62,
+        "Rashid Khan": 71,
+        "B Sai Sudharsan": 280,
+        "Mohammed Shami": 47,
+        "DA Miller": 128,
+        "KS Williamson": 65,
+        "R Tewatia": 120,
+        "MM Sharma": 55,
+        "S Johnson": 1040,
+        "Shahrukh Khan": 180,
+
+        # Rajasthan Royals (RR)
+        "SV Samson": 78,
+        "YS Chahal": 10,
+        "JC Buttler": 39,
+        "YBK Jaiswal": 133,
+        "R Parag": 150,
+        "TA Boult": 64,
+        "SO Hetmyer": 210,
+        "R Ashwin": 8,
+        "Sandeep Sharma": 58,
+        "Avesh Khan": 109,
+
+        # Lucknow Super Giants (LSG)
+        "N Pooran": 1050,
+        "Q de Kock": 170,
+        "MP Stoinis": 175,
+        "Ravi Bishnoi": 113,
+        "A Badoni": 220,
+        "KH Pandya": 112,
+        "Mohsin Khan": 225,
+        "D Padikkal": 130,
+        "Naveen-ul-Haq": 1051,
+        "Mayank Yadav": 290,
+
+        # Sunrisers Hyderabad (SRH)
+        "PJ Cummins": 1060,
+        "TM Head": 1061,
+        "Abhishek Sharma": 212,
+        "H Klaasen": 1062,
+        "B Kumar": 15,
+        "T Natarajan": 145,
+        "NK Reddy": 300,
+        "Washington Sundar": 20,
+        "RA Tripathi": 148,
+        "M Jansen": 1063,
+
+        # Punjab Kings (PBKS)
+        "S Dhawan": 41,
+        "SM Curran": 1070,
+        "LS Livingstone": 1071,
+        "K Rabada": 1072,
+        "Arshdeep Singh": 115, "JM Sharma": 185, "HV Patel": 114, "Prabhsimran Singh": 116, "Harpreet Brar": 117, "RD Chahar": 118
+}
