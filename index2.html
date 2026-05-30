@@ -269,7 +269,7 @@
             align-items: flex-start;
             max-width: 1000px;
             width: 100%;
-            margin: 140px auto;
+            margin: 200px auto 240px;
             padding: 0 20px;
         }
 
@@ -315,13 +315,6 @@
             border-radius: 40px;
             overflow: hidden;
             text-align: center;
-
-            background:
-                radial-gradient(ellipse at 15% 20%, rgba(210, 228, 248, 0.7) 0%, transparent 55%),
-                radial-gradient(ellipse at 85% 80%, rgba(225, 215, 248, 0.55) 0%, transparent 55%),
-                radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.85) 0%, transparent 70%),
-                linear-gradient(170deg, #f4f8fc 0%, #ecf2f9 50%, #e4ecf6 100%);
-
             border: 1px solid rgba(255,255,255,0.5);
             box-shadow:
                 inset 0 1px 0 rgba(255,255,255,0.6),
@@ -330,7 +323,18 @@
                 0 6px 20px rgba(0,0,0,0.04);
         }
 
-        .feature-section::before {
+        .feature-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background: linear-gradient(135deg, #DFEAF8 0%, #EEF2F7 50%, #E7E5F0 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+        }
+
+        .feature-bg::before {
             content: '';
             position: absolute;
             inset: 0;
@@ -382,6 +386,8 @@
             justify-content: center;
             align-items: center;
             height: 300px;
+            -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
         }
 
         .main-trophy {
@@ -434,21 +440,19 @@
         .ring-outer .q4 { margin: 235px 0 0 -55px; }
         .ring-outer .q5 { margin: 55px 0 0 -255px; }
 
-        /* ===== PROBLEM SECTION ===== */
         .bento-section {
             max-width: calc(100% - 80px);
-            margin: 80px auto 0;
+            margin: 220px auto 0;
             padding: 0;
         }
 
         .bento-header {
-            text-align: left;
-            margin: 0;
+            text-align: center;
+            margin: 0 auto;
             padding: 0;
             position: relative;
             z-index: 2;
-            flex: 1;
-            max-width: 600px;
+            max-width: 800px;
         }
 
         .bento-tag {
@@ -483,12 +487,13 @@
             overflow: hidden;
             isolation: isolate;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            gap: 80px;
+            justify-content: center;
+            text-align: center;
+            gap: 48px;
         }
 
-        /* ===== LIVE FLOWING GRADIENT BACKGROUND (like water in a lake) ===== */
         .bento-smoke-bg {
             position: absolute;
             inset: 0;
@@ -497,6 +502,8 @@
             overflow: hidden;
             border-radius: 32px;
             background: linear-gradient(135deg, #DFEAF8 0%, #EEF2F7 50%, #E7E5F0 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
         }
 
         .smoke {
@@ -755,7 +762,7 @@
         /* ===== SOLUTION SECTION ===== */
         .solution-section {
             max-width: calc(100% - 80px);
-            margin: 3rem auto 160px;
+            margin: 220px auto 0;
             padding: 0;
         }
 
@@ -812,6 +819,303 @@
             .ring-outer .q3 { margin: 130px 0 0 170px; }
             .ring-outer .q4 { margin: 190px 0 0 -40px; }
             .ring-outer .q5 { margin: 45px 0 0 -210px; }
+        }
+
+        /* ===== SYSTEM SECTION (What the system does) ===== */
+        .system-section {
+            max-width: calc(100% - 80px);
+            margin: 220px auto 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        .system-container {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        .system-title {
+            font-size: var(--heading-size);
+            line-height: 1.05;
+            letter-spacing: -2.5px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--text-main) 30%, #4B5563 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .system-subtitle {
+            font-size: clamp(1.1rem, 1.3vw, 1.35rem);
+            color: var(--text-muted);
+            max-width: 800px;
+            line-height: 1.45;
+            margin: 0 auto 60px;
+            font-weight: 400;
+            letter-spacing: -0.2px;
+            text-align: center;
+        }
+
+        .system-console {
+            display: grid;
+            grid-template-columns: 400px 540px;
+            gap: 48px;
+            justify-content: center;
+            align-items: stretch;
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        .console-left {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .console-card {
+            background: linear-gradient(135deg, rgba(126, 182, 255, 0.04) 0%, rgba(174, 149, 255, 0.04) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(174, 149, 255, 0.12);
+            border-radius: 20px;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+            flex: 1;
+        }
+
+        .console-card:hover {
+            background: linear-gradient(135deg, rgba(126, 182, 255, 0.08) 0%, rgba(174, 149, 255, 0.08) 100%);
+            border-color: rgba(174, 149, 255, 0.28);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.02);
+        }
+
+        .console-card.active {
+            background: linear-gradient(135deg, rgba(126, 182, 255, 0.16) 0%, rgba(174, 149, 255, 0.16) 100%);
+            border-color: #3B82F6;
+            box-shadow: 
+                0 15px 35px rgba(126, 182, 255, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+
+        .console-card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+            padding-right: 20px;
+        }
+
+        .console-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            margin: 0;
+            transition: color 0.3s ease;
+        }
+
+        .console-card.active h3 {
+            color: #3B82F6;
+        }
+
+        .console-card p {
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .console-card-indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .console-card-indicator svg {
+            width: 12px;
+            height: 12px;
+            stroke: var(--text-muted);
+            stroke-width: 3;
+            fill: none;
+            transition: all 0.3s ease;
+        }
+
+        .console-card:hover .console-card-indicator {
+            border-color: rgba(0, 0, 0, 0.18);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .console-card.active .console-card-indicator {
+            border-color: #3B82F6;
+            background: #ffffff;
+            position: relative;
+        }
+
+        .console-card.active .console-card-indicator::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3B82F6;
+            animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .console-right {
+            background: linear-gradient(135deg, rgba(126, 182, 255, 0.05) 0%, rgba(255, 255, 255, 0.75) 50%, rgba(174, 149, 255, 0.05) 100%);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border: 1px solid rgba(174, 149, 255, 0.15);
+            border-radius: 28px;
+            padding: 44px 48px;
+            box-shadow: 
+                0 25px 50px rgba(126, 182, 255, 0.04),
+                inset 0 1px 0 rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            height: 600px;
+            box-sizing: border-box;
+        }
+
+        .mockup-panel {
+            display: none;
+            opacity: 0;
+            transform: translateY(12px) scale(0.99);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            width: 100%;
+        }
+
+        .mockup-panel.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .mockup-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #3B82F6;
+            margin: 0;
+        }
+
+        .mockup-panel h3 {
+            font-size: 1.85rem;
+            font-weight: 750;
+            letter-spacing: -0.7px;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.15;
+        }
+
+        .mockup-panel-subtitle {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #4B5563;
+            margin: -4px 0 -4px;
+            line-height: 1.35;
+        }
+
+        .mockup-panel p {
+            font-size: 0.94rem;
+            line-height: 1.55;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .mockup-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .mockup-bullets li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .mockup-bullets li:hover {
+            transform: translateX(4px);
+        }
+
+        .mockup-bullet-check {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .mockup-bullets li:hover .mockup-bullet-check {
+            background: rgba(16, 185, 129, 0.2);
+            transform: scale(1.1);
+        }
+
+        .mockup-bullets li span {
+            font-size: 0.88rem;
+            line-height: 1.45;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+
+
+        /* --- RESPONSIVE CSS --- */
+        @media (max-width: 960px) {
+            .system-console {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .console-left {
+                height: auto;
+            }
+            .console-card {
+                flex: none;
+            }
+            .console-right {
+                padding: 30px 24px;
+                height: auto;
+            }
+            .system-section {
+                max-width: calc(100% - 40px);
+                margin-top: 160px;
+            }
         }
 
         /* ===== SECTION 03 & 04 ===== */
@@ -1443,48 +1747,17 @@
         </main>
     </div>
 
-    <!-- Stats Row -->
-    <div class="stats-row">
-        <div class="stat-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <div class="stat-val">17+</div>
-            <div class="stat-label">IPL Seasons Analysed</div>
-        </div>
-        <div class="stat-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-            </svg>
-            <div class="stat-val">10</div>
-            <div class="stat-label">Active IPL Teams</div>
-        </div>
-        <div class="stat-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-            </svg>
-            <div class="stat-val">∞</div>
-            <div class="stat-label">What-If Scenarios</div>
-        </div>
-        <div class="stat-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />
-            </svg>
-            <div class="stat-val">AI</div>
-            <div class="stat-label">Powered Insights</div>
-        </div>
-    </div>
 
     <!-- Feature Section — Apple-style centered layout -->
     <section class="feature-section">
+        <div class="feature-bg">
+            <div class="smoke smoke-1"></div>
+            <div class="smoke smoke-2"></div>
+            <div class="smoke smoke-3"></div>
+            <div class="smoke smoke-4"></div>
+            <div class="smoke smoke-5"></div>
+            <div class="smoke smoke-6"></div>
+        </div>
         <div class="feature-text">
             <p class="feature-eyebrow">Built on Truth</p>
             <h2>Your unfair advantage<br>starts here.</h2>
@@ -1623,6 +1896,252 @@
             <p class="solution-text" id="typewriter-text">
                 WicketStats is an advanced IPL analytics platform built on Flask, covering 15+ seasons of ball-by-ball data from 2008 to 2026 across all 10 franchise teams. It combines historical match intelligence with AI-powered analysis to deliver player performance breakdowns, predictive insights, and hypothetical what-if scenario modeling — including 79+ match mappings for the 2025 season.
             </p>
+        </div>
+    </section>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div class="stat-val">17+</div>
+            <div class="stat-label">IPL Seasons Analysed</div>
+        </div>
+        <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+            </svg>
+            <div class="stat-val">10</div>
+            <div class="stat-label">Active IPL Teams</div>
+        </div>
+        <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+            </svg>
+            <div class="stat-val">∞</div>
+            <div class="stat-label">What-If Scenarios</div>
+        </div>
+        <div class="stat-item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />
+            </svg>
+            <div class="stat-val">AI</div>
+            <div class="stat-label">Powered Insights</div>
+        </div>
+    </div>
+
+    <section class="system-section">
+        <div class="system-container">
+            <span class="bento-tag">What the system does</span>
+            <h2 class="system-title">Comprehensive IPL data analytics</h2>
+            <p class="system-subtitle">From the very first IPL season to 2026, every ball, every wicket, and every result is stored and analysed. The system turns that raw history into clear team insights, deep player profiles, outcome predictions, and a conversational AI you can ask anything.</p>
+            
+            <div class="system-console">
+                <!-- Left Side: 5 Control Cards -->
+                <div class="console-left">
+                    <div class="console-card active" data-target="panel-team">
+                        <div class="console-card-content">
+                            <h3>Team intelligence</h3>
+                            <p>How every team has performed across all seasons</p>
+                        </div>
+                        <div class="console-card-indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </div>
+                    </div>
+                    
+                    <div class="console-card" data-target="panel-player">
+                        <div class="console-card-content">
+                            <h3>Player analysis</h3>
+                            <p>A complete career breakdown for every batter and bowler</p>
+                        </div>
+                        <div class="console-card-indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="console-card" data-target="panel-predictor">
+                        <div class="console-card-content">
+                            <h3>Predictive analytics</h3>
+                            <p>Turning historical data into forward-looking answers</p>
+                        </div>
+                        <div class="console-card-indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="console-card" data-target="panel-comparison">
+                        <div class="console-card-content">
+                            <h3>Player comparison</h3>
+                            <p>Put any two players side by side and see who comes out on top</p>
+                        </div>
+                        <div class="console-card-indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="console-card" data-target="panel-match">
+                        <div class="console-card-content">
+                            <h3>Match prediction</h3>
+                            <p>Know who is likely to win before the toss even happens</p>
+                        </div>
+                        <div class="console-card-indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Side: Dynamic Preview Card -->
+                <div class="console-right">
+                    <!-- Panel 1: Team Intelligence -->
+                    <div class="mockup-panel active" id="panel-team">
+                        <span class="mockup-eyebrow">Team intelligence</span>
+                        <h3>How every team has performed across all seasons</h3>
+                        <p class="mockup-panel-subtitle">Full historical view from 2008 to 2026</p>
+                        <p>Pick any franchise and instantly see their entire journey — how many matches they won each season, how many runs they piled on, and how many wickets their bowlers claimed. Trophy-winning seasons are marked automatically so the peaks stand out at a glance.</p>
+                        <ul class="mockup-bullets">
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Season-by-season wins, runs, and wickets mapped on a single chart</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Head-to-head records between any two teams, including toss decisions and venue history</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Title-winning seasons highlighted automatically so standout years are never missed</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Panel 2: Player Analysis -->
+                    <div class="mockup-panel" id="panel-player">
+                        <span class="mockup-eyebrow">Player analysis</span>
+                        <h3>A complete career breakdown for every batter and bowler</h3>
+                        <p class="mockup-panel-subtitle">Look up any player across their entire IPL career</p>
+                        <p>Search any player and get a full picture of their career — how their runs or wickets have trended season by season, which year was their best, how consistent they've been, and where their game has weaknesses. Batters and bowlers each get their own dedicated deep-dive.</p>
+                        <ul class="mockup-bullets">
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Batters: season-wise runs, strike rate, boundary counts, dismissal patterns, and consistency score</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Bowlers: wickets, economy, bowling average, and best seasons on a dual-axis chart</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Player headshots and an AI-written career summary generated from real match data</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel 3: Predictive Analytics -->
+                    <div class="mockup-panel" id="panel-predictor">
+                        <span class="mockup-eyebrow">Predictive analytics</span>
+                        <h3>Turning historical data into forward-looking answers</h3>
+                        <p class="mockup-panel-subtitle">Match outcomes and top scorer forecasts for any fixture</p>
+                        <p>Beyond describing the past, the system uses years of match data to make informed calls about what's likely next — from match outcomes and expected scores to which players are best positioned to top the run charts in an upcoming season.</p>
+                        <ul class="mockup-bullets">
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Match outcome predictions built from win rates, scoring strength, bowling firepower, and toss influence</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Top scorer forecasts that weigh both long-term consistency and peak performance spikes</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>2026 season data already integrated so predictions reflect the most current picture available</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel 4: Player Comparison -->
+                    <div class="mockup-panel" id="panel-comparison">
+                        <span class="mockup-eyebrow">Player comparison</span>
+                        <h3>Put any two players side by side and see who comes out on top</h3>
+                        <p class="mockup-panel-subtitle">Batting, bowling, and fielding — all compared at once</p>
+                        <p>Choose any two players from IPL history and the system lays out every meaningful statistic side by side — from career runs and strike rates to wickets, economy, and even fielding contributions like catches and stumpings. No guesswork, just the numbers.</p>
+                        <ul class="mockup-bullets">
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Full batting comparison: matches, runs, average, strike rate, hundreds, fifties, fours, sixes</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Full bowling comparison: wickets, economy, average, strike rate, four and five-wicket hauls</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Fielding stats included — catches, stumpings, and run-outs all count</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel 5: Match Prediction -->
+                    <div class="mockup-panel" id="panel-match">
+                        <span class="mockup-eyebrow">Match prediction</span>
+                        <h3>Know who is likely to win before the toss even happens</h3>
+                        <p class="mockup-panel-subtitle">Every factor that actually influences a result, combined</p>
+                        <p>This isn't a guess — it's a verdict built from every dimension of the game that matters. Head-to-head record, average runs scored, powerplay dominance, death-over finishing ability, toss advantage, and bowling strength are all weighed together to give each team a win probability score.</p>
+                        <ul class="mockup-bullets">
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Head-to-head win rate between the two teams across all seasons they've faced each other</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Powerplay and death-over scoring averages factor in alongside overall batting and bowling strength</span>
+                            </li>
+                            <li>
+                                <div class="mockup-bullet-check">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                                <span>Toss decisions, venue win records, and highest and lowest scores in this fixture all feed into the final call</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -1889,6 +2408,29 @@
 
             window.addEventListener('scroll', handleScroll);
             handleScroll(); // Initial check
+
+            // Tab switching logic for the capability console
+            const consoleCards = document.querySelectorAll('.console-card');
+            const mockupPanels = document.querySelectorAll('.mockup-panel');
+            
+            consoleCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const targetId = card.getAttribute('data-target');
+                    if (!targetId) return;
+
+                    // Update active card
+                    consoleCards.forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+
+                    // Update active mockup panel
+                    mockupPanels.forEach(panel => {
+                        panel.classList.remove('active');
+                        if (panel.id === targetId) {
+                            panel.classList.add('active');
+                        }
+                    });
+                });
+            });
         });
     </script>
 </body>
