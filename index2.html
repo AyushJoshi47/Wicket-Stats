@@ -2699,7 +2699,7 @@
 
                 <!-- Sign In Form -->
                 <div id="signInForm">
-                    <h2 class="modal-title-text">Sign In</h2>
+                    <h2 class="modal-title" style="font-size: 2.2rem; text-align: center; margin-bottom: 24px;">Sign In</h2>
                     <form id="loginForm">
                         <div class="form-group">
                             <label for="si-email">Email Address</label>
@@ -2718,7 +2718,7 @@
 
                 <!-- Sign Up Form -->
                 <div id="signUpFormContainer" style="display:none;">
-                    <h2 class="modal-title-text">Sign Up</h2>
+                    <h2 class="modal-title" style="font-size: 2.2rem; text-align: center; margin-bottom: 24px;">Sign Up</h2>
                     <form id="signUpForm">
                         <div class="form-group">
                             <label for="name">Full Name</label>
@@ -2731,7 +2731,8 @@
                         <div class="form-group">
                             <label for="plan">Your Plan</label>
                             <select id="plan" name="plan" required>
-                                <option value="" disabled selected>Select Your Plan</option>
+                                <option value="" disabled selected>SELECT YOUR PLAN</option>
+                                <option>SELECT YOUR PLAN</option>
                                 <option value="Basic">Basic</option>
                                 <option value="Plus">Plus</option>
                                 <option value="Premium">Premium</option>
@@ -2881,165 +2882,126 @@
             }, { threshold: 0.15 });
             aiEngines.forEach(el => observer.observe(el));
 
-            // ── Frosted Glass Modal Logic ──
+            // Auth modal + OTP flow (same behavior as index.html)
             const modal = document.getElementById("signinModal");
-            const registerBtn = document.getElementById("registerLink");
-            const bandRegisterBtn = document.getElementById("bandRegisterBtn");
-            const closeBtn = modal ? modal.querySelector(".close") : null;
+            const btn = document.getElementById("registerLink");
+            const closeBtn = modal.querySelector(".close");
             const signInForm = document.getElementById("signInForm");
             const signUpForm = document.getElementById("signUpFormContainer");
             const showSignUp = document.getElementById("showSignUp");
             const showSignIn = document.getElementById("showSignIn");
-            const generateOtpBtn = document.getElementById('actionBtn');
-            const signUpSubmitBtn = document.getElementById('signUpSubmitBtn');
-            const otpSection = document.getElementById('otpSection');
+            const bandRegisterBtn = document.getElementById("bandRegisterBtn");
+            const generateOtpBtn = document.getElementById("actionBtn");
+            const signUpSubmitBtn = document.getElementById("signUpSubmitBtn");
+            const otpSection = document.getElementById("otpSection");
 
-            // Open modal from navbar
-            if (registerBtn) {
-                registerBtn.addEventListener("click", (e) => {
-                    if (registerBtn.getAttribute("href") === "#") {
-                        e.preventDefault();
-                        if (modal) modal.classList.add("active");
-                    }
-                });
-            }
-
-            // Open modal from bottom register band (directly to Sign Up panel)
-            if (bandRegisterBtn) {
-                bandRegisterBtn.addEventListener("click", (e) => {
+            btn.addEventListener("click", (e) => {
+                const href = btn.getAttribute("href");
+                const shouldOpenModal = btn.tagName === "BUTTON" || href === "#" || href === null || href === "";
+                if (shouldOpenModal) {
                     e.preventDefault();
-                    if (modal) {
-                        modal.classList.add("active");
-                        if (signInForm && signUpForm) {
-                            signInForm.style.display = "none";
-                            signUpForm.style.display = "block";
-                        }
-                    }
-                });
-            }
-
-            // Close modal
-            if (closeBtn) {
-                closeBtn.addEventListener("click", () => {
-                    if (modal) modal.classList.remove("active");
-                });
-            }
-
-            window.addEventListener("click", (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove("active");
+                    modal.classList.add("active");
                 }
             });
 
-            // Toggle panels within modal
-            if (showSignUp) {
-                showSignUp.addEventListener("click", (e) => {
+            if (bandRegisterBtn) {
+                bandRegisterBtn.addEventListener("click", (e) => {
                     e.preventDefault();
-                    if (signInForm && signUpForm) {
-                        signInForm.style.display = "none";
-                        signUpForm.style.display = "block";
-                    }
+                    modal.classList.add("active");
+                    signInForm.style.display = "none";
+                    signUpForm.style.display = "block";
                 });
+            }
+
+            closeBtn.onclick = () => modal.classList.remove("active");
+            window.onclick = (e) => { if (e.target === modal) modal.classList.remove("active"); };
+
+            if (showSignUp) {
+                showSignUp.onclick = (e) => {
+                    e.preventDefault();
+                    signInForm.style.display = "none";
+                    signUpForm.style.display = "block";
+                };
             }
 
             if (showSignIn) {
-                showSignIn.addEventListener("click", (e) => {
+                showSignIn.onclick = (e) => {
                     e.preventDefault();
-                    if (signInForm && signUpForm) {
-                        signUpForm.style.display = "none";
-                        signInForm.style.display = "block";
-                    }
-                });
+                    signUpForm.style.display = "none";
+                    signInForm.style.display = "block";
+                };
             }
 
-            // Generate OTP endpoint fetch
-            if (generateOtpBtn) {
-                generateOtpBtn.addEventListener('click', async () => {
-                    const emailInput = document.getElementById('email');
-                    const email = emailInput ? emailInput.value.trim() : "";
-                    if (!email) return alert("Please enter your email first.");
+            generateOtpBtn.addEventListener("click", async () => {
+                const email = document.getElementById("email").value.trim();
+                if (!email) return alert("Please enter your email first.");
 
-                    generateOtpBtn.disabled = true;
-                    generateOtpBtn.innerText = "Sending...";
+                generateOtpBtn.disabled = true;
+                generateOtpBtn.innerText = "Sending...";
 
-                    try {
-                        const response = await fetch('/send-otp', {
-                            method: 'POST',
-                            body: new URLSearchParams({ email })
-                        });
+                try {
+                    const response = await fetch("/send-otp", {
+                        method: "POST",
+                        body: new URLSearchParams({ email })
+                    });
 
-                        if (response.ok) {
-                            if (otpSection) otpSection.style.display = 'block';
-                            const otpInput = document.getElementById('otp');
-                            if (otpInput) otpInput.required = true;
-                            generateOtpBtn.style.display = 'none';
-                            if (signUpSubmitBtn) signUpSubmitBtn.style.display = 'block';
-                            alert("OTP sent to your email!");
-                        } else {
-                            alert("Failed to send OTP. Please check your email address.");
-                            generateOtpBtn.disabled = false;
-                            generateOtpBtn.innerText = "Generate OTP";
-                        }
-                    } catch (error) {
-                        console.error("Error sending OTP:", error);
-                        alert("Network error. Please try again.");
+                    if (response.ok) {
+                        otpSection.style.display = "block";
+                        document.getElementById("otp").required = true;
+                        generateOtpBtn.style.display = "none";
+                        signUpSubmitBtn.style.display = "inline-block";
+                        alert("OTP sent to your email!");
+                    } else {
+                        alert("Failed to send OTP");
                         generateOtpBtn.disabled = false;
                         generateOtpBtn.innerText = "Generate OTP";
                     }
-                });
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("Network error");
+                    generateOtpBtn.disabled = false;
+                    generateOtpBtn.innerText = "Generate OTP";
+                }
+            });
+
+            function updateRegisterLink() {
+                const registerLink = document.getElementById("registerLink");
+                registerLink.textContent = "Dashboard";
+                registerLink.href = "/dashboard";
             }
 
-            // Handle registration submit
-            const signUpFormEl = document.getElementById('signUpForm');
-            if (signUpFormEl) {
-                signUpFormEl.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const formData = new FormData(signUpFormEl);
+            document.getElementById("signUpForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
 
-                    try {
-                        const response = await fetch('/register', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (response.ok) {
-                            window.location.href = '/dashboard';
-                        } else {
-                            const data = await response.json();
-                            alert(data.message || "Registration failed");
-                        }
-                    } catch (error) {
-                        console.error("Registration error:", error);
-                        alert("Network error during registration.");
-                    }
+                const response = await fetch("/register", {
+                    method: "POST",
+                    body: formData
                 });
-            }
 
-            // Handle login submit
-            const loginFormEl = document.getElementById('loginForm');
-            if (loginFormEl) {
-                loginFormEl.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const formData = new FormData(loginFormEl);
+                if (response.ok) {
+                    updateRegisterLink();
+                    window.location.href = "/dashboard";
+                } else {
+                    const data = await response.json();
+                    alert(data.message || "Registration failed");
+                }
+            });
 
-                    try {
-                        const response = await fetch('/login', {
-                            method: 'POST',
-                            body: formData
-                        });
+            document.getElementById("loginForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
 
-                        if (response.ok) {
-                            window.location.href = '/dashboard';
-                        } else {
-                            const data = await response.json();
-                            alert(data.message || "Login failed");
-                        }
-                    } catch (error) {
-                        console.error("Login error:", error);
-                        alert("Network error during login.");
-                    }
-                });
-            }
+                const response = await fetch("/login", { method: "POST", body: formData });
+
+                if (response.ok) {
+                    updateRegisterLink();
+                    window.location.href = "/dashboard";
+                } else {
+                    const data = await response.json();
+                    alert(data.message || "Login failed");
+                }
+            });
         });
     </script>
 </body>
