@@ -161,9 +161,16 @@
             padding: 8px 0;
             z-index: 10;
             border: 1px solid rgba(0,0,0,0.04);
-            margin-top: 20px;
+            margin-top: 8px;
             opacity: 0;
             transition: opacity 0.2s;
+        }
+        .dropdown-content::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 0; right: 0;
+            height: 8px;
+            background: transparent;
         }
         .dropdown:hover .dropdown-content {
             display: block;
@@ -1844,15 +1851,13 @@
                 margin-right: -24px;
                 margin-bottom: -30px;
             }
-        }
-
-        /* ── Frosted Glass Modal Overlay Styles ── */
+        }        /* ── Frosted Glass Modal Overlay Styles ── */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(244, 247, 251, 0.4);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(244, 247, 251, 0.35);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -1877,16 +1882,20 @@
             position: relative;
             width: 440px;
             max-width: 92vw;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(245, 245, 245, 0.7)),
+                        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 28px;
             padding: 40px 36px 36px;
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.12), 
+                        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+                        inset 0 -1px 1px rgba(0, 0, 0, 0.05);
             transform: translateY(20px) scale(0.97);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
             opacity: 0;
+            color: #000000 !important;
         }
         .modal-overlay.active .modal-box {
             transform: translateY(0) scale(1);
@@ -1899,7 +1908,7 @@
             right: 20px;
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: #000000 !important;
             cursor: pointer;
             padding: 6px;
             border-radius: 50%;
@@ -1909,14 +1918,14 @@
             transition: background-color 0.2s, color 0.2s;
         }
         .modal-close:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-            color: var(--text-main);
+            background-color: rgba(0, 0, 0, 0.08);
+            color: #000000 !important;
         }
 
         .modal-title-text {
             font-size: 28px;
             font-weight: 700;
-            color: var(--text-main);
+            color: #000000 !important;
             margin-bottom: 28px;
             text-align: center;
             letter-spacing: -0.5px;
@@ -1930,40 +1939,121 @@
         }
         .form-group label {
             font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
+            font-weight: 700;
+            color: #000000 !important;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             text-align: left;
         }
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(0, 0, 0, 0.12);
             border-radius: 12px;
             padding: 12px 16px;
             font-size: 15px;
-            color: var(--text-main);
+            color: #000000 !important;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
         }
         .form-group input::placeholder {
-            color: #9CA3AF;
+            color: #555555;
         }
-        .form-group input:focus, .form-group select:focus {
-            border-color: #7EB6FF;
+        .form-group input:focus {
+            border-color: #000000;
             background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(126, 182, 255, 0.15);
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
         }
 
-        .form-group select {
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 14px;
-            padding-right: 40px;
+        /* ── Custom Smooth Dropdown ── */
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .custom-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 15px;
+            color: #000000 !important;
+            font-weight: 550;
             cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+        .custom-select-trigger:hover {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 0, 0, 0.25);
+        }
+        .custom-select-wrapper.open .custom-select-trigger {
+            border-color: #000000;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+        }
+        .custom-select-trigger .chevron-icon {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            color: #000000 !important;
+        }
+        .custom-select-wrapper.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+        .custom-options {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+            z-index: 10000;
+            overflow: hidden;
+        }
+        .custom-select-wrapper.open .custom-options {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .custom-option {
+            padding: 12px 16px;
+            font-size: 15px;
+            color: #000000 !important;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s, color 0.15s;
+            text-align: left;
+        }
+        .custom-option:hover {
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+        .custom-option.selected {
+            background-color: rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+
+        .modal-box .modal-title {
+            color: #000000 !important;
+        }
+        .modal-box .toggle-link {
+            color: #000000 !important;
+        }
+        .modal-box .toggle-link a {
+            color: #000000 !important;
+            text-decoration: underline !important;
+            cursor: pointer;
+        }
+        .modal-box .toggle-link a:hover {
+            opacity: 0.7;
         }
 
         .form-submit {
@@ -1971,7 +2061,7 @@
             padding: 14px;
             border: none;
             border-radius: 14px;
-            background: var(--perfect-blue-gradient);
+            background: #000000;
             color: #ffffff;
             font-size: 15px;
             font-weight: 600;
@@ -2707,45 +2797,6 @@
                         </div>
                         <div class="form-group">
                             <label for="si-pass">Password</label>
-                            <input type="password" name="password" id="si-pass" placeholder="••••••••" required>
-                        </div>
-                        <button type="submit" class="form-submit">Sign In</button>
-                    </form>
-                    <div class="toggle-link">
-                        Don't have an account? <a id="showSignUp">Sign Up</a>
-                    </div>
-                </div>
-
-                <!-- Sign Up Form -->
-                <div id="signUpFormContainer" style="display:none;">
-                    <h2 class="modal-title" style="font-size: 2.2rem; text-align: center; margin-bottom: 24px;">Sign Up</h2>
-                    <form id="signUpForm">
-                        <div class="form-group">
-                            <label for="name">Full Name</label>
-                            <input type="text" name="name" id="name" placeholder="John Doe" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" name="email" id="email" placeholder="you@example.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="plan">Your Plan</label>
-                            <select id="plan" name="plan" required>
-                                <option value="" disabled selected>SELECT YOUR PLAN</option>
-                                <option>SELECT YOUR PLAN</option>
-                                <option value="Basic">Basic</option>
-                                <option value="Plus">Plus</option>
-                                <option value="Premium">Premium</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" name="password" id="password" placeholder="••••••••" required>
-                        </div>
-                        <div class="form-group" id="otpSection" style="display:none;">
-                            <label for="otp">Enter OTP</label>
-                            <input type="text" name="otp" id="otp" placeholder="6-digit code">
-                        </div>
                         <button type="button" id="actionBtn" class="form-submit">Generate OTP</button>
                         <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Create Account</button>
                     </form>

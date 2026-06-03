@@ -161,9 +161,16 @@
             padding: 8px 0;
             z-index: 10;
             border: 1px solid rgba(0,0,0,0.04);
-            margin-top: 20px;
+            margin-top: 8px;
             opacity: 0;
             transition: opacity 0.2s;
+        }
+        .dropdown-content::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 0; right: 0;
+            height: 8px;
+            background: transparent;
         }
         .dropdown:hover .dropdown-content {
             display: block;
@@ -2115,7 +2122,7 @@
 
                 <div class="nav-links">
                     <a href="#">Home</a>
-                    <a href="#">Top Scorer</a>
+                    <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
                     <div class="dropdown">
                         <a href="#">
                             Index
@@ -2126,12 +2133,12 @@
                             </svg>
                         </a>
                         <div class="dropdown-content">
-                            <a href="#">Bowler index</a>
-                            <a href="#">Batsmen index</a>
-                            <a href="#">Team index</a>
+                            <a href="{{ url_for('bowlerindex') }}">Bowler index</a>
+                            <a href="{{ url_for('player_index1') }}">Batsmen index</a>
+                            <a href="{{ url_for('team_graph') }}">Team index</a>
                         </div>
                     </div>
-                    <a href="#">Compare</a>
+                    <a href="{{ url_for('player_comparison') }}">Compare</a>
                 </div>
 
                 {% if logged_in %}
@@ -2782,7 +2789,7 @@
                 </button>
 
                 <!-- Sign In Form -->
-                <div id="signInForm">
+                <div id="signInForm" style="display:none;">
                     <h2 class="modal-title" style="font-size: 2.2rem; text-align: center; margin-bottom: 24px;">Sign In</h2>
                     <form id="loginForm">
                         <div class="form-group">
@@ -2798,6 +2805,50 @@
                     <div class="toggle-link">
                         Don't have an account? <a id="showSignUp">Sign Up</a>
                     </div>
+                </div>
+
+                <!-- Sign Up Form -->
+                <div id="signUpFormContainer">
+                    <h2 class="modal-title" style="font-size: 2.2rem; text-align: center; margin-bottom: 24px;">Sign Up</h2>
+                    <form id="signUpForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" name="name" id="name" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" name="email" id="email" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group" style="position: relative;">
+                            <label>Your Plan</label>
+                            <div class="custom-select-wrapper" id="customPlanSelect">
+                                <div class="custom-select-trigger">
+                                    <span class="custom-select-text">SELECT YOUR PLAN</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="custom-options">
+                                    <div class="custom-option" data-value="Basic">Basic</div>
+                                    <div class="custom-option" data-value="Plus">Plus</div>
+                                    <div class="custom-option" data-value="Premium">Premium</div>
+                                </div>
+                            </div>
+                            <select id="plan" name="plan" required style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;">
+                                <option value="" disabled selected>SELECT YOUR PLAN</option>
+                                <option value="Basic">Basic</option>
+                                <option value="Plus">Plus</option>
+                                <option value="Premium">Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" name="password" id="password" placeholder="••••••••" required>
+                        </div>
+                        <div class="form-group" id="otpSection" style="display:none;">
+                            <label for="otp">Enter OTP</label>
+                            <input type="text" name="otp" id="otp" placeholder="6-digit code">
+                        </div>
                         <button type="button" id="actionBtn" class="form-submit">Generate OTP</button>
                         <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Create Account</button>
                     </form>
@@ -2820,15 +2871,15 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const textElem = document.getElementById('typewriter-text');
-            if (!textElem) return;
-            
-            const words = textElem.innerText.trim().split(' ');
-            textElem.innerHTML = '';
-            words.forEach(word => {
-                const span = document.createElement('span');
-                span.innerText = word + ' ';
-                textElem.appendChild(span);
-            });
+            if (textElem) {
+                const words = textElem.innerText.trim().split(' ');
+                textElem.innerHTML = '';
+                words.forEach(word => {
+                    const span = document.createElement('span');
+                    span.innerText = word + ' ';
+                    textElem.appendChild(span);
+                });
+            }
 
             // Typewriter effect for footer
             const phrases = ["stop guessing?", "start analyzing?", "make predictions?", "win your leagues?", "own the game?"];
@@ -2872,8 +2923,8 @@
                 type();
             }
 
-
             const handleScroll = () => {
+                if (!textElem) return;
                 const rect = textElem.getBoundingClientRect();
                 const windowHeight = window.innerHeight;
                 
@@ -2896,9 +2947,8 @@
             };              
 
             window.addEventListener('scroll', handleScroll);
-            handleScroll(); // Initial check
+            handleScroll();
 
-            // Tab switching logic for the capability console
             const consoleCards = document.querySelectorAll('.console-card');
             const mockupPanels = document.querySelectorAll('.mockup-panel');
             
@@ -2907,11 +2957,9 @@
                     const targetId = card.getAttribute('data-target');
                     if (!targetId) return;
 
-                    // Update active card
                     consoleCards.forEach(c => c.classList.remove('active'));
                     card.classList.add('active');
 
-                    // Update active mockup panel
                     mockupPanels.forEach(panel => {
                         panel.classList.remove('active');
                         if (panel.id === targetId) {
@@ -2921,7 +2969,6 @@
                 });
             });
 
-            // Intersection Observer for AI Engines fade up
             const aiEngines = document.querySelectorAll('.ai-engine');
             const observer = new IntersectionObserver(entries => {
                 entries.forEach((entry, i) => {
@@ -2934,7 +2981,34 @@
             }, { threshold: 0.15 });
             aiEngines.forEach(el => observer.observe(el));
 
-            // Auth modal + OTP flow (same behavior as index.html)
+            const customSelect = document.getElementById("customPlanSelect");
+            if (customSelect) {
+                const trigger = customSelect.querySelector(".custom-select-trigger");
+                const text = customSelect.querySelector(".custom-select-text");
+                const options = customSelect.querySelectorAll(".custom-option");
+                const hiddenSelect = document.getElementById("plan");
+
+                trigger.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    customSelect.classList.toggle("open");
+                });
+
+                options.forEach(opt => {
+                    opt.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        const val = opt.getAttribute("data-value");
+                        text.textContent = val;
+                        hiddenSelect.value = val;
+                        hiddenSelect.dispatchEvent(new Event("change"));
+                        options.forEach(o => o.classList.remove("selected"));
+                        opt.classList.add("selected");
+                        customSelect.classList.remove("open");
+                    });
+                });
+
+                document.addEventListener("click", () => customSelect.classList.remove("open"));
+            }
+
             const modal = document.getElementById("signinModal");
             const btn = document.getElementById("registerLink");
             const closeBtn = modal.querySelector(".close");
@@ -2947,14 +3021,16 @@
             const signUpSubmitBtn = document.getElementById("signUpSubmitBtn");
             const otpSection = document.getElementById("otpSection");
 
-            btn.addEventListener("click", (e) => {
-                const href = btn.getAttribute("href");
-                const shouldOpenModal = btn.tagName === "BUTTON" || href === "#" || href === null || href === "";
-                if (shouldOpenModal) {
-                    e.preventDefault();
-                    modal.classList.add("active");
-                }
-            });
+            if (btn) {
+                btn.addEventListener("click", (e) => {
+                    if (btn.tagName === "BUTTON" || btn.getAttribute("href") === "#") {
+                        e.preventDefault();
+                        modal.classList.add("active");
+                        signInForm.style.display = "none";
+                        signUpForm.style.display = "block";
+                    }
+                });
+            }
 
             if (bandRegisterBtn) {
                 bandRegisterBtn.addEventListener("click", (e) => {
@@ -2965,7 +3041,9 @@
                 });
             }
 
-            closeBtn.onclick = () => modal.classList.remove("active");
+            if (closeBtn) {
+                closeBtn.onclick = () => modal.classList.remove("active");
+            }
             window.onclick = (e) => { if (e.target === modal) modal.classList.remove("active"); };
 
             if (showSignUp) {
@@ -2984,76 +3062,86 @@
                 };
             }
 
-            generateOtpBtn.addEventListener("click", async () => {
-                const email = document.getElementById("email").value.trim();
-                if (!email) return alert("Please enter your email first.");
+            if (generateOtpBtn) {
+                generateOtpBtn.addEventListener("click", async () => {
+                    const email = document.getElementById("email").value.trim();
+                    if (!email) return alert("Please enter your email first.");
 
-                generateOtpBtn.disabled = true;
-                generateOtpBtn.innerText = "Sending...";
+                    generateOtpBtn.disabled = true;
+                    generateOtpBtn.innerText = "Sending...";
 
-                try {
-                    const response = await fetch("/send-otp", {
-                        method: "POST",
-                        body: new URLSearchParams({ email })
-                    });
+                    try {
+                        const response = await fetch("/send-otp", {
+                            method: "POST",
+                            body: new URLSearchParams({ email })
+                        });
 
-                    if (response.ok) {
-                        otpSection.style.display = "block";
-                        document.getElementById("otp").required = true;
-                        generateOtpBtn.style.display = "none";
-                        signUpSubmitBtn.style.display = "inline-block";
-                        alert("OTP sent to your email!");
-                    } else {
-                        alert("Failed to send OTP");
+                        if (response.ok) {
+                            otpSection.style.display = "block";
+                            document.getElementById("otp").required = true;
+                            generateOtpBtn.style.display = "none";
+                            signUpSubmitBtn.style.display = "inline-block";
+                            alert("OTP sent to your email!");
+                        } else {
+                            alert("Failed to send OTP");
+                            generateOtpBtn.disabled = false;
+                            generateOtpBtn.innerText = "Generate OTP";
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        alert("Network error");
                         generateOtpBtn.disabled = false;
                         generateOtpBtn.innerText = "Generate OTP";
                     }
-                } catch (error) {
-                    console.error("Error:", error);
-                    alert("Network error");
-                    generateOtpBtn.disabled = false;
-                    generateOtpBtn.innerText = "Generate OTP";
-                }
-            });
+                });
+            }
 
             function updateRegisterLink() {
                 const registerLink = document.getElementById("registerLink");
-                registerLink.textContent = "Dashboard";
-                registerLink.href = "/dashboard";
+                if (registerLink) {
+                    registerLink.textContent = "Dashboard";
+                    registerLink.href = "/dashboard";
+                }
             }
 
-            document.getElementById("signUpForm").addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
+            const signUpFormEl = document.getElementById("signUpForm");
+            if (signUpFormEl) {
+                signUpFormEl.addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
 
-                const response = await fetch("/register", {
-                    method: "POST",
-                    body: formData
+                    const response = await fetch("/register", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        updateRegisterLink();
+                        window.location.href = "/dashboard";
+                    } else {
+                        const data = await response.json();
+                        alert(data.message || "Registration failed");
+                    }
                 });
+            }
 
-                if (response.ok) {
-                    updateRegisterLink();
-                    window.location.href = "/dashboard";
-                } else {
-                    const data = await response.json();
-                    alert(data.message || "Registration failed");
-                }
-            });
+            const loginFormEl = document.getElementById("loginForm");
+            if (loginFormEl) {
+                loginFormEl.addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
 
-            document.getElementById("loginForm").addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
+                    const response = await fetch("/login", { method: "POST", body: formData });
 
-                const response = await fetch("/login", { method: "POST", body: formData });
-
-                if (response.ok) {
-                    updateRegisterLink();
-                    window.location.href = "/dashboard";
-                } else {
-                    const data = await response.json();
-                    alert(data.message || "Login failed");
-                }
-            });
+                    if (response.ok) {
+                        updateRegisterLink();
+                        window.location.href = "/dashboard";
+                    } else {
+                        const data = await response.json();
+                        alert(data.message || "Login failed");
+                    }
+                });
+            }
         });
     </script>
 </body>
