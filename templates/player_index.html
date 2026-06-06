@@ -1857,40 +1857,414 @@ border-top-left-radius: 12px;
             gap: 20px;
             height: 100%;
         }
+
+        /* ─── REDESIGN OVERRIDES ─── */
+        :root {
+            --text-main: #1A1D20;
+            --text-muted: #6B7280;
+            --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+            --perfect-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
+            --heading-size: clamp(3rem, 6vw, 5.25rem);
+            --WC_BLUE: oklch(62.3% 0.214 259.815);
+            --blue: #0066FF;
+            --blue-light: #eff6ff;
+            --blue-mid: rgba(0, 102, 255, 0.15);
+            --sky: #e0f2fe;
+            --sky-mid: #bae6fd;
+            --bg: #F4F7FB;
+            --card-bg: rgba(255,255,255,0.72);
+            --card-border: rgba(255,255,255,0.9);
+            --text: #1A1D20;
+            --muted: #6B7280;
+            --muted-light: #9CA3AF;
+            --radius: 24px;
+            --radius-sm: 16px;
+            --radius-xs: 12px;
+            --shadow: 0 10px 30px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
+            --shadow-md: 0 20px 45px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.02);
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+            --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+            --white-grey-main: #ffffff;
+            --white-grey-muted: rgba(255, 255, 255, 0.65);
+            --white-grey-accent: #7eb6ff;
+            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+            --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
+        }
+
+        /* Override fonts */
+        * {
+            font-family: var(--font-display) !important;
+            font-style: normal !important;
+        }
+
+        body {
+            background: #ffffff;
+            color: var(--text-main);
+            padding: 12px;
+        }
+
+        .hero-section {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            background-color: transparent;
+            margin: 0 0 32px;
+            -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+        }
+
+        .bg-elements {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+            background: linear-gradient(135deg, #A8C9FF 0%, #D2E3FC 60%, #B8D4FF 100%);
+        }
+
+        .orb-1, .orb-2, .orb-3 {
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .orb-1 {
+            top: -20%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(216,235,255,0.6) 25%, rgba(200,224,248,0.3) 55%, transparent 75%);
+            filter: blur(60px);
+        }
+
+        .orb-2 {
+            top: 30%;
+            right: -20%;
+            width: 70vw;
+            height: 70vw;
+            background: radial-gradient(ellipse at center, rgba(232,246,255,0.75) 0%, rgba(184,216,240,0.45) 30%, rgba(160,198,234,0.2) 60%, transparent 75%);
+            filter: blur(80px);
+        }
+
+        .orb-3 {
+            bottom: -30%;
+            left: 20%;
+            width: 80vw;
+            height: 80vw;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,1) 0%, rgba(220,238,255,0.7) 20%, rgba(176,210,238,0.35) 50%, transparent 70%);
+            filter: blur(90px);
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar-wrapper {
+            position: absolute;
+            top: 28px; left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .navbar {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: saturate(180%) blur(24px);
+            -webkit-backdrop-filter: saturate(180%) blur(24px);
+            padding: 10px 10px 10px 32px;
+            border-radius: 60px;
+            box-shadow:
+                0 12px 32px rgba(0,0,0,0.04),
+                inset 0 0 0 1px rgba(255,255,255,0.6),
+                inset 0 1px 1px rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.4);
+            gap: 72px;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 19px;
+            text-decoration: none;
+            letter-spacing: -0.6px;
+            color: var(--text-main);
+        }
+
+        .nav-links { display: flex; gap: 34px; align-items: center; }
+
+        .nav-links a {
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: color 0.2s;
+            letter-spacing: -0.1px;
+        }
+        .nav-links a:hover { color: var(--text-main); }
+
+        .dropdown { position: relative; display: inline-block; height: 100%; }
+        .dropdown > a {
+            display: flex; align-items: center; gap: 4px;
+            height: 100%; padding: 8px 0;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%; left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            min-width: 180px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 8px 0;
+            z-index: 10;
+            border: 1px solid rgba(0,0,0,0.04);
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dropdown-content::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 0; right: 0;
+            height: 8px;
+            background: transparent;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -10px); }
+            to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .dropdown-content a {
+            padding: 12px 24px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+            transition: background 0.2s, color 0.2s;
+            color: var(--text-muted);
+            font-weight: 600; /* As requested: dropdown names should be bold */
+        }
+        .dropdown-content a:hover { background-color: rgba(0,0,0,0.03); color: var(--text-main); }
+
+        .btn-register {
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            letter-spacing: -0.1px;
+        }
+        .btn-register * { color: white; }
+        .btn-register:hover { background: #000; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .btn-register svg { width: 18px; height: 18px; }
+
+        /* ─── HERO ─── */
+        .hero{
+          position: relative;
+          z-index: 10;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 180px 20px 60px;
+          text-align: center;
+          background: transparent;
+          width: 100%;
+        }
+        .hero-inner{
+          max-width:1000px;
+          width:100%;
+          margin:0 auto;
+          padding:0 20px;
+        }
+        .hero-card{
+          background:rgba(255,255,255,0.65);
+          border:1px solid rgba(255,255,255,0.72);
+          border-radius:24px;
+          padding:44px 52px;
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:20px;
+          text-align:left;
+          backdrop-filter:blur(20px);
+          -webkit-backdrop-filter:blur(20px);
+          box-shadow:0 10px 30px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,0.5);
+        }
+        .hero-label{
+          font-family:var(--font-display);
+          font-size:13px;
+          font-weight:600;
+          letter-spacing:0.6px;
+          text-transform:uppercase;
+          color:#0066FF;
+          margin-bottom:16px;
+        }
+        .hero-title {
+          font-family:var(--font-display);
+          font-size:var(--heading-size);
+          font-weight:600;
+          color:var(--text-main);
+          line-height:1.05;
+          letter-spacing:-2.3px;
+        }
+        .hero-sub{
+          font-family:var(--font-display);
+          font-size:clamp(1.05rem,1.25vw,1.25rem);
+          color:var(--text-muted);
+          margin-top:18px;
+          line-height:1.45;
+          max-width:760px;
+          font-weight:400;
+          letter-spacing:-0.2px;
+        }
+        .ai-badge{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          padding:10px 16px;
+          border-radius:99px;
+          background:white;
+          border:1px solid rgba(0,0,0,0.06);
+          font-family:var(--font-display);
+          font-size:12px;
+          font-weight:600;
+          color:var(--text-main);
+          white-space:nowrap;
+          flex-shrink:0;
+          box-shadow:0 4px 12px rgba(0,0,0,0.06);
+        }
+        .ai-dot{
+          width:7px;
+          height:7px;
+          border-radius:50%;
+          background:#22c55e;
+          flex-shrink:0;
+          display:inline-block;
+          animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Layout structure & card design */
+        .dashboard-container {
+            margin: 0 auto 2rem !important;
+            max-width: 1320px;
+            padding: 0 20px 0 !important;
+            gap: 16px;
+        }
+
+        .dash-card {
+            background: rgba(255, 255, 255, 0.65) !important;
+            border: 1px solid rgba(255, 255, 255, 0.72) !important;
+            border-radius: 24px !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,0.5) !important;
+        }
+
+        @media(max-width:900px){
+          .hero{
+            padding:150px 16px 44px;
+          }
+          .hero-card{
+            padding:28px 24px;
+            flex-direction:column;
+            text-align:left;
+            align-items:flex-start;
+          }
+          .hero-title{
+            letter-spacing:-1.2px;
+          }
+        }
     </style>
 </head>
 
 <body>
-    <div class="hero-wrap">
-        <div class="noise-layer"></div>
-        <div class="bg-fade"></div>
+    <div class="hero-section">
+        <div class="bg-elements">
+            <div class="orb-1"></div>
+            <div class="orb-2"></div>
+            <div class="orb-3"></div>
+        </div>
 
-        <nav class="navbar" id="main-navbar">
-            <span class="nav-brand" style="font-weight: normal;">WicketStats</span>
-            <div class="nav-center">
-                <a href="/" style="font-weight: normal;"><i data-lucide="home" style="width: 18px; height: 18px"></i> Home</a>
-                <a href="/comparison" style="font-weight: normal;"><i data-lucide="git-compare" style="width: 18px; height: 18px"></i> Comparison</a>
-                <a href="/top_score" style="font-weight: normal;"><i data-lucide="trophy" style="width: 18px; height: 18px"></i> Top Scorer</a>
-            </div>
-            <button class="btn-register" id="btn-open-modal" style="font-weight: normal; text-transform: capitalize;">Register</button>
-        </nav>
-    </div>
+        <div class="navbar-wrapper">
+            <nav class="navbar">
+                <a href="/" class="brand">WicketStats</a>
 
-    <div class="dashboard-container">
-
-        <!-- ── Page Header Card ── -->
-        <div class="dash-card dash-greet-card" style="margin-bottom: 20px;">
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;">
-                <div>
-                    <div class="greet-title" style="color: hsl(215 20% 42%); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-size: 0.9rem; font-weight: 700;">Player Intelligence</div>
-                    <div class="greet-sub" style="font-size: 2.4rem; color: hsl(220 35% 12%); line-height: 1.1; text-transform: capitalize; font-weight: 800;">Batter Index</div>
-                    <div class="greet-desc" style="font-weight: normal;">Full IPL career breakdowns, season timelines &amp; AI-powered analysis.</div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
+                    <div class="dropdown">
+                        <a href="#">
+                            Index
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                        </a>
+                        <div class="dropdown-content">
+                            <a href="{{ url_for('player_index1') }}">Batter Index</a>
+                            <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
+                            <a href="{{ url_for('team_graph') }}">Team Graphs</a>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('player_comparison') }}">Compare</a>
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0;">
-                    <span class="pi-powered-badge"><i data-lucide="cpu" style="width:13px;height:13px;"></i> AI Powered</span>
+
+                {% if session.get('user_id') or logged_in %}
+                <a href="/dashboard" class="btn-register" id="registerLink">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                    Dashboard
+                </a>
+                {% else %}
+                <a href="#" class="btn-register" id="registerLink">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+                    </svg>
+                    Register
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+
+        <!-- HERO -->
+        <div class="hero">
+            <div class="hero-inner">
+                <div class="hero-card">
+                    <div>
+                        <div class="hero-label">Player Intelligence</div>
+                        <div class="hero-title">Batter Index</div>
+                        <div class="hero-sub">Full IPL career breakdowns, season timelines &amp; AI-powered analysis.</div>
+                    </div>
+                    <div class="ai-badge">
+                        <span class="ai-dot"></span>
+                        <i data-lucide="cpu" style="width:13px;height:13px;"></i>
+                        AI Powered
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="dashboard-container">
 
         <!-- ── Top Layout: 3 Columns when Results show ── -->
         <div class="pi-top-grid">
