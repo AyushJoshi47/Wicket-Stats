@@ -8,321 +8,497 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --WC_BLUE: oklch(62.3% .214 259.815);
+            --WC_BLUE: oklch(62.3% 0.214 259.815);
+            --blue: #0066FF;
+            --blue-light: #eff6ff;
+            --blue-mid: rgba(0, 102, 255, 0.15);
+            --sky: #e0f2fe;
+            --sky-mid: #bae6fd;
+            --bg: #F4F7FB;
+            --card-bg: rgba(255,255,255,0.72);
+            --card-border: rgba(255,255,255,0.9);
+            --text: #1A1D20;
+            --muted: #6B7280;
+            --muted-light: #9CA3AF;
+            --radius: 24px;
+            --radius-sm: 16px;
+            --radius-xs: 12px;
+            --shadow: 0 10px 30px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
+            --shadow-md: 0 20px 45px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.02);
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+            --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+
+            --text-main: #1A1D20;
+            --text-muted: #6B7280;
+            --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+            --heading-size: clamp(3rem, 6vw, 5.25rem);
+            --white-grey-main: #ffffff;
+            --white-grey-muted: rgba(255, 255, 255, 0.65);
+            --white-grey-accent: #7eb6ff;
+            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+            --perfect-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
+            --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
         }
 
-        @font-face {
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            src: url('fonts/samsungsharpsans.otf') format('opentype');
-            font-weight: 400;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-display) !important;
         }
-        @font-face {
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            src: url('fonts/samsungsharpsans-medium.otf') format('opentype');
-            font-weight: 500;
-        }
-        @font-face {
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            src: url('fonts/samsungsharpsans-bold.otf') format('opentype');
-            font-weight: 700;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body, html {
             width: 100%; height: 100%;
             overflow-x: hidden;
             background: #ffffff;
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            color: #fff;
-             filter: brightness(.85) contrast(1.1);
-            
+            font-family: var(--font-display);
+            color: var(--text-main);
         }
 
-        /* ── Full-screen wrapper ── */
-        .hero-wrap {
+        .hero-section {
             position: relative;
-            width: 100vw; height: 30vh;
-             background: linear-gradient(
-        to top, 
-        #ffffff 0%,           /* Start pure white at the very top edge */
-        rgba(255,255,255,0.5) 30%, /* Quick transition to semi-transparent */
-        #1e88e5 99%,    /* Fully blue by 40% of the way down */
-        #1e88e5 100%    /* Stay solid blue to the bottom */
-    );
-        }
-
-        /* ── Background image ── */
-        .bg-img {
-            position: absolute; inset: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
-            z-index: 0;
-        }
-
-        /* ── Bottom fade-out gradient ── */
-        .bg-fade {
-            position: absolute; bottom: 0; left: 0;
-            width: 100%; height: 50%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 60%, #ffffff 100%);
-            z-index: 3;
-            pointer-events: none;
-        }
-
-        /* ── SVG noise texture (reusable) ── */
-        .noise-layer {
-            position: absolute; inset: 0;
-            width: 100%; height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
-            background-repeat: repeat;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        /* ── Navbar ── */
-       .navbar {
-    position: absolute;
-    top: 28px; left: 50%;
-    transform: translateX(-50%);
-    width: 94%; max-width: 1500px;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 24px;
-    border-radius: 20px; /* Slightly rounder for the soft look */
-    z-index: 20;
-    
-    /* The Core Neomorphic Base */
-    background: rgba(255, 255, 255, 0.05); 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    
-    /* One thin border for glass-like definition */
-
-    /* 
-       Proper Neomorphic Stack:
-       1. Soft Outer Shadow (Depth)
-       2. Soft Outer Highlight (Light Source)
-       3. Inset Highlight (Bevel effect)
-       4. Inset Shadow (Inner Depth)
-    */
-    box-shadow: 
-        10px 10px 20px rgba(0, 0, 0, 0.3),            /* Outer Shadow */
-        -5px -5px 15px rgba(255, 255, 255, 0.05),     /* Outer Glow */
-        inset 1px 1px 2px rgba(255, 255, 255, 0.2),   /* Top-left inner bevel */
-        inset -1px -1px 2px rgba(0, 0, 0, 0.2);       /* Bottom-right inner bevel */
-}
-
-        /* Navbar noise overlay */
-        .navbar::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
-            background-repeat: repeat;
-            pointer-events: none;
-            border-radius: inherit;
-            z-index: 0;
-        }
-        .navbar > * { position: relative; z-index: 1; }
-
-        .nav-brand {
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #fff;
-            letter-spacing: .5px;
-            text-decoration: none;
-            flex-shrink: 0;
-            text-shadow: 0 2px 8px rgba(0,0,0,.3);
-        }
-
-        .nav-center {
-            display: flex; gap: 8px; align-items: center;
-        }
-        .nav-center a {
-            position: relative;
+            border-radius: 24px;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: rgba(255,255,255,0.85);
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            padding: 9px 20px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            transition: background .3s, border-color .3s, color .25s, box-shadow .3s;
+            background-color: transparent;
+            margin: 0 0 32px;
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
         }
-        .nav-center a::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+
+        .bg-elements {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
             pointer-events: none;
-            border-radius: inherit;
+            background: linear-gradient(135deg, #7FA5FA 0%, #9EB5FA 60%, #C3B4FC 100%);
+        }
+
+        .orb-1, .orb-2, .orb-3 {
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .orb-1 {
+            top: -20%; left: -10%;
+            width: 60vw; height: 60vw;
+            background: radial-gradient(ellipse at center,
+                rgba(255,255,255,0.9) 0%,
+                rgba(216,235,255,0.6) 25%,
+                rgba(200,224,248,0.3) 55%,
+                transparent 75%);
+            filter: blur(60px);
+        }
+
+        .orb-2 {
+            top: 30%; right: -20%;
+            width: 70vw; height: 70vw;
+            background: radial-gradient(ellipse at center,
+                rgba(232,246,255,0.75) 0%,
+                rgba(184,216,240,0.45) 30%,
+                rgba(160,198,234,0.2) 60%,
+                transparent 75%);
+            filter: blur(80px);
+        }
+
+        .orb-3 {
+            bottom: -30%; left: 20%;
+            width: 80vw; height: 80vw;
+            background: radial-gradient(ellipse at 50% 0%,
+                rgba(255,255,255,1) 0%,
+                rgba(220,238,255,0.7) 20%,
+                rgba(176,210,238,0.35) 50%,
+                transparent 70%);
+            filter: blur(90px);
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar-wrapper {
+            position: absolute;
+            top: 28px; left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .navbar {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: saturate(180%) blur(24px);
+            -webkit-backdrop-filter: saturate(180%) blur(24px);
+            padding: 10px 10px 10px 32px;
+            border-radius: 60px;
+            box-shadow:
+                0 12px 32px rgba(0,0,0,0.04),
+                inset 0 0 0 1px rgba(255,255,255,0.6),
+                inset 0 1px 1px rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.4);
+            gap: 100px;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 19px;
+            text-decoration: none;
+            letter-spacing: -0.6px;
+            color: var(--text-main);
+        }
+
+        .nav-links { display: flex; gap: 44px; align-items: center; }
+
+        .nav-links a {
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: color 0.2s;
+            letter-spacing: -0.1px;
+        }
+        .nav-links a:hover { color: var(--text-main); }
+
+        .dropdown { position: relative; display: inline-block; height: 100%; }
+        .dropdown > a {
+            display: flex; align-items: center; gap: 4px;
+            height: 100%; padding: 8px 0;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%; left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            min-width: 180px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 8px 0;
+            z-index: 10;
+            border: 1px solid rgba(0,0,0,0.04);
+            margin-top: 8px;
             opacity: 0;
-            transition: opacity .3s;
+            transition: opacity 0.2s;
         }
-        .nav-center a:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(255,255,255,0.18);
-            color: #fff;
-            box-shadow: 0 4px 14px rgba(255,255,255,0.06);
+        .dropdown-content::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 0; right: 0;
+            height: 8px;
+            background: transparent;
         }
-        .nav-center a:hover::before { opacity: 1; }
+        .dropdown:hover .dropdown-content {
+            display: block;
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -10px); }
+            to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .dropdown-content a {
+            padding: 12px 24px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+            transition: background 0.2s, color 0.2s;
+            color: var(--text-muted);
+        }
+        .dropdown-content a:hover { background-color: rgba(0,0,0,0.03); color: var(--text-main); }
 
         .btn-register {
-            position: relative;
-            overflow: hidden;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.18);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            color: #fff;
-            padding: 11px 30px;
-            border-radius: 12px;
-            font-family: "Instrument Serif", ui-serif, Georgia, serif;
-            font-weight: 700;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: .5px;
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
             cursor: pointer;
-            transition: background .3s, transform .3s, box-shadow .3s;
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            letter-spacing: -0.1px;
         }
-        .btn-register::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
-            pointer-events: none;
-            border-radius: inherit;
+        .btn-register * { color: white; }
+        .btn-register:hover { background: #000; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .btn-register svg { width: 18px; height: 18px; }
+
+        /* ─── HERO ─── */
+        .hero {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 180px 20px 60px;
+            text-align: center;
+            background: transparent;
+            width: 100%;
         }
-        .btn-register:hover {
-               transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+        .hero-inner {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .hero-card {
+            background: rgba(255,255,255,0.65);
+            border: 1px solid rgba(255,255,255,0.72);
+            border-radius: 24px;
+            padding: 44px 52px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            text-align: left;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02), inset 0 1px 1px rgba(255,255,255,0.5);
+        }
+        .hero-label {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: #0066FF;
+            margin-bottom: 16px;
+        }
+        .hero-title {
+            font-size: var(--heading-size);
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.05;
+            letter-spacing: -2.3px;
+        }
+        .hero-sub {
+            font-size: clamp(1.05rem,1.25vw,1.25rem);
+            color: var(--text-muted);
+            margin-top: 18px;
+            line-height: 1.45;
+            max-width: 760px;
+            font-weight: 400;
+            letter-spacing: -0.2px;
+        }
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: 99px;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.06);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .ai-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            flex-shrink: 0;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
         }
 
-    
-.wc-footer {
-    position: relative;
-    /* This creates the smooth 'entry' from the white page into the blue footer */
-    background: linear-gradient(
-        to bottom, 
-        #ffffff 10%,           /* Start pure white at the very top edge */
-        rgba(255,255,255,0.5) 18%, /* Quick transition to semi-transparent */
-        var(--WC_BLUE) 70%,    /* Fully blue by 40% of the way down */
-        var(--WC_BLUE) 100%    /* Stay solid blue to the bottom */
-    );
-    
-    color: white;
-    padding: 120px 40px 80px; /* Increased top padding to give the fade space */
-    margin-top: 14rem; /* Reduced margin since the fade acts as visual space */
-}
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
 
+        .footer-wrapper {
+            padding-top: 60px;
+            width: 100%;
+            background-color: #ffffff;
+            margin-top: 14rem;
+        }
 
+        /* WicketStats Premium Footer */
+        .wicket-footer {
+            background: linear-gradient(135deg, #C3B4FC 0%, #9EB5FA 40%, #7FA5FA 100%);
+            color: var(--text-main);
+            padding: 220px 80px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 150px;
+            width: 100%;
+            margin: 0;
+            border-radius: 24px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(100, 140, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
+        }
 
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 60px;
+            width: 100%;
+        }
 
-/* STACK LAYOUT (NO FLEX ROW) */
-.wc-footer-container {
-    max-width: 1200px;
-    margin: 5rem;
+        .footer-left {
+            flex: 1;
+            min-width: 280px;
+        }
 
-    display: flex;
-    flex-direction: column;  /* KEY CHANGE */
-    gap: 60px;
-}
+        .footer-left h2 {
+            font-size: clamp(2.5rem, 4vw, 4rem);
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--text-main);
+            letter-spacing: -0.03em;
+        }
 
-/* ===== CTA SECTION ===== */
-.launch-wc {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    max-width: 700px;
-}
-.wc-other-brand {
-    width: 250px; 
-    aspect-ratio: 1 / 1; 
-    border-radius: 40px;
+        .footer-left h2 span.footer-typewriter {
+            background: var(--perfect-blue-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-style: italic;
+        }
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+        .blinking-cursor {
+            font-weight: 300 !important;
+            font-style: normal !important;
+            color: #AE95FF;
+            animation: blink 1s step-end infinite;
+            -webkit-text-fill-color: initial !important;
+        }
 
-    /* Base color (important for neumorphism) */
- background: linear-gradient(
-        to bottom,
-        15deg, 
-        #ffffff 0%, 
-        rgba(255, 255, 255, 0.5) 15%, 
-        var(--WC_BLUE) 95%, 
-        var(--WC_BLUE) 100%
-    );
-    /* Classic neumorphic dual shadow */
-    box-shadow:
-        12px 12px 25px rgba(0, 0, 0, 0.15),   /* dark shadow */
-        -12px -12px 25px rgba(255, 255, 255, 0.9); /* light highlight */
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
 
-    transform: rotate(-15deg);
+        .footer-links-grid {
+            display: flex;
+            gap: 80px;
+            flex-wrap: wrap;
+        }
 
-    border-radius: 40px;
-    overflow: hidden;
-}
+        .footer-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 160px;
+        }
 
-.wc-other-brand:active {
-    box-shadow:
-        inset 8px 8px 18px rgba(0,0,0,0.15),
-        inset -8px -8px 18px rgba(255,255,255,0.9);
-}
+        .footer-column h3 {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #111111;
+            margin-bottom: 8px;
+        }
 
-.wc-other-brand img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    /* FIX: Scale the image up to remove the built-in padding of the file */
-    transform: scale(1.4); 
-    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
-}
+        .footer-column a {
+            color: rgba(17, 17, 17, 0.85);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: color 0.2s ease, transform 0.2s ease;
+            width: fit-content;
+        }
 
+        .footer-column a:hover {
+            color: #000000;
+            transform: translateX(3px);
+        }
 
+        .footer-bottom {
+            width: calc(100% + 160px);
+            margin-left: -80px;
+            margin-right: -80px;
+            margin-bottom: -60px;
+            text-align: center;
+            overflow: hidden;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
 
+        .giant-brand-text {
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            width: 100%;
+        }
 
+        .giant-brand-text svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
 
-/* ===== LINKS SECTION ===== */
-.wc-footer-links {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 40px;
-}
+        .giant-brand-text text {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
+            font-weight: 700;
+        }
 
-/* Logo */
-.wc-footer-brand img {
-    width: 130px;
-    margin-bottom: 10px;
-}
+        @media (max-width: 1024px) {
+            .footer-wrapper {
+                padding-top: 40px;
+            }
+            .wicket-footer {
+                padding: 170px 40px 40px;
+                gap: 110px;
+                -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
+                mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
+            }
+            .footer-links-grid {
+                gap: 40px;
+            }
+            .footer-bottom {
+                width: calc(100% + 80px);
+                margin-left: -40px;
+                margin-right: -40px;
+                margin-bottom: -40px;
+            }
+        }
 
-/* Columns */
-.wc-footer-column {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 160px;
-}
-
-.wc-footer-column h3 {
-    font-size: 1rem;
-    margin-bottom: 10px;
-    opacity: 0.9;
-}
-
-.wc-footer-column a {
-    color: rgba(255, 255, 255, 0.85);
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: 0.2s ease;
-}
-
-.wc-footer-column a:hover {
-    color: white;
+        @media (max-width: 768px) {
+            .footer-wrapper {
+                padding-top: 20px;
+            }
+            .wicket-footer {
+                width: 100%;
+                margin: 0;
+                padding: 120px 24px 30px;
+                gap: 80px;
+                border-radius: 24px;
+                -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
+                mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
+            }
+            .footer-top {
+                flex-direction: column;
+                gap: 40px;
+            }
+            .footer-left {
+                width: 100%;
+            }
+            .footer-links-grid {
+                width: 100%;
+                justify-content: space-between;
+                gap: 20px;
+            }
+            .footer-bottom {
+                margin-left: -24px;
+                margin-right: -24px;
+                margin-bottom: -30px;
+            }
+        }: white;
     transform: translateX(4px);
 }
         .problem-section {
@@ -629,37 +805,72 @@
 </head>
 <body>
 
-<div class="hero-wrap">
-    <!-- Background -->
-    <div class="noise-layer"></div>
-    <div class="bg-fade"></div>
-
-    <!-- Navbar -->
-    <nav class="navbar" id="main-navbar">
-        <span class="nav-brand">WicketStats</span>
-        <div class="nav-center">
-            <a href="#"><i data-lucide="home" style="width: 18px; height: 18px;"></i> Home</a>
-            <a href="#"><i data-lucide="git-compare" style="width: 18px; height: 18px;"></i> Comparison</a>
-            <a href="{{ url_for('teamgraph') }}"><i data-lucide="users" style="width: 18px; height: 18px;"></i>Team Stats</a>
-        </div>
-        <button class="btn-register" id="btn-open-modal">Register</button>
-    </nav>
-</div>
-
-<section class="problem-section">
-    <div class="problem-container">
-        <div class="section-label">
-            <span class="label-line"></span> PLAYER COMPARISON
-        </div>
-        <h2 class="problem-title">
-            Head-to-head.<br>
-            <span class="highlight">Every stats.</span>
-        </h2>
-        <p>
-            compare any two IPl players across 24 career metrics - batting, bowling, and fielding
-        </p>
+<div class="hero-section">
+    <div class="bg-elements">
+        <div class="orb-1"></div>
+        <div class="orb-2"></div>
+        <div class="orb-3"></div>
     </div>
-</section>
+
+    <div class="navbar-wrapper">
+        <nav class="navbar">
+            <a href="/" class="brand">WicketStats</a>
+
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
+                <div class="dropdown">
+                    <a href="#">
+                        Index
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('player_index1') }}">Batter Index</a>
+                        <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
+                        <a href="{{ url_for('team_graph') }}">Team Graphs</a>
+                    </div>
+                </div>
+                <a href="{{ url_for('player_comparison') }}">Compare</a>
+            </div>
+
+            {% if session.get('user_id') or logged_in %}
+            <a href="/dashboard" class="btn-register" id="registerLink">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+                Dashboard
+            </a>
+            {% else %}
+            <a href="#" class="btn-register" id="registerLink">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+                </svg>
+                Register
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="hero-inner">
+            <div class="hero-card">
+                <div>
+                    <div class="hero-label">Player Intelligence</div>
+                    <div class="hero-title">Player Comparison</div>
+                    <div class="hero-sub">Compare any two IPL players across 24 career metrics — batting, bowling, and fielding.</div>
+                </div>
+                <div class="ai-badge">
+                    <span class="ai-dot"></span>
+                    <i data-lucide="cpu" style="width:13px;height:13px;"></i>
+                    AI Powered
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="wc-compare">
     <div class="input-row">
@@ -761,55 +972,48 @@
     </div>
 </div>
 
-<footer class="wc-footer">
-
-    <div class="wc-footer-container">
-
-        <!-- LEFT CTA SECTION -->
-        <div class="launch-wc">
-            <div class="wc-other-brand">
-                <img src="static/images/logo.png" alt="WicketStats">
+    <div class="footer-wrapper">
+        <!-- SECTION 06: Premium Footer -->
+        <footer class="wicket-footer">
+            <div class="footer-top">
+                <div class="footer-left">
+                    <h2>Ready to<br><span id="typewriter" class="footer-typewriter">decode?</span><span class="blinking-cursor">|</span></h2>
+                </div>
+                <div class="footer-links-grid">
+                    <div class="footer-column">
+                        <h3>Platform</h3>
+                        <a href="#">Match Predictor</a>
+                        <a href="{{ url_for('player_index1') }}">Player Index</a>
+                        <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
+                        <a href="{{ url_for('team_graph') }}">Team Graphs</a>
+                        <a href="{{ url_for('player_comparison') }}">Comparison Engine</a>
+                    </div>
+                    <div class="footer-column">
+                        <h3>Intelligence</h3>
+                        <a href="#">Custom Matchups</a>
+                        <a href="#">Fantasy XI</a>
+                        <a href="#">What If Engine</a>
+                        <a href="#">WicketStats AI</a>
+                        <a href="{{ url_for('top_scorer_page') }}">Top Scorers</a>
+                    </div>
+                    <div class="footer-column">
+                        <h3>Account</h3>
+                        <a href="#">Sign Up</a>
+                        <a href="#">Login</a>
+                        <a href="/dashboard">Dashboard</a>
+                        <a href="#">Match History</a>
+                    </div>
+                </div>
             </div>
-        </div>
-<hr>
-        <!-- RIGHT LINKS SECTION -->
-        <div class="wc-footer-links">
-
-            <div class="wc-footer-brand">
-                <img src="static/images/glass-logo.png" alt="WicketStats">
+            <div class="footer-bottom">
+                <h1 class="giant-brand-text">
+                    <svg viewBox="0 0 1000 140" width="100%" style="display: block; overflow: visible;">
+                        <text x="0" y="135" font-size="175" font-weight="700" textLength="1000" lengthAdjust="spacing" fill="#ffffff">WicketStats</text>
+                    </svg>
+                </h1>
             </div>
-
-            <div class="wc-footer-column">
-                <h3>Platform</h3>
-                <a href="#">Match Predictor</a>
-                <a href="#">Player Index</a>
-                <a href="#">Bowler Index</a>
-                <a href="#">Team Graphs</a>
-                <a href="#">Comparison Engine</a>
-            </div>
-
-            <div class="wc-footer-column">
-                <h3>Intelligence</h3>
-                <a href="#">Custom Matchups</a>
-                <a href="#">Fantasy XI</a>
-                <a href="#">What If Engine</a>
-                <a href="#">WicketStats AI</a>
-                <a href="#">Top Scorers</a>
-            </div>
-
-            <div class="wc-footer-column">
-                <h3>Account</h3>
-                <a href="#">Sign Up</a>
-                <a href="#">Login</a>
-                <a href="#">Dashboard</a>
-                <a href="#">Match History</a>
-            </div>
-
-        </div>
-
+        </footer>
     </div>
-
-</footer>
 
 <script>
 lucide.createIcons();
@@ -913,6 +1117,47 @@ document.querySelector(".save-team").addEventListener('click', async () => {
         btn.disabled = false;
     }
 });
+
+const phrases = ["stop guessing?", "start analyzing?", "make predictions?", "win your leagues?", "own the game?"];
+let phraseIndex = 0;
+let charIndex = 0;
+let isDeleting = false;
+const typewriterElement = document.getElementById('typewriter');
+
+function type() {
+    if (!typewriterElement) return;
+    
+    const currentPhrase = phrases[phraseIndex];
+    
+    if (isDeleting) {
+        typewriterElement.textContent = currentPhrase.substring(0, charIndex - 1);
+        charIndex--;
+    } else {
+        typewriterElement.textContent = currentPhrase.substring(0, charIndex + 1);
+        charIndex++;
+    }
+    
+    let typeSpeed = 100;
+    
+    if (isDeleting) {
+        typeSpeed /= 2;
+    }
+    
+    if (!isDeleting && charIndex === currentPhrase.length) {
+        typeSpeed = 2000;
+        isDeleting = true;
+    } else if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+        typeSpeed = 500;
+    }
+    
+    setTimeout(type, typeSpeed);
+}
+
+if (typewriterElement) {
+    type();
+}
 </script>
 </body>
 </html>

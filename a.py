@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sqlite3
 from flask import redirect, url_for
+from functools import wraps
 import smtplib
 import random
 import os
@@ -10,15 +11,13 @@ from email.mime.text import MIMEText
 from dotenv import load_dotenv
 import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-import json 
+import json
 import rag_engine
 import numpy as np
 import polars as pl
 import systemprompts
 import urllib.request
 import urllib.parse
-import json
-import os
 import image_mapping
 
 
@@ -75,6 +74,267 @@ SECRET_KEY = app.secret_key
 EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
+PLAN_QUOTA = {
+    'Basic': 5000,
+    'Plus': 7000,
+    'Premium': 12000
+}
+PLAN_REFILL = {
+    'Basic': 500,
+    'Plus': 1000,
+    'Premium': 1200
+}
+PLAN_MAX_OUTPUT_TOKENS = {
+    'Basic': 400,
+    'Plus': 700,
+    'Premium': 1200
+}
+REFILL_INTERVAL_HOURS = 6
+
+def normalize_plan(plan_value):
+    plan_raw = (plan_value or '').strip().lower()
+    if plan_raw == 'plus':
+        return 'Plus'
+    if plan_raw == 'premium':
+        return 'Premium'
+    return 'Basic'
+
+def get_plan_quota(plan_value):
+    return PLAN_QUOTA.get(normalize_plan(plan_value), PLAN_QUOTA['Basic'])
+
+def get_plan_refill(plan_value):
+    return PLAN_REFILL.get(normalize_plan(plan_value), PLAN_REFILL['Basic'])
+
+def get_plan_output_limit(plan_value):
+    return PLAN_MAX_OUTPUT_TOKENS.get(normalize_plan(plan_value), PLAN_MAX_OUTPUT_TOKENS['Basic'])
+
+def plan_response_policy(plan_value):
+    plan = normalize_plan(plan_value)
+    if plan == 'Premium':
+        return (
+            "Plan tier is Premium. Provide high-depth analysis with richer tactical detail, "
+            "scenario comparisons, and actionable recommendations."
+        )
+    if plan == 'Plus':
+        return (
+            "Plan tier is Plus. Provide medium-depth analysis with concise reasoning and "
+            "clear supporting points."
+        )
+    return (
+        "Plan tier is Basic. Provide concise, focused answers with essential insights only. "
+        "Avoid overly long responses."
+    )
+
+def fantasy_plan_policy(plan_value):
+    plan = normalize_plan(plan_value)
+    if plan == 'Premium':
+        return (
+            "FANTASY PLAN FORMAT (Premium): This tier MUST return exactly 3 teams.\n"
+            "- Team 1 label MUST be 'Safe/Balanced'.\n"
+            "- Team 2 label MUST be 'Aggressive/High-Variance'.\n"
+            "- Team 3 label MUST be 'Differential/Contrarian'.\n"
+            "- For each team include exactly 11 players, each with Team + Role (WK/BAT/AR/BOWL).\n"
+            "- For each team include both Captain (C) and Vice-Captain (VC).\n"
+            "- Add concise reasons and keep selections grounded in provided match data.\n"
+            "- Even if user asks for one lineup, still return all 3 premium teams."
+        )
+    if plan == 'Plus':
+        return (
+            "FANTASY PLAN FORMAT (Plus): Return exactly 1 computed XI.\n"
+            "- Include exactly 11 players with Team + Role (WK/BAT/AR/BOWL).\n"
+            "- Include both Captain (C) and Vice-Captain (VC).\n"
+            "- Do NOT include premium strategy labels (no Balanced/Aggressive/Differential sections).\n"
+            "- Keep output concise and practical."
+        )
+    return (
+        "FANTASY PLAN FORMAT (Basic): Return exactly 1 simple XI with a friendly heading.\n"
+        "- Start with a short heading like: 'Here is your custom made XI team'.\n"
+        "- Output exactly 11 player names with team names only.\n"
+        "- Do NOT include Captain or Vice-Captain.\n"
+        "- Add 1 short friendly note that users can choose any picks and make their own combination."
+    )
+
+def whatif_plan_policy(plan_value):
+    plan = normalize_plan(plan_value)
+    if plan == 'Premium':
+        return (
+            "WHAT-IF PLAN FORMAT (Premium): Detailed analyst output.\n"
+            "- Include scenario summary, assumptions, key impact factors, and final outcome.\n"
+            "- Use structured markdown sections with short bullets.\n"
+            "- Include concise tactical recommendations at the end.\n"
+            "- If user message is casual (e.g., hi/hello/thanks), respond warmly and briefly without forcing simulation."
+        )
+    if plan == 'Plus':
+        return (
+            "WHAT-IF PLAN FORMAT (Plus): Medium detail output.\n"
+            "- Include what changed, expected impact, and final likely outcome.\n"
+            "- Keep response compact and easy to scan.\n"
+            "- If user message is casual (e.g., hi/hello/thanks), respond briefly and naturally."
+        )
+    return (
+        "WHAT-IF PLAN FORMAT (Basic): Short output only.\n"
+        "- Give a concise direct answer in 2-4 lines.\n"
+        "- No long breakdowns unless user explicitly asks.\n"
+        "- If user message is casual (e.g., hi/hello/thanks), reply with a short friendly greeting."
+    )
+
+def ensure_token_quota_row(conn, cursor, user_id, user_plan):
+    normalized_plan = normalize_plan(user_plan)
+    existing = cursor.execute(
+        "SELECT user_id FROM token_quota WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if existing:
+        return
+    cursor.execute(
+        """
+        INSERT INTO token_quota (user_id, plan, tokens_remaining, last_refill)
+        VALUES (?, ?, ?, ?)
+        """,
+        (user_id, normalized_plan, get_plan_quota(normalized_plan), datetime.datetime.utcnow().isoformat())
+    )
+    conn.commit()
+
+def apply_refill_for_user(conn, cursor, user_id):
+    row = cursor.execute(
+        "SELECT tokens_remaining, plan, last_refill FROM token_quota WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if not row:
+        return None
+
+    tokens_remaining, plan, last_refill = row
+    plan = normalize_plan(plan)
+    now = datetime.datetime.utcnow()
+
+    try:
+        last_refill_dt = datetime.datetime.fromisoformat(last_refill)
+    except Exception:
+        last_refill_dt = now
+
+    interval_seconds = REFILL_INTERVAL_HOURS * 3600
+    elapsed_seconds = (now - last_refill_dt).total_seconds()
+    completed_intervals = int(max(0, elapsed_seconds // interval_seconds))
+
+    if completed_intervals > 0:
+        refill_amount = get_plan_refill(plan) * completed_intervals
+        quota_cap = get_plan_quota(plan)
+        tokens_remaining = min(quota_cap, int(tokens_remaining) + refill_amount)
+        new_last_refill = last_refill_dt + datetime.timedelta(seconds=completed_intervals * interval_seconds)
+        cursor.execute(
+            """
+            UPDATE token_quota
+            SET tokens_remaining = ?, last_refill = ?
+            WHERE user_id = ?
+            """,
+            (tokens_remaining, new_last_refill.isoformat(), user_id)
+        )
+        conn.commit()
+        return (tokens_remaining, plan, new_last_refill.isoformat())
+
+    return (int(tokens_remaining), plan, last_refill)
+
+def get_token_status_for_user(user_id):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    user_plan_row = cursor.execute(
+        "SELECT plan FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
+    user_plan = normalize_plan(user_plan_row[0] if user_plan_row else 'Basic')
+    ensure_token_quota_row(conn, cursor, user_id, user_plan)
+
+    quota_row = cursor.execute(
+        "SELECT tokens_remaining, plan, last_refill FROM token_quota WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if not quota_row:
+        conn.close()
+        return {'tokens_remaining': 0, 'plan': user_plan, 'next_refill': None}
+
+    quota_tokens, quota_plan, _ = quota_row
+    quota_plan = normalize_plan(quota_plan)
+    if quota_plan != user_plan:
+        updated_tokens = min(get_plan_quota(user_plan), int(quota_tokens))
+        cursor.execute(
+            "UPDATE token_quota SET plan = ?, tokens_remaining = ? WHERE user_id = ?",
+            (user_plan, updated_tokens, user_id)
+        )
+        conn.commit()
+
+    updated = apply_refill_for_user(conn, cursor, user_id)
+    tokens_remaining, plan, last_refill = updated
+    last_refill_dt = datetime.datetime.fromisoformat(last_refill)
+    next_refill_dt = last_refill_dt + datetime.timedelta(hours=REFILL_INTERVAL_HOURS)
+
+    conn.close()
+    return {
+        'tokens_remaining': int(tokens_remaining),
+        'plan': normalize_plan(plan),
+        'next_refill': next_refill_dt.isoformat()
+    }
+
+def consume_tokens(user_id, tokens_used):
+    tokens_used = max(0, int(tokens_used or 0))
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    status = get_token_status_for_user(user_id)
+    tokens_before = status['tokens_remaining']
+    new_remaining = max(0, tokens_before - tokens_used)
+
+    cursor.execute(
+        "UPDATE token_quota SET tokens_remaining = ? WHERE user_id = ?",
+        (new_remaining, user_id)
+    )
+    conn.commit()
+    conn.close()
+    status['tokens_remaining'] = new_remaining
+    return status
+
+def log_user_activity(user_id, activity_type, title, thread_id=None, reference_id=None, payload=None):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO user_recent_activities (user_id, activity_type, title, thread_id, reference_id, payload)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            activity_type,
+            title,
+            thread_id,
+            reference_id,
+            json.dumps(payload or {})
+        )
+    )
+    conn.commit()
+    conn.close()
+
+def require_tokens(estimated_cost=100):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            if 'user_id' not in session:
+                return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+            user_id = session['user_id']
+            status = get_token_status_for_user(user_id)
+            if status['tokens_remaining'] < estimated_cost:
+                return jsonify({
+                    'status': 'error',
+                    'error_code': 'INSUFFICIENT_TOKENS',
+                    'message': f"Not enough tokens. You have {status['tokens_remaining']} left.",
+                    'tokens_remaining': status['tokens_remaining'],
+                    'plan': status['plan'],
+                    'next_refill': status['next_refill']
+                }), 402
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -105,6 +365,26 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );''')
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS token_quota (
+            user_id INTEGER PRIMARY KEY,
+            plan TEXT NOT NULL DEFAULT 'Basic',
+            tokens_remaining INTEGER NOT NULL,
+            last_refill TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_recent_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            activity_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            thread_id TEXT,
+            reference_id INTEGER,
+            payload TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );''')
+    cursor.execute('''
        CREATE TABLE IF NOT EXISTS custom_matchups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,               
@@ -127,6 +407,36 @@ def init_db():
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS plan_change_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            old_plan TEXT NOT NULL,
+            new_plan TEXT NOT NULL,
+            changed_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+
+    cursor.execute('''
+        INSERT INTO token_quota (user_id, plan, tokens_remaining, last_refill)
+        SELECT
+            u.id,
+            CASE lower(COALESCE(u.plan, 'basic'))
+                WHEN 'plus' THEN 'Plus'
+                WHEN 'premium' THEN 'Premium'
+                ELSE 'Basic'
+            END AS normalized_plan,
+            CASE lower(COALESCE(u.plan, 'basic'))
+                WHEN 'plus' THEN 7000
+                WHEN 'premium' THEN 12000
+                ELSE 5000
+            END AS initial_tokens,
+            CURRENT_TIMESTAMP
+        FROM users u
+        LEFT JOIN token_quota t ON t.user_id = u.id
+        WHERE t.user_id IS NULL
+    ''')
     
     conn.commit()
     conn.close()
@@ -675,13 +985,11 @@ def batter_index(batter, team, role):
     matches_lost = df1[df1['match_won_by'] != team]
     matches_lost = len(matches_lost)
 
-    print(no_result)
 
     sixes = df_bat.groupby(['season']).apply(
         lambda x: (x['runs_batter'] == 6).sum()
     ).reset_index(name='Total_Sixes')
 
-    print(sixes)
 
     six = df_bat[df_bat['runs_batter'] == 6]
     six = len(six)
@@ -883,7 +1191,7 @@ def send_otp():
     if not email:
         return jsonify({'message': 'Email required'}), 400
 
-    otp = (111111)
+    otp = f"{random.randint(100000, 999999)}"
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -904,16 +1212,78 @@ def send_otp():
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
         return jsonify({'message': 'OTP sent successfully'})
-    except Exception as e:
-        print(e)
+    except Exception:
         return jsonify({'message': 'Failed to send OTP'}), 500
+
+def mask_email(email):
+    if not email or '@' not in email:
+        return email or ""
+    name, domain = email.split('@', 1)
+    if len(name) <= 2:
+        masked_name = name[0] + "*" * max(0, len(name) - 1)
+    else:
+        masked_name = name[:2] + "*" * (len(name) - 2)
+    return f"{masked_name}@{domain}"
+
+@app.route('/dashboard/upgrade-plan/request-otp', methods=['POST'])
+def request_upgrade_otp():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    new_plan = normalize_plan((request.json or {}).get('plan', '').strip())
+    allowed_plans = {'Basic', 'Plus', 'Premium'}
+    if new_plan not in allowed_plans:
+        return jsonify({'status': 'error', 'message': 'Invalid plan selected'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    user_row = cursor.execute(
+        'SELECT email, plan FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+    if not user_row:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'User not found'}), 404
+
+    email, current_plan = user_row
+    current_plan = normalize_plan(current_plan)
+    if current_plan == new_plan:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Plan is already active'}), 400
+
+    otp = f"{random.randint(100000, 999999)}"
+    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+    cursor.execute(
+        "INSERT INTO otp_codes (email, otp) VALUES (?, ?)",
+        (email, otp)
+    )
+    conn.commit()
+    conn.close()
+
+    msg = MIMEText(f"Your WicketStats upgrade OTP is: {otp}\n\nThis OTP expires in 5 minutes.")
+    msg['Subject'] = 'WicketStats Plan Upgrade OTP'
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = email
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+        return jsonify({
+            'status': 'success',
+            'message': 'OTP sent to your registered email',
+            'email_masked': mask_email(email)
+        })
+    except Exception:
+        return jsonify({'status': 'error', 'message': 'Failed to send OTP'}), 500
 
 
 @app.route('/register', methods=['POST'])
 def register():
     name = request.form.get('name')
     email = request.form.get('email')
-    plan = request.form.get('plan')
+    plan = normalize_plan(request.form.get('plan'))
     password = request.form.get('password')
     user_otp = request.form.get('otp')
 
@@ -957,6 +1327,7 @@ def register():
     conn.commit()
 
     user_id = cursor.lastrowid
+    ensure_token_quota_row(conn, cursor, user_id, plan)
     session['user_id'] = user_id
     session['email'] = email
 
@@ -982,7 +1353,239 @@ def dashboard():
     ).fetchone()
     conn.close()
 
+    if user:
+        user = (user[0], user[1], normalize_plan(user[2]), user[3])
+
     return render_template('dashboard.html', user=user)
+
+@app.route('/api/token-status', methods=['GET'])
+def token_status():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    status = get_token_status_for_user(session['user_id'])
+    return jsonify({
+        'status': 'success',
+        'tokens_remaining': status['tokens_remaining'],
+        'plan': status['plan'],
+        'next_refill': status['next_refill']
+    })
+
+@app.route('/dashboard/recent-activities', methods=['GET'])
+def recent_activities():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+
+        # Self-heal for older DBs / running instances where migration wasn't applied yet.
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS user_recent_activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                activity_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                thread_id TEXT,
+                reference_id INTEGER,
+                payload TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            '''
+        )
+        conn.commit()
+
+        rows = cursor.execute(
+            """
+            SELECT id, activity_type, title, thread_id, reference_id, payload, created_at
+            FROM user_recent_activities
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 25
+            """,
+            (user_id,)
+        ).fetchall()
+        conn.close()
+
+        activities = []
+        for row in rows:
+            payload = {}
+            if row[5]:
+                try:
+                    payload = json.loads(row[5])
+                except Exception:
+                    payload = {}
+            activities.append({
+                'id': row[0],
+                'activity_type': row[1],
+                'title': row[2],
+                'thread_id': row[3],
+                'reference_id': row[4],
+                'payload': payload,
+                'created_at': row[6]
+            })
+
+        return jsonify({'status': 'success', 'activities': activities})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Unable to load activities: {str(e)}'}), 500
+
+@app.route('/dashboard/fantasy/session/<thread_id>', methods=['GET'])
+def fantasy_session(thread_id):
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+
+        chat_row = cursor.execute(
+            """
+            SELECT question, response, created_at
+            FROM chat_data
+            WHERE user_id = ? AND thread_id = ? AND pipeline = 'fantasy'
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (str(user_id), thread_id)
+        ).fetchone()
+
+        if not chat_row:
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'No saved fantasy session found'}), 404
+
+        team1 = None
+        team2 = None
+        try:
+            activity_row = cursor.execute(
+                """
+                SELECT payload
+                FROM user_recent_activities
+                WHERE user_id = ? AND activity_type = 'fantasy_team' AND thread_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (user_id, thread_id)
+            ).fetchone()
+            if activity_row and activity_row[0]:
+                payload = json.loads(activity_row[0])
+                team1 = payload.get('team1')
+                team2 = payload.get('team2')
+        except Exception:
+            pass
+
+        conn.close()
+        return jsonify({
+            'status': 'success',
+            'thread_id': thread_id,
+            'question': chat_row[0],
+            'answer': chat_row[1],
+            'created_at': chat_row[2],
+            'team1': team1,
+            'team2': team2
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Unable to load fantasy session: {str(e)}'}), 500
+
+@app.route('/dashboard/upgrade-plan', methods=['POST'])
+def upgrade_plan():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    new_plan = normalize_plan((request.json or {}).get('plan', '').strip())
+    user_otp = str((request.json or {}).get('otp', '')).strip()
+    allowed_plans = {'Basic', 'Plus', 'Premium'}
+
+    if new_plan not in allowed_plans:
+        return jsonify({'status': 'error', 'message': 'Invalid plan selected'}), 400
+    if not user_otp:
+        return jsonify({'status': 'error', 'message': 'OTP is required for upgrade'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    current = cursor.execute(
+        'SELECT email, plan FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+
+    if not current:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'User not found'}), 404
+
+    email = current[0]
+    old_plan = normalize_plan(current[1])
+    if old_plan == new_plan:
+        conn.close()
+        status = get_token_status_for_user(user_id)
+        return jsonify({
+            'status': 'success',
+            'message': 'Plan is already active',
+            'plan': status['plan'],
+            'tokens_remaining': status['tokens_remaining'],
+            'next_refill': status['next_refill']
+        })
+
+    otp_row = cursor.execute(
+        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+        (email,)
+    ).fetchone()
+    if not otp_row:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'No OTP found. Please request a new OTP.'}), 400
+
+    db_otp, created_at = otp_row
+    if str(db_otp).strip() != user_otp:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Invalid OTP'}), 400
+
+    otp_time = datetime.datetime.fromisoformat(created_at)
+    if datetime.datetime.utcnow() - otp_time > datetime.timedelta(minutes=5):
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'OTP expired. Please request a new OTP.'}), 400
+
+    cursor.execute(
+        'UPDATE users SET plan = ? WHERE id = ?',
+        (new_plan, user_id)
+    )
+    quota_cap = get_plan_quota(new_plan)
+    quota_row = cursor.execute(
+        "SELECT tokens_remaining FROM token_quota WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if quota_row:
+        upgraded_tokens = min(quota_cap, max(int(quota_row[0]), quota_cap))
+        cursor.execute(
+            """
+            UPDATE token_quota
+            SET plan = ?, tokens_remaining = ?, last_refill = ?
+            WHERE user_id = ?
+            """,
+            (new_plan, upgraded_tokens, datetime.datetime.utcnow().isoformat(), user_id)
+        )
+    else:
+        ensure_token_quota_row(conn, cursor, user_id, new_plan)
+    cursor.execute(
+        'INSERT INTO plan_change_history (user_id, old_plan, new_plan) VALUES (?, ?, ?)',
+        (user_id, old_plan or 'Basic', new_plan)
+    )
+    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+
+    conn.commit()
+    conn.close()
+    status = get_token_status_for_user(user_id)
+    return jsonify({
+        'status': 'success',
+        'message': 'Plan upgraded successfully',
+        'plan': status['plan'],
+        'tokens_remaining': status['tokens_remaining'],
+        'next_refill': status['next_refill']
+    })
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -993,17 +1596,18 @@ def login():
     cursor = conn.cursor()
 
     user = cursor.execute(
-        'SELECT id, name, email, password FROM users WHERE email = ?',
+        'SELECT id, name, email, plan, password FROM users WHERE email = ?',
         (email,)
     ).fetchone()
 
-    conn.close()
-
-    if user and check_password_hash(user[3], password):
+    if user and check_password_hash(user[4], password):
         session['user_id'] = user[0]
-        session['email'] = user[2]    
+        session['email'] = user[2]
+        ensure_token_quota_row(conn, cursor, user[0], user[3])
+        conn.close()
         return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
-    
+
+    conn.close()
     return "Invalid email or password", 401
 
 def get_batting_stats(df, players):
@@ -1113,7 +1717,6 @@ def build_team(df, teamname, xiplayers):
     bat_stats  = get_batting_stats(df, players)
     bowl_stats = get_bowling_stats(df, players)
     if not bat_stats or not bowl_stats:
-        print(f"Incomplete data for {team_name}. Check player names.")
         return None
 
     return {
@@ -1210,6 +1813,18 @@ def decide_winner(team1, team2, matchup, teamA_players, teamB_players):
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
+    log_user_activity(
+        user_id=user_id,
+        activity_type='custom_matchup',
+        title=f"{team1['name']} vs {team2['name']}",
+        reference_id=new_id,
+        payload={
+            'teamA': team1['name'],
+            'teamB': team2['name'],
+            'winner': winner,
+            'matchup_name': matchup
+        }
+    )
 
     return jsonify(
         {
@@ -1514,6 +2129,7 @@ Bowling stats for {name} (Team: {teamB}, Matchup: {matchup_name}):
     return data_response
 
 @app.route('/get_llm', methods=['POST'])
+@require_tokens(estimated_cost=120)
 def get_llm():
     user_id = session.get('user_id')
     data = request.get_json()
@@ -1525,9 +2141,22 @@ def get_llm():
                 "message": "No question provided."
                 }, 400
 
-    answer = rag_engine.ask(question, thread, user_id, system_prompt)
+    status = get_token_status_for_user(user_id)
+    answer, tokens_used = rag_engine.ask(
+        question,
+        thread,
+        user_id,
+        system_prompt,
+        max_output_tokens=get_plan_output_limit(status['plan']),
+        plan_policy=plan_response_policy(status['plan'])
+    )
+    updated = consume_tokens(user_id, tokens_used)
     return jsonify({"status": "success",
-                    "answer": answer})
+                    "answer": answer,
+                    "tokens_used": int(tokens_used),
+                    "tokens_remaining": updated['tokens_remaining'],
+                    "plan": updated['plan'],
+                    "next_refill": updated['next_refill']})
 
 def comp_player(player):
     
@@ -1747,7 +2376,6 @@ def fantasy_matchup():
         (pl.col("bowling_team").is_in([firstteam, secondteam]))
     )
 
-    print(f"Filtered rows: {df_filtered22.height}")
 
     # -----------------------------
     # Batter stats
@@ -1772,8 +2400,6 @@ def fantasy_matchup():
 
     batter_summary = batter_vs_opponent.join(batter_overall, on='striker', how='left')
 
-    print("\n===== BATTER SUMMARY =====")
-    print(batter_summary)
 
     # -----------------------------
     # Bowler stats
@@ -1802,8 +2428,6 @@ def fantasy_matchup():
 
     bowler_summary = bowler_vs_opponent.join(bowler_overall, on='bowler', how='left')
 
-    print("\n===== BOWLER SUMMARY =====")
-    print(bowler_summary)
 
 
     dream_team = []
@@ -1888,18 +2512,47 @@ def fantasy_matchup():
     return to_embedding
 
 @app.route('/fantasy-chat', methods=['POST'])
+@require_tokens(estimated_cost=120)
 def fantasy_chat():
     data = request.get_json()
     firstteam = data.get('firstteam')
     secondteam = data.get('secondteam')
     user_id = session.get('user_id')
-    thread_id = data.get('threadId')
+    thread_id = data.get('threadId') or data.get('threadIde') or f"fantasy-{np.random.randint(100000, 999999)}"
     question = f"Create me a XI Player Fantasy MatchUp with the top Players for {firstteam} vs {secondteam}"
     system_prompt = systemprompts.systemPrompts.fantasy_xi_prompt
-    print('data is here =================================================================================================================================================')
-    fanatsyXI = rag_engine.ask_fantasy(question, thread_id, user_id, system_prompt, firstteam, secondteam)
+    status = get_token_status_for_user(user_id)
+    fanatsyXI, tokens_used = rag_engine.ask_fantasy(
+        question,
+        user_id,
+        thread_id,
+        system_prompt,
+        firstteam,
+        secondteam,
+        max_output_tokens=get_plan_output_limit(status['plan']),
+        plan_policy=fantasy_plan_policy(status['plan'])
+    )
+    updated = consume_tokens(user_id, tokens_used)
+    log_user_activity(
+        user_id=user_id,
+        activity_type='fantasy_team',
+        title=f"{firstteam} vs {secondteam}",
+        thread_id=thread_id,
+        payload={
+            'team1': firstteam,
+            'team2': secondteam,
+            'ai_response': fanatsyXI,
+            'ai_response_partial': fanatsyXI,
+            'is_complete': True
+        }
+    )
     return jsonify({"status": "success",
-                    "answer": fanatsyXI})
+                    "answer": fanatsyXI,
+                    "tokens_used": int(tokens_used),
+                    "tokens_remaining": updated['tokens_remaining'],
+                    "plan": updated['plan'],
+                    "next_refill": updated['next_refill'],
+                    "thread_id": thread_id})
 
 
 def whatif_matchup(season, first_team, second_team, match_id, delete_player):
@@ -1962,8 +2615,6 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
         ]
     ).sort(['batting_team', 'bowling_team'])
 
-    print("\nCurrent Data:\n")
-    print(batsmen_played)
 
     batting_runs = batsmen_played.group_by(['batter', 'batting_team']).agg(
         [
@@ -1972,7 +2623,6 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
             pl.sum('Balls Played').alias('Balls Faced')
         ]
     ).sort('batting_team')
-    print(f"Individual Batter Runs per team: {batting_runs}")
 
     bowling_runs = batsmen_played.group_by(['bowler', 'bowling_team']).agg(
         [
@@ -1981,7 +2631,6 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
             pl.sum('bowler wickets').alias('Wickets Taken')
         ]
     ).sort(['bowling_team', 'Wickets Taken'], descending=[False, True])
-    print(f"Bowling Stats: {bowling_runs}")
 
     team_totals = batsmen_played.group_by(['batting_team']).agg(
         [
@@ -1991,8 +2640,6 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
         ]
     ).sort('batting_team')
 
-    print("\nTeam Totals (Runs + Wickets):\n")
-    print(team_totals)
 
     del_player = delete_player
 
@@ -2017,9 +2664,6 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
             "wickets": row["bowler_wicket"]
         })
 
-    print("\nList V Data:\n")
-    for item in V:
-        print(item)
 
     original_df = batsmen_played
 
@@ -2115,23 +2759,41 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
         }
     ]
 
-    print(f"\nTotal RAG documents generated: {len(whatif_match)}")
-    print("\nRAG Document:\n")
-    for doc in whatif_match:
-        print(f"ID: {doc['id']}")
-        print(f"Text:\n{doc['text']}")
-
     return whatif_match
 
 @app.route('/query', methods=['POST'])
+@require_tokens(estimated_cost=150)
 def give_query():
-    pipeline = f"whatif{np.random.randint(100000, 1000000)}"
     data = request.get_json()
     query = data.get('query')
-    thread_id = data.get('thread_id')
+    thread_id = data.get('thread_id') or f"whatif-thread-{np.random.randint(100000, 999999)}"
+    pipeline = f"whatif_{thread_id}"
     user_id = session.get('user_id')
-    answer = rag_engine.whatif_llm(query, user_id, thread_id, pipeline)
-    return jsonify({"answer": answer})
+    status = get_token_status_for_user(user_id)
+    answer, tokens_used = rag_engine.whatif_llm(
+        query,
+        user_id,
+        thread_id,
+        pipeline,
+        max_output_tokens=get_plan_output_limit(status['plan']),
+        plan_policy=whatif_plan_policy(status['plan'])
+    )
+    updated = consume_tokens(user_id, tokens_used)
+    log_user_activity(
+        user_id=user_id,
+        activity_type='whatif_chat',
+        title=query[:100],
+        thread_id=thread_id,
+        payload={'query': query}
+    )
+    return jsonify({
+        "answer": answer,
+        "tokens_used": int(tokens_used),
+        "tokens_remaining": updated['tokens_remaining'],
+        "plan": updated['plan'],
+        "next_refill": updated['next_refill'],
+        "thread_id": thread_id
+    })
 
 def bowler_pipeline(bowl, bowl_team, role, pipeline):
     df = dataframe.filter(pl.col('bowler') == bowl)
@@ -2493,7 +3155,6 @@ def whatif_weather(date):
 
     for item in match_data:
         item["text"] += f" Weather on match day: {weather_sentence}"
-    print(match_data)
     return match_data
 
 if __name__ == '__main__':

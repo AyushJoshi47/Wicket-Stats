@@ -1481,6 +1481,124 @@
             font-weight: 700;
         }
 
+        .plan-showcase {
+            padding: 8px 48px 56px;
+            position: relative;
+        }
+        .plan-showcase::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(60% 80% at 50% 0%, rgba(126, 182, 255, 0.25), transparent 70%),
+                radial-gradient(40% 50% at 100% 100%, rgba(174, 149, 255, 0.18), transparent 80%);
+            pointer-events: none;
+        }
+        .plan-grid {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .plan-card {
+            background: rgba(8, 13, 20, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 24px;
+            padding: 22px;
+            color: #e5edf7;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 15px 35px rgba(0, 0, 0, 0.28);
+            min-height: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .plan-card.plus {
+            border-color: rgba(126, 182, 255, 0.45);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(126, 182, 255, 0.2), 0 20px 40px rgba(24, 63, 110, 0.35);
+        }
+        .plan-card.premium {
+            border-color: rgba(147, 197, 253, 0.75);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 0 1px rgba(147, 197, 253, 0.4), 0 0 24px rgba(147, 197, 253, 0.35), 0 24px 50px rgba(15, 47, 84, 0.45);
+        }
+        .plan-head small {
+            display: block;
+            color: #9fb2c7;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .plan-head h3 {
+            margin: 0;
+            font-size: 44px;
+            line-height: 0.95;
+            color: #ffffff;
+            letter-spacing: -0.03em;
+        }
+        .plan-token {
+            margin-top: 6px;
+            color: #b8c7d8;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .plan-note {
+            color: #a8b5c3;
+            font-size: 13px;
+            line-height: 1.45;
+            margin-bottom: 2px;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .plan-features li {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            gap: 10px;
+            align-items: start;
+            color: #e7edf5;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+        .plan-features li::before {
+            content: "✓";
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            margin-top: 1px;
+        }
+        .plan-card .plan-cta {
+            margin-top: auto;
+            border: none;
+            border-radius: 999px;
+            padding: 11px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0b1220;
+            background: #ffffff;
+            cursor: pointer;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .plan-card .plan-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+        }
+
         .ai-register-btn {
             font-family: var(--font-display);
             font-weight: 700;
@@ -1529,6 +1647,15 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 20px;
+            }
+            .plan-showcase {
+                padding: 8px 24px 40px;
+            }
+            .plan-grid {
+                grid-template-columns: 1fr;
+            }
+            .plan-card {
+                min-height: auto;
             }
         }
 
@@ -2104,6 +2231,244 @@
             color: #7EB6FF;
             text-decoration: underline;
         }
+
+        /* ── Subscription Plans Section Styling ── */
+        .subscription-plans-section {
+            padding: 80px 6vw;
+            background: #131419;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .subs-section-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 48px;
+            letter-spacing: -1px;
+        }
+
+        .subs-plans-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 992px) {
+            .subs-plans-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+
+        .subs-plan-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .subs-plan-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .subs-plan-card.basic-plan:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.1);
+        }
+
+        .subs-plan-card.plus-plan:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1);
+        }
+
+        .subs-plan-card.premium-plan:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 20px 40px rgba(245, 158, 11, 0.15);
+        }
+
+        .subs-plan-badge {
+            align-self: flex-start;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 24px;
+        }
+
+        .basic-badge {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .basic-badge span {
+            color: #10b981;
+        }
+
+        .plus-badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .plus-badge span {
+            color: #3b82f6;
+        }
+
+        .premium-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .premium-badge span {
+            color: #f59e0b;
+        }
+
+        .subs-plan-header h4 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .subs-plan-tokens {
+            font-size: 0.9rem;
+            color: var(--white-grey-muted);
+            margin-bottom: 24px;
+        }
+
+        .subs-plan-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--white-grey-muted);
+            margin-bottom: 32px;
+            flex-grow: 1;
+        }
+
+        .subs-plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 24px;
+        }
+
+        .subs-plan-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .subs-plan-features li span {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+        }
+
+        .feature-check {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Subscription visual refresh (glass cards like reference) */
+        .subscription-plans-section {
+            position: relative;
+            background:
+                radial-gradient(85% 60% at 55% 0%, rgba(41, 121, 255, 0.26), rgba(19, 20, 25, 0) 70%),
+                radial-gradient(55% 50% at 100% 100%, rgba(117, 172, 255, 0.18), rgba(19, 20, 25, 0) 75%),
+                #131419;
+            overflow: hidden;
+        }
+        .subscription-plans-section::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 38%);
+            pointer-events: none;
+        }
+        .subs-section-title,
+        .subs-plans-grid {
+            position: relative;
+            z-index: 2;
+        }
+        .subs-plan-card {
+            background: rgba(7, 10, 16, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 30px;
+            min-height: 470px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 18px 40px rgba(0, 0, 0, 0.35);
+            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        }
+        .subs-plan-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -20%;
+            width: 58%;
+            height: 140%;
+            transform: rotate(14deg);
+            background: linear-gradient(to right, rgba(255,255,255,0.15), rgba(255,255,255,0));
+            opacity: .35;
+            pointer-events: none;
+        }
+        .subs-plan-card:hover {
+            transform: translateY(-6px);
+            background: rgba(7, 10, 16, 0.78);
+        }
+        .subs-plan-card.plus-plan {
+            border-color: rgba(126, 182, 255, 0.45);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 0 0 1px rgba(126,182,255,.2), 0 24px 42px rgba(16, 48, 90, 0.45);
+        }
+        .subs-plan-card.premium-plan {
+            border-color: rgba(147, 197, 253, 0.8);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(147,197,253,.35), 0 0 24px rgba(147,197,253,.3), 0 28px 52px rgba(16, 48, 90, 0.5);
+        }
+        .subs-plan-header h4 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+        .subs-plan-tokens {
+            font-size: .95rem;
+            color: #9fb2c7;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .subs-plan-desc {
+            font-size: .93rem;
+            line-height: 1.55;
+            color: #bdd0e3;
+            margin-bottom: 20px;
+        }
+        .subs-plan-features {
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding-top: 16px;
+            gap: 12px;
+        }
+        .subs-plan-features li span {
+            font-size: .9rem;
+            color: #e6eef8;
+            line-height: 1.35;
+        }
+        .feature-check {
+            stroke: #dce9f9 !important;
+        }
     </style>
 </head>
 
@@ -2651,6 +3016,12 @@
                     </div>
                 </div>
                 <div class="ai-engine-content">
+                    {% if logged_in %}
+                    <div style="margin-bottom: 14px; padding: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.06);">
+                        <p style="margin: 0 0 8px 0;">You have premium access. <strong>Go to your dashboard.</strong></p>
+                        <button class="ai-register-btn" onclick="window.location.href='/dashboard'">Go to Dashboard →</button>
+                    </div>
+                    {% endif %}
                     <p class="ai-engine-desc">Assemble any eleven players, pit them against another team, and get a detailed winner prediction backed by batting and bowling metric comparisons.</p>
                     <div class="ai-engine-quote">
                         <p>Create custom teams and predict the winner</p>
@@ -2661,6 +3032,97 @@
                         <span class="ai-pill">Score comparisons</span>
                         <span class="ai-pill">Winner prediction</span>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUBSCRIPTION PLANS SECTION -->
+        <div class="subscription-plans-section">
+            <h3 class="subs-section-title">Subscription Plans</h3>
+            <div class="subs-plans-grid">
+                <!-- Basic Card -->
+                <div class="subs-plan-card basic-plan">
+                    <div class="subs-plan-badge basic-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span>BASIC</span>
+                    </div>
+                    <div class="subs-plan-header">
+                        <h4>Basic</h4>
+                        <p class="subs-plan-tokens">5,000 Tokens / cycle</p>
+                    </div>
+                    <p class="subs-plan-desc">Enjoy regular access with essential insights and lightweight outputs.</p>
+                    <ul class="subs-plan-features">
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Basic What-If stats and simple chat replies</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Fantasy XI with team and player list output</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Quick custom AI responses with limited depth</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Plus Card -->
+                <div class="subs-plan-card plus-plan">
+                    <div class="subs-plan-badge plus-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span>PLUS</span>
+                    </div>
+                    <div class="subs-plan-header">
+                        <h4>Plus</h4>
+                        <p class="subs-plan-tokens">7,000 Tokens / cycle</p>
+                    </div>
+                    <p class="subs-plan-desc">More tokens and more advanced analysis for regular power users.</p>
+                    <ul class="subs-plan-features">
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Advanced Fantasy XI generation</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Designated roles with Captain and Vice-Captain picks</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>More derived What-If chats with deeper explanation</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>More detailed custom AI responses</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Premium Card -->
+                <div class="subs-plan-card premium-plan">
+                    <div class="subs-plan-badge premium-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M5 20h14"/></svg>
+                        <span>PREMIUM</span>
+                    </div>
+                    <div class="subs-plan-header">
+                        <h4>Premium</h4>
+                        <p class="subs-plan-tokens">12,000 Tokens / cycle</p>
+                    </div>
+                    <p class="subs-plan-desc">Maximum depth and quality for serious tactical and fantasy strategy work.</p>
+                    <ul class="subs-plan-features">
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>3 teams tailored to different styles</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Proper, well-generated, high-depth answers</span>
+                        </li>
+                        <li>
+                            <svg class="feature-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Priority-quality What-If and custom engine responses</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>

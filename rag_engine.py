@@ -9,8 +9,6 @@ import a
 import systemprompts
 import json
 
-print(OpenAI)
-print(type(OpenAI))
 load_dotenv()
 
 #api and vector DB
@@ -27,8 +25,6 @@ chroma_collection_matchup = chromadb_client.get_or_create_collection('custom_mat
 chroma_collection_fantasy = chromadb_client.get_or_create_collection('fantasyXI_llm')
 chroma_collection_whatif = chromadb_client.get_or_create_collection('what_if_llm')
 chroma_collection_teamgraph = chromadb_client.get_or_create_collection('team_llm')
-
-print(chroma_collection_whatif.count())
 
 def init_db():
     conn   = sqlite3.connect('database.db')
@@ -211,7 +207,6 @@ def get_content(question, collection, filter):
         n_results= 5
     )
     raw_documents = result.get('documents', [])
-    print(result)
     docs = raw_documents[0] if raw_documents else []
     context = ""
     for doc in docs:
@@ -220,7 +215,19 @@ def get_content(question, collection, filter):
         context += doc + "\n----\n"
     return context if context else "No relevent data found for the query"
 
-def get_llm_response(question, user_id, thread_id, system_prompt, content, pipeline):
+def extract_total_tokens(response_obj):
+    usage = getattr(response_obj, 'usage', None)
+    if usage is None:
+        return 0
+    total = getattr(usage, 'total_tokens', None)
+    if total is None and isinstance(usage, dict):
+        total = usage.get('total_tokens', 0)
+    try:
+        return int(total or 0)
+    except Exception:
+        return 0
+
+def get_llm_response(question, user_id, thread_id, system_prompt, content, pipeline, max_output_tokens=400, plan_policy=""):
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute(
@@ -237,6 +244,9 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
     # â”€â”€ Content is injected into the system prompt once, not per user turn â”€â”€
     system_with_context = (
         f"{system_prompt}\n\n"
+        f"=== PLAN RESPONSE POLICY ===\n"
+        f"{plan_policy}\n"
+        f"=== END PLAN RESPONSE POLICY ===\n\n"
         f"=== MATCH DATA (use this to answer all questions in this session) ===\n"
         f"{content}\n"
         f"=== END OF MATCH DATA ==="
@@ -255,9 +265,11 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
     response = groq_client.chat.completions.create(
         model=os.getenv('AI_MODEL'),
         messages=message,
-        temperature=0
+        temperature=0,
+        max_tokens=max_output_tokens
     )
-    answer = response.choices[0].message.content + "\n\nTHIS IS A TESTING MODEL\n\n"
+    answer = response.choices[0].message.content
+    tokens_used = extract_total_tokens(response)
 
     cursor.execute(
         """
@@ -266,10 +278,10 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
     )
     conn.commit()
     conn.close()
-    return answer
+    return answer, tokens_used
 
 
-def ask(question, thread, user_id, system_prompt):
+def ask(question, thread, user_id, system_prompt, max_output_tokens=400, plan_policy=""):
     user_id_str = str(user_id)
     content = get_content(
         question = question,
@@ -282,10 +294,12 @@ def ask(question, thread, user_id, system_prompt):
         thread_id= thread,
         system_prompt = system_prompt,
         content= content,
-        pipeline= 'custom'
+        pipeline= 'custom',
+        max_output_tokens=max_output_tokens,
+        plan_policy=plan_policy
     )
 
-def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB):
+def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB, max_output_tokens=400, plan_policy=""):
     team_key = "_vs_".join([teamA.strip(), teamB.strip()])
     user_id_str = str(user_id)
     content = get_content(
@@ -293,14 +307,15 @@ def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB):
         collection= chroma_collection_fantasy,
         filter= {'team_key': team_key}
     )
-    print('The data is sent for the query')
     return get_llm_response(
         question= question,
         user_id= user_id_str,
         thread_id= thread_id,
         system_prompt = system_propmt,
         content= content,
-        pipeline= 'fantasy'
+        pipeline= 'fantasy',
+        max_output_tokens=max_output_tokens,
+        plan_policy=plan_policy
     )
 
 MY_TOOLS = [
@@ -671,8 +686,7 @@ def execute_tool(fn_name, fn_args, pipeline):
 
 
 
-def whatif_llm(question, user_id, thread_id, pipeline):
-    print(question)
+def whatif_llm(question, user_id, thread_id, pipeline, max_output_tokens=400, plan_policy=""):
     pipeline = pipeline
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -690,7 +704,12 @@ def whatif_llm(question, user_id, thread_id, pipeline):
     messages = [
         {
             "role": "system",
-            "content": systemprompts.systemPrompts.whatif_prompt
+            "content": (
+                f"{systemprompts.systemPrompts.whatif_prompt}\n\n"
+                f"=== PLAN RESPONSE POLICY ===\n"
+                f"{plan_policy}\n"
+                f"=== END PLAN RESPONSE POLICY ==="
+            )
         }
     ]
 
@@ -705,8 +724,10 @@ def whatif_llm(question, user_id, thread_id, pipeline):
         messages=messages,
         tools=MY_TOOLS,
         tool_choice="auto",
-        temperature=0
+        temperature=0,
+        max_tokens=max_output_tokens
     )
+    initial_tokens = extract_total_tokens(response)
 
     message = response.choices[0].message
 
@@ -734,8 +755,6 @@ def whatif_llm(question, user_id, thread_id, pipeline):
                 break
             rag_context += raw + "\n\n"
         
-        print(F'     THIS IS THE DATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA        {rag_context}')
-       
         messages.append(message)
         messages.append({
             "role": "tool",
@@ -745,8 +764,10 @@ def whatif_llm(question, user_id, thread_id, pipeline):
 
         final_response = groq_client.chat.completions.create(
             model=os.getenv("AI_MODEL"),
-            messages=messages
+            messages=messages,
+            max_tokens=max_output_tokens
         )
+        final_tokens = extract_total_tokens(final_response)
 
         answer = final_response.choices[0].message.content
         cursor.execute(
@@ -756,7 +777,7 @@ def whatif_llm(question, user_id, thread_id, pipeline):
         )
         conn.commit()
         conn.close()
-        return answer
+        return answer, (initial_tokens + final_tokens)
     
     answer = message.content
     cursor.execute(
@@ -766,7 +787,7 @@ def whatif_llm(question, user_id, thread_id, pipeline):
     )
     conn.commit()
     conn.close()
-    return answer
+    return answer, initial_tokens
 
 
 
@@ -797,14 +818,8 @@ def get_answer(question):
         n_results=10
     )
 
-    print('Hello LLm here')
-    print(result)
-    print('Hello LLm end here')
-
     doc = result.get('documents', [])
     raw = doc[0] if doc else []
-    print('hello RAW HERE')
-    print(raw)
     content = ''
     for docs in raw:
         if len(content) + len(docs) > 12000:
