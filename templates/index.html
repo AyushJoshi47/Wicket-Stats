@@ -54,7 +54,7 @@
             z-index: 0;
             overflow: hidden;
             pointer-events: none;
-            background: #F4F7FB;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #f4f7fb 100%);
         }
 
         .orb-1, .orb-2, .orb-3 {
@@ -2483,11 +2483,12 @@
 
         <div class="navbar-wrapper">
             <nav class="navbar">
-                <a href="#" class="brand">WicketStats</a>
+                <a href="/" class="brand">WicketStats</a>
 
                 <div class="nav-links">
-                    <a href="#">Home</a>
+                    <a href="/">Home</a>
                     <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
+                    <a href="{{ url_for('history') }}">History</a>
                     <div class="dropdown">
                         <a href="#">
                             Index

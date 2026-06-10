@@ -503,6 +503,244 @@ df['season'] = df['season'].replace({'2009/10': '2010'})
 df['season'] = df['season'].replace({'2020/21': '2020'})    
 df_new = df_new[df_new['season'].isin(['2024', '2025'])]
 
+# -------- Match history dataset (pandas only) --------
+history_df = df[
+    [
+        'match_id', 'season', 'date', 'innings', 'batting_team', 'bowling_team',
+        'team_runs', 'team_wicket', 'match_won_by', 'win_outcome', 'toss_winner',
+        'toss_decision', 'venue', 'city', 'event_name', 'player_of_match', 'umpire',
+        'stage', 'match_type', 'result_type', 'method', 'batter', 'bowler',
+        'runs_batter', 'runs_total', 'runs_extras', 'runs_bowler', 'valid_ball',
+        'extra_type', 'wicket_kind', 'player_out', 'fielders', 'ball_no', 'over',
+        'bowler_wicket', 'overs'
+    ]
+].copy()
+history_df['season'] = history_df['season'].astype(str)
+history_df['date'] = pd.to_datetime(history_df['date'], errors='coerce')
+
+history_match_meta = history_df[
+    [
+        'match_id', 'season', 'date', 'match_won_by', 'win_outcome', 'toss_winner',
+        'toss_decision', 'venue', 'city', 'event_name', 'player_of_match', 'umpire',
+        'stage', 'match_type', 'result_type', 'method'
+    ]
+].drop_duplicates(subset=['match_id']).copy()
+
+history_innings_scores = (
+    history_df
+    .groupby(['match_id', 'season', 'innings', 'batting_team'], as_index=False)
+    .agg(score=('team_runs', 'max'), wickets=('team_wicket', 'max'))
+)
+
+history_season_cards = (
+    history_match_meta
+    .groupby('season', as_index=False)
+    .agg(matches=('match_id', 'nunique'))
+)
+history_season_winners = (
+    history_match_meta
+    .sort_values(['season', 'date', 'match_id'])
+    .groupby('season', as_index=False)
+    .tail(1)[['season', 'match_won_by']]
+    .rename(columns={'match_won_by': 'season_winner'})
+)
+history_season_cards = history_season_cards.merge(history_season_winners, on='season', how='left')
+history_season_cards['season_sort'] = pd.to_numeric(history_season_cards['season'], errors='coerce')
+history_season_cards = history_season_cards.sort_values('season_sort').drop(columns=['season_sort'])
+
+def _format_overs(balls):
+    balls = int(balls or 0)
+    return f"{balls // 6}.{balls % 6}"
+
+def _contains_extra(series, token):
+    pattern = rf'(^|,\s*){token}($|,\s*)'
+    return series.fillna('').str.lower().str.contains(pattern, regex=True)
+
+def _dismissal_text(row):
+    kind = str(row.get('wicket_kind', '') or '').strip().lower()
+    bowler = str(row.get('bowler', '') or '').strip()
+    fielders = str(row.get('fielders', '') or '').strip()
+
+    if kind == 'not out':
+        return 'not out'
+    if kind == 'caught and bowled':
+        return f"c & b {bowler}" if bowler else 'caught and bowled'
+    if kind == 'caught':
+        if fielders and bowler:
+            return f"c {fielders} b {bowler}"
+        if bowler:
+            return f"c b {bowler}"
+        return 'caught'
+    if kind == 'bowled':
+        return f"b {bowler}" if bowler else 'bowled'
+    if kind == 'lbw':
+        return f"lbw b {bowler}" if bowler else 'lbw'
+    if kind == 'stumped':
+        if fielders and bowler:
+            return f"st {fielders} b {bowler}"
+        return 'stumped'
+    if kind == 'run out':
+        return f"run out ({fielders})" if fielders and fielders.lower() != 'none' else 'run out'
+    if kind:
+        return kind
+    return 'out'
+
+def _build_innings_scorecard(innings_df, target_runs=None):
+    innings_df = innings_df.copy().sort_values('ball_no')
+    batting_team = innings_df['batting_team'].iloc[0] if not innings_df.empty else None
+    bowling_team = innings_df['bowling_team'].iloc[0] if not innings_df.empty else None
+    max_overs = int(innings_df['overs'].dropna().iloc[0]) if innings_df['overs'].notna().any() else 20
+
+    batter_order = (
+        innings_df.groupby('batter', as_index=False)['ball_no']
+        .min()
+        .sort_values('ball_no')
+        .reset_index(drop=True)
+    )
+
+    batter_stats = innings_df.groupby('batter', as_index=False).agg(
+        runs=('runs_batter', 'sum'),
+        fours=('runs_batter', lambda x: int((x == 4).sum())),
+        sixes=('runs_batter', lambda x: int((x == 6).sum()))
+    )
+    batter_stats = batter_order[['batter']].merge(batter_stats, on='batter', how='left')
+
+    wide_mask = _contains_extra(innings_df['extra_type'], 'wides')
+    faced_mask = ~wide_mask
+    balls_faced = (
+        innings_df[faced_mask]
+        .groupby('batter', as_index=False)
+        .size()
+        .rename(columns={'size': 'balls'})
+    )
+    batter_stats = batter_stats.merge(balls_faced, on='batter', how='left')
+    batter_stats['balls'] = batter_stats['balls'].fillna(0).astype(int)
+    batter_stats['sr'] = batter_stats.apply(
+        lambda r: round((r['runs'] * 100.0 / r['balls']), 2) if r['balls'] > 0 else 0.0,
+        axis=1
+    )
+
+    dismissals = innings_df[innings_df['player_out'].notna()].copy()
+    dismissals = dismissals[dismissals['player_out'].astype(str).str.strip() != '']
+    dismissals = dismissals.sort_values('ball_no').drop_duplicates(subset=['player_out'], keep='first')
+    dismissal_map = {
+        str(row['player_out']): _dismissal_text(row)
+        for _, row in dismissals.iterrows()
+    }
+
+    batting_rows = []
+    for _, row in batter_stats.iterrows():
+        batter_name = str(row['batter'])
+        dismissal = dismissal_map.get(batter_name, 'not out')
+        batting_rows.append({
+            'batter': batter_name,
+            'dismissal': dismissal,
+            'r': int(row['runs']),
+            'b': int(row['balls']),
+            'm': '-',
+            '4s': int(row['fours']),
+            '6s': int(row['sixes']),
+            'sr': float(row['sr'])
+        })
+
+    wicket_events = innings_df[innings_df['player_out'].notna()].sort_values('ball_no')
+    fall_of_wickets = []
+    wicket_no = 0
+    for _, row in wicket_events.iterrows():
+        player_out = str(row.get('player_out', '') or '').strip()
+        if not player_out:
+            continue
+        wicket_no += 1
+        runs_at_wicket = int(row['team_runs']) if pd.notna(row['team_runs']) else 0
+        ball_marker = str(row['ball_no']) if pd.notna(row['ball_no']) else '-'
+        fall_of_wickets.append(f"{wicket_no}-{runs_at_wicket} ({player_out}, {ball_marker} ov)")
+
+    legal_balls = int((innings_df['valid_ball'].fillna(0).astype(int) == 1).sum())
+    total_runs = int(innings_df['team_runs'].max()) if innings_df['team_runs'].notna().any() else 0
+    total_wkts = int(innings_df['team_wicket'].max()) if innings_df['team_wicket'].notna().any() else 0
+    rr = round(total_runs / (legal_balls / 6), 2) if legal_balls else 0.0
+
+    no_ball_mask = _contains_extra(innings_df['extra_type'], 'noballs')
+    bye_mask = _contains_extra(innings_df['extra_type'], 'byes') & ~_contains_extra(innings_df['extra_type'], 'legbyes')
+    legbye_mask = _contains_extra(innings_df['extra_type'], 'legbyes')
+    penalty_mask = _contains_extra(innings_df['extra_type'], 'penalty')
+
+    extras = {
+        'w': int(innings_df.loc[wide_mask, 'runs_extras'].fillna(0).sum()),
+        'nb': int(innings_df.loc[no_ball_mask, 'runs_extras'].fillna(0).sum()),
+        'b': int(innings_df.loc[bye_mask, 'runs_extras'].fillna(0).sum()),
+        'lb': int(innings_df.loc[legbye_mask, 'runs_extras'].fillna(0).sum()),
+        'p': int(innings_df.loc[penalty_mask, 'runs_extras'].fillna(0).sum())
+    }
+    extras['total'] = int(sum(extras.values()))
+
+    bowling_group = innings_df.groupby('bowler', as_index=False).agg(
+        legal_balls=('valid_ball', lambda x: int((x.fillna(0).astype(int) == 1).sum())),
+        runs=('runs_bowler', lambda x: int(x.fillna(0).sum())),
+        wickets=('bowler_wicket', lambda x: int(x.fillna(0).sum())),
+        dots=('runs_total', lambda x: int((x.fillna(0) == 0).sum()))
+    )
+
+    bowling_group = bowling_group.merge(
+        innings_df[wide_mask].groupby('bowler', as_index=False)['runs_extras'].sum().rename(columns={'runs_extras': 'wd'}),
+        on='bowler',
+        how='left'
+    ).merge(
+        innings_df[no_ball_mask].groupby('bowler', as_index=False)['runs_extras'].sum().rename(columns={'runs_extras': 'nb'}),
+        on='bowler',
+        how='left'
+    )
+
+    bowling_group['wd'] = bowling_group['wd'].fillna(0).astype(int)
+    bowling_group['nb'] = bowling_group['nb'].fillna(0).astype(int)
+
+    over_runs = innings_df.groupby(['bowler', 'over'], as_index=False).agg(
+        over_runs=('runs_bowler', lambda x: int(x.fillna(0).sum())),
+        legal_balls=('valid_ball', lambda x: int((x.fillna(0).astype(int) == 1).sum()))
+    )
+    maiden_map = (
+        over_runs[(over_runs['over_runs'] == 0) & (over_runs['legal_balls'] >= 6)]
+        .groupby('bowler')
+        .size()
+        .to_dict()
+    )
+
+    bowling_rows = []
+    for _, row in bowling_group.iterrows():
+        balls = int(row['legal_balls'])
+        runs = int(row['runs'])
+        econ = round(runs / (balls / 6), 2) if balls else 0.0
+        bowling_rows.append({
+            'bowler': str(row['bowler']),
+            'o': _format_overs(balls),
+            'm': int(maiden_map.get(row['bowler'], 0)),
+            'r': runs,
+            'w': int(row['wickets']),
+            'econ': float(econ),
+            '0s': int(row['dots']),
+            'wd': int(row['wd']),
+            'nb': int(row['nb'])
+        })
+
+    return {
+        'batting_team': batting_team,
+        'bowling_team': bowling_team,
+        'header': (
+            f"{batting_team} (T: {target_runs} runs from {max_overs} ovs)"
+            if target_runs is not None
+            else f"{batting_team} ({max_overs} ovs maximum)"
+        ),
+        'batting': batting_rows,
+        'bowling': bowling_rows,
+        'extras': extras,
+        'total': {
+            'runs': total_runs,
+            'wickets': total_wkts,
+            'overs': _format_overs(legal_balls),
+            'run_rate': rr
+        },
+        'fall_of_wickets': fall_of_wickets
+    }
 
 
 @app.route('/')
@@ -550,6 +788,152 @@ def new_teamgraph():
 @app.route('/top_scorer_page')
 def top_scorer_page():
     return render_template('top_score.html')
+
+@app.route('/history')
+def history():
+    logged_in = 'user_id' in session
+    return render_template('history.html', logged_in=logged_in)
+
+@app.route('/api/history/seasons', methods=['GET'])
+def history_seasons():
+    seasons = [
+        {
+            'season': str(row['season']),
+            'matches': int(row['matches']),
+            'season_winner': str(row['season_winner']) if pd.notna(row['season_winner']) else None
+        }
+        for _, row in history_season_cards.iterrows()
+    ]
+    return jsonify({'status': 'success', 'seasons': seasons})
+
+@app.route('/api/history/matches', methods=['GET'])
+def history_matches():
+    season = str(request.args.get('season', '')).strip()
+    if not season:
+        return jsonify({'status': 'error', 'message': 'season is required'}), 400
+
+    season_meta = history_match_meta[history_match_meta['season'] == season].copy()
+    if season_meta.empty:
+        return jsonify({'status': 'success', 'season': season, 'matches': []})
+
+    season_scores = history_innings_scores[history_innings_scores['season'] == season].copy()
+    season_meta = season_meta.sort_values(['date', 'match_id'])
+
+    matches = []
+    for _, meta_row in season_meta.iterrows():
+        match_id = meta_row['match_id']
+        innings_rows = season_scores[season_scores['match_id'] == match_id].sort_values('innings')
+        if innings_rows.empty:
+            continue
+
+        innings_payload = []
+        for _, score_row in innings_rows.iterrows():
+            innings_payload.append({
+                'innings': int(score_row['innings']) if pd.notna(score_row['innings']) else None,
+                'team': str(score_row['batting_team']),
+                'runs': int(score_row['score']) if pd.notna(score_row['score']) else 0,
+                'wickets': int(score_row['wickets']) if pd.notna(score_row['wickets']) else 0
+            })
+
+        team1 = innings_payload[0] if len(innings_payload) > 0 else None
+        team2 = innings_payload[1] if len(innings_payload) > 1 else None
+
+        matches.append({
+            'match_id': int(match_id) if pd.notna(match_id) else None,
+            'season': season,
+            'date': meta_row['date'].strftime('%Y-%m-%d') if pd.notna(meta_row['date']) else None,
+            'winner': str(meta_row['match_won_by']) if pd.notna(meta_row['match_won_by']) else None,
+            'result': str(meta_row['win_outcome']) if pd.notna(meta_row['win_outcome']) else None,
+            'toss_winner': str(meta_row['toss_winner']) if pd.notna(meta_row['toss_winner']) else None,
+            'toss_decision': str(meta_row['toss_decision']) if pd.notna(meta_row['toss_decision']) else None,
+            'venue': str(meta_row['venue']) if pd.notna(meta_row['venue']) else None,
+            'city': str(meta_row['city']) if pd.notna(meta_row['city']) else None,
+            'team1': team1,
+            'team2': team2,
+            'innings_scores': innings_payload
+        })
+
+    return jsonify({'status': 'success', 'season': season, 'matches': matches})
+
+@app.route('/api/history/match-scorecard', methods=['GET'])
+def history_match_scorecard():
+    match_id_raw = str(request.args.get('match_id', '')).strip()
+    if not match_id_raw:
+        return jsonify({'status': 'error', 'message': 'match_id is required'}), 400
+
+    try:
+        match_id = int(match_id_raw)
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'match_id must be an integer'}), 400
+
+    match_df = history_df[history_df['match_id'] == match_id].copy()
+    if match_df.empty:
+        return jsonify({'status': 'error', 'message': 'match not found'}), 404
+
+    match_df = match_df.sort_values(['innings', 'ball_no'])
+    meta = history_match_meta[history_match_meta['match_id'] == match_id].head(1)
+    if meta.empty:
+        return jsonify({'status': 'error', 'message': 'match metadata unavailable'}), 404
+    meta_row = meta.iloc[0]
+
+    innings_payload = []
+    innings_values = sorted([int(x) for x in match_df['innings'].dropna().unique().tolist()])
+    first_innings_total = None
+    for inn in innings_values:
+        innings_df = match_df[match_df['innings'] == inn].copy()
+        scorecard = _build_innings_scorecard(
+            innings_df,
+            target_runs=(first_innings_total + 1 if inn == 2 and first_innings_total is not None else None)
+        )
+        if inn == 1:
+            first_innings_total = scorecard['total']['runs']
+        scorecard['innings'] = inn
+        innings_payload.append(scorecard)
+
+    season = str(meta_row['season'])
+    season_final = (
+        history_match_meta[history_match_meta['season'] == season]
+        .sort_values(['date', 'match_id'])
+        .tail(1)
+    )
+    season_winner = None
+    if not season_final.empty and pd.notna(season_final.iloc[0]['match_won_by']):
+        season_winner = str(season_final.iloc[0]['match_won_by'])
+
+    umpires = [
+        str(x) for x in match_df['umpire'].dropna().unique().tolist()
+        if str(x).strip() and str(x).strip().lower() != 'none'
+    ]
+    details = {
+        'ground': f"{meta_row['venue']}, {meta_row['city']}" if pd.notna(meta_row['city']) else str(meta_row['venue']),
+        'toss': f"{meta_row['toss_winner']}, elected to {meta_row['toss_decision']} first" if pd.notna(meta_row['toss_winner']) else 'N/A',
+        'series': str(meta_row['event_name']) if pd.notna(meta_row['event_name']) else 'Indian Premier League',
+        'season': season,
+        'player_of_the_match': str(meta_row['player_of_match']) if pd.notna(meta_row['player_of_match']) else 'N/A',
+        'player_of_the_series': 'N/A (not present in dataset)',
+        'series_result': (
+            f"{season_winner} won the {season} Indian Premier League"
+            if season_winner else 'N/A'
+        ),
+        'match_days': (
+            f"{meta_row['date'].strftime('%d %B %Y')} - {str(meta_row['match_type']).lower()}"
+            if pd.notna(meta_row['date']) and pd.notna(meta_row['match_type']) else 'N/A'
+        ),
+        'stage': str(meta_row['stage']) if pd.notna(meta_row['stage']) else 'N/A',
+        'umpires': ', '.join(umpires) if umpires else 'N/A',
+        'result_type': str(meta_row['result_type']) if pd.notna(meta_row['result_type']) else 'N/A',
+        'method': str(meta_row['method']) if pd.notna(meta_row['method']) else 'N/A'
+    }
+
+    return jsonify({
+        'status': 'success',
+        'match_id': match_id,
+        'season': season,
+        'winner': str(meta_row['match_won_by']) if pd.notna(meta_row['match_won_by']) else None,
+        'result': str(meta_row['win_outcome']) if pd.notna(meta_row['win_outcome']) else None,
+        'innings': innings_payload,
+        'match_details': details
+    })
 @app.route('/logout')
 def logout():
     session.clear()
