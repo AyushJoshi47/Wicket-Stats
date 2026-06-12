@@ -3282,7 +3282,7 @@
                             <label for="email">Email Address</label>
                             <input type="email" name="email" id="email" placeholder="you@example.com" required>
                         </div>
-                        <div class="form-group" style="position: relative;">
+                        <div class="form-group" id="planSection" style="position: relative; display:none;">
                             <label>Your Plan</label>
                             <div class="custom-select-wrapper" id="customPlanSelect">
                                 <div class="custom-select-trigger">
@@ -3297,7 +3297,7 @@
                                     <div class="custom-option" data-value="Premium">Premium</div>
                                 </div>
                             </div>
-                            <select id="plan" name="plan" required style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;">
+                            <select id="plan" name="plan" style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;">
                                 <option value="" disabled selected>SELECT YOUR PLAN</option>
                                 <option value="Basic">Basic</option>
                                 <option value="Plus">Plus</option>
@@ -3313,7 +3313,7 @@
                             <input type="text" name="otp" id="otp" placeholder="6-digit code">
                         </div>
                         <button type="button" id="actionBtn" class="form-submit">Generate OTP</button>
-                        <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Create Account</button>
+                        <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Pay & Create Account</button>
                     </form>
                     <div class="toggle-link">
                         Already have an account? <a id="showSignIn">Sign In</a>
@@ -3323,6 +3323,7 @@
         </div>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         document.addEventListener('mousemove', (e) => {
             const wrapper = document.querySelector('.logo-wrapper');
@@ -3483,6 +3484,51 @@
             const generateOtpBtn = document.getElementById("actionBtn");
             const signUpSubmitBtn = document.getElementById("signUpSubmitBtn");
             const otpSection = document.getElementById("otpSection");
+            const planSection = document.getElementById("planSection");
+            const otpInput = document.getElementById("otp");
+            const planSelect = document.getElementById("plan");
+            const planSelectText = document.querySelector("#customPlanSelect .custom-select-text");
+            let signupOtpVerified = false;
+
+            function resetSignupFlow() {
+                signupOtpVerified = false;
+                if (otpSection) otpSection.style.display = "none";
+                if (otpInput) {
+                    otpInput.required = false;
+                    otpInput.value = "";
+                }
+                if (planSection) planSection.style.display = "none";
+                if (planSelect) {
+                    planSelect.required = false;
+                    planSelect.value = "";
+                }
+                if (planSelectText) planSelectText.textContent = "SELECT YOUR PLAN";
+                if (generateOtpBtn) {
+                    generateOtpBtn.style.display = "inline-block";
+                    generateOtpBtn.disabled = false;
+                    generateOtpBtn.innerText = "Generate OTP";
+                }
+                if (signUpSubmitBtn) signUpSubmitBtn.style.display = "none";
+            }
+
+            async function completeRegistration(paymentData = {}) {
+                const signUpFormEl = document.getElementById("signUpForm");
+                const formData = new FormData(signUpFormEl);
+                formData.append("razorpay_order_id", paymentData.razorpay_order_id || "");
+                formData.append("razorpay_payment_id", paymentData.razorpay_payment_id || "");
+                formData.append("razorpay_signature", paymentData.razorpay_signature || "");
+
+                const response = await fetch("/register", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+                if (!response.ok || data.status !== "success") {
+                    throw new Error(data.message || "Registration failed");
+                }
+                updateRegisterLink();
+                window.location.href = data.redirect || "/dashboard";
+            }
 
             if (btn) {
                 btn.addEventListener("click", (e) => {
@@ -3491,6 +3537,7 @@
                         modal.classList.add("active");
                         signInForm.style.display = "none";
                         signUpForm.style.display = "block";
+                        resetSignupFlow();
                     }
                 });
             }
@@ -3501,6 +3548,7 @@
                     modal.classList.add("active");
                     signInForm.style.display = "none";
                     signUpForm.style.display = "block";
+                    resetSignupFlow();
                 });
             }
 
@@ -3514,6 +3562,7 @@
                     e.preventDefault();
                     signInForm.style.display = "none";
                     signUpForm.style.display = "block";
+                    resetSignupFlow();
                 };
             }
 
@@ -3528,33 +3577,62 @@
             if (generateOtpBtn) {
                 generateOtpBtn.addEventListener("click", async () => {
                     const email = document.getElementById("email").value.trim();
+                    const otpValue = (otpInput?.value || "").trim();
                     if (!email) return alert("Please enter your email first.");
 
-                    generateOtpBtn.disabled = true;
-                    generateOtpBtn.innerText = "Sending...";
-
-                    try {
-                        const response = await fetch("/send-otp", {
-                            method: "POST",
-                            body: new URLSearchParams({ email })
-                        });
-
-                        if (response.ok) {
+                    if (!otpSection || otpSection.style.display === "none") {
+                        generateOtpBtn.disabled = true;
+                        generateOtpBtn.innerText = "Sending...";
+                        try {
+                            const response = await fetch("/send-otp", {
+                                method: "POST",
+                                body: new URLSearchParams({ email })
+                            });
+                            if (!response.ok) {
+                                const data = await response.json().catch(() => ({}));
+                                throw new Error(data.message || "Failed to send OTP");
+                            }
                             otpSection.style.display = "block";
-                            document.getElementById("otp").required = true;
-                            generateOtpBtn.style.display = "none";
-                            signUpSubmitBtn.style.display = "inline-block";
-                            alert("OTP sent to your email!");
-                        } else {
-                            alert("Failed to send OTP");
+                            if (otpInput) otpInput.required = true;
+                            generateOtpBtn.disabled = false;
+                            generateOtpBtn.innerText = "Verify OTP";
+                            alert("OTP sent to your email.");
+                        } catch (error) {
+                            console.error("Error:", error);
+                            alert(error.message || "Network error");
                             generateOtpBtn.disabled = false;
                             generateOtpBtn.innerText = "Generate OTP";
                         }
+                        return;
+                    }
+
+                    if (!/^\d{6}$/.test(otpValue)) {
+                        alert("Please enter a valid 6-digit OTP.");
+                        return;
+                    }
+
+                    generateOtpBtn.disabled = true;
+                    generateOtpBtn.innerText = "Verifying...";
+                    try {
+                        const response = await fetch("/verify-otp", {
+                            method: "POST",
+                            body: new URLSearchParams({ email, otp: otpValue })
+                        });
+                        const data = await response.json();
+                        if (!response.ok || data.status !== "success") {
+                            throw new Error(data.message || "OTP verification failed");
+                        }
+                        signupOtpVerified = true;
+                        if (planSection) planSection.style.display = "block";
+                        if (planSelect) planSelect.required = true;
+                        generateOtpBtn.style.display = "none";
+                        signUpSubmitBtn.style.display = "inline-block";
+                        alert("OTP verified. Select a plan and continue.");
                     } catch (error) {
                         console.error("Error:", error);
-                        alert("Network error");
+                        alert(error.message || "Failed to verify OTP");
                         generateOtpBtn.disabled = false;
-                        generateOtpBtn.innerText = "Generate OTP";
+                        generateOtpBtn.innerText = "Verify OTP";
                     }
                 });
             }
@@ -3571,19 +3649,76 @@
             if (signUpFormEl) {
                 signUpFormEl.addEventListener("submit", async (e) => {
                     e.preventDefault();
-                    const formData = new FormData(e.target);
+                    if (!signupOtpVerified) {
+                        alert("Please verify OTP first.");
+                        return;
+                    }
 
-                    const response = await fetch("/register", {
-                        method: "POST",
-                        body: formData
-                    });
+                    const formData = new FormData(signUpFormEl);
+                    const payload = {
+                        name: (formData.get("name") || "").toString().trim(),
+                        email: (formData.get("email") || "").toString().trim(),
+                        password: (formData.get("password") || "").toString().trim(),
+                        otp: (formData.get("otp") || "").toString().trim(),
+                        plan: (formData.get("plan") || "").toString().trim()
+                    };
 
-                    if (response.ok) {
-                        updateRegisterLink();
-                        window.location.href = "/dashboard";
-                    } else {
-                        const data = await response.json();
-                        alert(data.message || "Registration failed");
+                    if (!payload.plan) {
+                        alert("Please select a plan.");
+                        return;
+                    }
+
+                    signUpSubmitBtn.disabled = true;
+                    signUpSubmitBtn.innerText = "Processing...";
+                    try {
+                        const orderRes = await fetch("/register/create-order", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+                        const orderData = await orderRes.json();
+                        if (!orderRes.ok || orderData.status !== "success") {
+                            throw new Error(orderData.message || "Unable to create order");
+                        }
+
+                        if (!orderData.requires_payment || Number(orderData.amount || 0) <= 0) {
+                            await completeRegistration();
+                            return;
+                        }
+
+                        const options = {
+                            key: orderData.key_id,
+                            amount: orderData.amount,
+                            currency: orderData.currency,
+                            name: "WicketStats",
+                            description: `${payload.plan} Plan Subscription`,
+                            order_id: orderData.order_id,
+                            handler: async function (response) {
+                                try {
+                                    await completeRegistration(response);
+                                } catch (err) {
+                                    alert(err.message || "Payment done but registration failed");
+                                }
+                            },
+                            prefill: {
+                                name: payload.name,
+                                email: payload.email
+                            },
+                            theme: {
+                                color: "#2563eb"
+                            }
+                        };
+                        const rzp = new Razorpay(options);
+                        rzp.on("payment.failed", function (response) {
+                            const message = response?.error?.description || "Payment failed";
+                            alert(`Payment failed: ${message}`);
+                        });
+                        rzp.open();
+                    } catch (err) {
+                        alert(err.message || "Registration failed");
+                    } finally {
+                        signUpSubmitBtn.disabled = false;
+                        signUpSubmitBtn.innerText = "Pay & Create Account";
                     }
                 });
             }

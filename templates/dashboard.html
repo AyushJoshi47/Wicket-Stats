@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WicketStats — Decode Every Wicket</title>
-    <meta name="description" content="WicketStats turns raw IPL ball-by-ball records into match predictions, player intelligence, fantasy lineups, and what-if scenarios — powered by AI." />
+    <title>WicketStats â€” Decode Every Wicket</title>
+    <meta name="description" content="WicketStats turns raw IPL ball-by-ball records into match predictions, player intelligence, fantasy lineups, and what-if scenarios â€” powered by AI." />
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -2175,29 +2175,6 @@
         </div>
     </div>
 
-    <!-- UPGRADE OTP MODAL -->
-    <div class="modal-overlay-custom" id="upgradeOtpModal">
-        <div class="modal-content-custom" style="max-width: 520px;">
-            <div class="modal-header">
-                <h2 style="font-size: 18px; font-weight: 800; color: #1a1d20; margin: 0;">Verify Upgrade OTP</h2>
-                <span class="modal-close" onclick="closeUpgradeOtpModal()">&times;</span>
-            </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
-                <div style="padding: 12px 14px; border-radius: 10px; background: #f8fafc; border: 1px solid #e5e7eb; font-size: 13px; color: #334155; line-height: 1.5;">
-                    We sent a 6-digit OTP to your registered email:
-                    <span id="upgradeOtpMaskedEmail" style="font-weight: 800; color: #0ea5e9;"></span>
-                </div>
-                <input id="upgradeOtpInput" type="text" maxlength="6" placeholder="Enter 6-digit OTP" style="width:100%; padding:12px 14px; border-radius:10px; border:1px solid #e5e7eb; font-size:14px; outline:none;">
-                <div id="upgradeOtpStatus" style="font-size: 12px; color: #64748b; min-height: 18px;"></div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                    <button onclick="closeUpgradeOtpModal()" class="action-btn-wide" style="background:#111827; color:#fff;">Cancel</button>
-                    <button onclick="resendUpgradeOtp()" class="action-btn-wide" style="background:#e5e7eb; color:#111827;">Resend OTP</button>
-                    <button onclick="verifyUpgradeOtpProceed()" class="action-btn-wide" style="background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%); color:#fff;">Verify</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- CREATE MATCHUP MODAL -->
     <div class="modal-overlay-custom" id="createModal">
         <div class="modal-content-custom">
@@ -2255,6 +2232,7 @@
     </div>
 
     <!-- ===== JAVASCRIPT LOGIC ===== -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         lucide.createIcons();
         let currentMatchupId = null;
@@ -2371,20 +2349,12 @@
         function closeUpgradeModal() { document.getElementById("upgradePlanModal").classList.remove("open"); }
         function openUpgradeConfirmModal() { document.getElementById("upgradeConfirmModal").classList.add("open"); }
         function closeUpgradeConfirmModal() { document.getElementById("upgradeConfirmModal").classList.remove("open"); }
-        function openUpgradeOtpModal() { document.getElementById("upgradeOtpModal").classList.add("open"); }
-        function closeUpgradeOtpModal() {
-            document.getElementById("upgradeOtpModal").classList.remove("open");
-            const otpInput = document.getElementById("upgradeOtpInput");
-            const otpStatus = document.getElementById("upgradeOtpStatus");
-            if (otpInput) otpInput.value = "";
-            if (otpStatus) otpStatus.innerText = "";
-        }
         function openUpgradeLoadingModal() { document.getElementById("upgradeLoadingModal").classList.add("open"); }
         function closeUpgradeLoadingModal() { document.getElementById("upgradeLoadingModal").classList.remove("open"); }
 
         const ALL_PLANS = ["Basic", "Plus", "Premium"];
         let pendingUpgradePlan = null;
-        let pendingUpgradeOtpEmail = "";
+
         let tokenStatusCache = null;
         let recentActivitiesCache = [];
         let currentWhatIfThreadId = localStorage.getItem("whatif_active_thread") || `whatif-${crypto.randomUUID()}`;
@@ -2493,7 +2463,7 @@
             const currentPlanValueEl = document.getElementById("currentPlanValue");
             const nextRefillValueEl = document.getElementById("nextRefillValue");
             if (tokenValueEl) tokenValueEl.innerText = `${(status.tokens_remaining ?? 0).toLocaleString()} Tokens`;
-            if (tokenPlanBadgeEl) tokenPlanBadgeEl.innerText = `${normalizedPlan} � ${formatNextRefill(status.next_refill)}`;
+            if (tokenPlanBadgeEl) tokenPlanBadgeEl.innerText = `${normalizedPlan} • ${formatNextRefill(status.next_refill)}`;
             if (currentPlanValueEl) currentPlanValueEl.innerText = normalizedPlan;
             if (nextRefillValueEl) nextRefillValueEl.innerText = formatNextRefill(status.next_refill).replace("Next refill ", "");
             const planBadge = document.getElementById("currentPlanBadge");
@@ -2515,7 +2485,7 @@
             const remaining = errData?.tokens_remaining ?? tokenStatusCache?.tokens_remaining ?? 0;
             const msg = errData?.message || "Not enough tokens for this request.";
             const refillText = formatNextRefill(errData?.next_refill || tokenStatusCache?.next_refill);
-            return `<span style='color:#b91c1c;'><b>Token limit reached:</b> ${msg}<br><small style='color:#7f1d1d;'>Remaining: ${remaining} • ${refillText}</small></span>`;
+            return `<span style='color:#b91c1c;'><b>Token limit reached:</b> ${msg}<br><small style='color:#7f1d1d;'>Remaining: ${remaining} â€¢ ${refillText}</small></span>`;
         }
 
         function getWhatIfThreadId() {
@@ -2718,31 +2688,80 @@
             return new Promise((resolve) => setTimeout(resolve, ms));
         }
 
-        function setUpgradeOtpStatus(msg, isError = false) {
-            const otpStatus = document.getElementById("upgradeOtpStatus");
-            if (!otpStatus) return;
-            otpStatus.innerText = msg || "";
-            otpStatus.style.color = isError ? "#b91c1c" : "#0f766e";
-        }
+        async function initiateUpgrade(plan) {
+            try {
+                openUpgradeLoadingModal();
 
-        async function requestUpgradeOtp(plan, openModal = true) {
-            const res = await fetch("/dashboard/upgrade-plan/request-otp", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plan })
-            });
-            const data = await res.json();
-            if (!res.ok || data.status !== "success") {
-                throw new Error(data.message || "Failed to send OTP");
+                const orderRes = await fetch("/dashboard/upgrade-plan/create-order", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ plan })
+                });
+                const orderData = await orderRes.json();
+                if (!orderRes.ok || orderData.status !== "success") {
+                    throw new Error(orderData.message || "Failed to create order");
+                }
+
+                const verifyUpgrade = async (paymentPayload = {}) => {
+                    const verifyRes = await fetch("/dashboard/upgrade-plan/verify-payment", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            plan,
+                            razorpay_order_id: paymentPayload.razorpay_order_id || orderData.order_id || "",
+                            razorpay_payment_id: paymentPayload.razorpay_payment_id || "",
+                            razorpay_signature: paymentPayload.razorpay_signature || ""
+                        })
+                    });
+                    const verifyData = await verifyRes.json();
+                    if (!verifyRes.ok || verifyData.status !== "success") {
+                        throw new Error(verifyData.message || "Upgrade failed");
+                    }
+                    applyTokenStatus(verifyData);
+                    window.location.reload();
+                };
+
+                if (!orderData.requires_payment || Number(orderData.amount || 0) <= 0) {
+                    await verifyUpgrade();
+                    return;
+                }
+
+                closeUpgradeLoadingModal();
+
+                const options = {
+                    key: orderData.key_id,
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: "WicketStats",
+                    description: `Upgrade to ${plan} Plan`,
+                    order_id: orderData.order_id,
+                    handler: async function (response) {
+                        try {
+                            openUpgradeLoadingModal();
+                            await verifyUpgrade(response);
+                        } catch (err) {
+                            closeUpgradeLoadingModal();
+                            alert(err.message || "Payment verified but upgrade failed");
+                        }
+                    },
+                    theme: {
+                        color: "#2563eb"
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.on("payment.failed", function (response) {
+                    closeUpgradeLoadingModal();
+                    const message = response?.error?.description || "Payment failed";
+                    alert(`Payment failed: ${message}`);
+                });
+                rzp.open();
+            } catch (err) {
+                closeUpgradeLoadingModal();
+                alert(err.message || "Unable to upgrade right now. Please try again.");
+            } finally {
+                pendingUpgradePlan = null;
             }
-            pendingUpgradeOtpEmail = data.email_masked || "";
-            const masked = document.getElementById("upgradeOtpMaskedEmail");
-            if (masked) masked.innerText = pendingUpgradeOtpEmail;
-            if (openModal) {
-                openUpgradeOtpModal();
-            }
-            setUpgradeOtpStatus("OTP sent. Please check your email.");
-            return data;
         }
 
         async function confirmUpgradeProceed() {
@@ -2753,65 +2772,8 @@
             }
             closeUpgradeConfirmModal();
             closeUpgradeModal();
-
-            try {
-                await requestUpgradeOtp(plan, true);
-            } catch (err) {
-                alert(err.message || "Unable to send OTP right now. Please try again.");
-                pendingUpgradePlan = null;
-            }
+            await initiateUpgrade(plan);
         }
-
-        async function resendUpgradeOtp() {
-            if (!pendingUpgradePlan) return;
-            try {
-                await requestUpgradeOtp(pendingUpgradePlan, false);
-            } catch (err) {
-                setUpgradeOtpStatus(err.message || "Failed to resend OTP", true);
-            }
-        }
-
-        async function verifyUpgradeOtpProceed() {
-            const plan = pendingUpgradePlan;
-            const otp = (document.getElementById("upgradeOtpInput")?.value || "").trim();
-            if (!plan) {
-                closeUpgradeOtpModal();
-                return;
-            }
-            if (!/^\d{6}$/.test(otp)) {
-                setUpgradeOtpStatus("Please enter a valid 6-digit OTP.", true);
-                return;
-            }
-
-            closeUpgradeOtpModal();
-            openUpgradeLoadingModal();
-
-            try {
-                await sleep(1200);
-                const res = await fetch("/dashboard/upgrade-plan", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ plan, otp })
-                });
-                const data = await res.json();
-                if (!res.ok || data.status !== "success") {
-                    closeUpgradeLoadingModal();
-                    openUpgradeOtpModal();
-                    setUpgradeOtpStatus(data.message || "OTP verification failed.", true);
-                    return;
-                }
-                applyTokenStatus(data);
-                window.location.reload();
-            } catch (err) {
-                closeUpgradeLoadingModal();
-                openUpgradeOtpModal();
-                setUpgradeOtpStatus("Unable to upgrade plan right now. Please try again.", true);
-            } finally {
-                pendingUpgradePlan = null;
-                pendingUpgradeOtpEmail = "";
-            }
-        }
-
         function openNavDrawer() {
             document.getElementById("drawerOverlay").classList.add("open");
             document.getElementById("navDrawer").classList.add("open");
@@ -2902,7 +2864,7 @@
                                 <div class="m-card-team-icon">${abbr(m.teamA)}</div>
                                 <div class="m-card-details">
                                     <span class="m-card-name-txt">${m.matchup_name}</span>
-                                    <span class="m-card-meta">${m.teamA} vs ${m.teamB} • <span class="m-card-status-badge">${dateStr}</span></span>
+                                    <span class="m-card-meta">${m.teamA} vs ${m.teamB} â€¢ <span class="m-card-status-badge">${dateStr}</span></span>
                                 </div>
                                 <div class="m-card-winner-val" id="winner-val-${grid.id}-${m.id}">...</div>
                             `;
@@ -2925,7 +2887,7 @@
                 const res = await fetch(`/dashboard/customteam/${id}`);
                 const data = await res.json();
                 const el = document.getElementById(elementId);
-                if (el) el.innerText = data.winner || "—";
+                if (el) el.innerText = data.winner || "â€”";
             } catch (e) {
                 console.error(e);
             }
@@ -2963,7 +2925,7 @@
                 // Update detail header
                 document.getElementById("sModalMatchupName").innerText = data.matchup_name || "";
                 document.getElementById("sModalTitle").innerText = `${tA} vs ${tB}`;
-                document.getElementById("sWinner").innerText = data.winner || "—";
+                document.getElementById("sWinner").innerText = data.winner || "â€”";
                 document.getElementById("sDetailsID").innerText = `#H2H-${id}`;
 
                 // Score metrics
@@ -3063,7 +3025,7 @@
                 const tr = document.createElement("tr");
                 tr.innerHTML = keys.map((k, idx) => {
                     const val = p[k];
-                    const formatted = typeof val === 'number' ? val.toFixed(idx === 4 ? 2 : 0) : (val || "—");
+                    const formatted = typeof val === 'number' ? val.toFixed(idx === 4 ? 2 : 0) : (val || "â€”");
                     return `<td>${formatted}</td>`;
                 }).join("");
                 tbody.appendChild(tr);
@@ -3075,7 +3037,7 @@
                 tr.innerHTML = keys.map((k, idx) => {
                     if (idx === 0) return `<td>TOTAL</td>`;
                     const val = total[k] || total["Total " + k] || total["Team " + k] || total["Team Avg Score"] || total["Team Economy"];
-                    return `<td>${typeof val === 'number' ? val.toFixed(idx === 4 ? 2 : 0) : (val || "—")}</td>`;
+                    return `<td>${typeof val === 'number' ? val.toFixed(idx === 4 ? 2 : 0) : (val || "â€”")}</td>`;
                 }).join("");
                 tfoot.appendChild(tr);
             }
@@ -3142,7 +3104,7 @@
             const aiBubble = document.createElement("div");
             aiBubble.className = "chat-bubble ai-bubble";
             aiBubble.style.cssText = "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
-            aiBubble.innerHTML = "<span style='color: #8e94a0;'>AI is typing... ⏳</span>";
+            aiBubble.innerHTML = "<span style='color: #8e94a0;'>AI is typing... â³</span>";
             chatHistory.appendChild(aiBubble);
             
             // Scroll to bottom
@@ -3204,7 +3166,7 @@
             const aiBubble = document.createElement("div");
             aiBubble.className = "chat-bubble ai-bubble ai-fantasy-bubble";
             aiBubble.style.cssText = "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
-            aiBubble.innerHTML = "Preparing matchup... ⏳";
+            aiBubble.innerHTML = "Preparing matchup... â³";
             chatDisplay.appendChild(aiBubble);
 
             chatDisplay.scrollTop = chatDisplay.scrollHeight;
@@ -3214,7 +3176,7 @@
                 upsertFantasyResponseCache(fantasyThreadId, {
                     team1: firstteam,
                     team2: secondteam,
-                    ai_response_partial: "Preparing matchup... ⏳",
+                    ai_response_partial: "Preparing matchup... â³",
                     is_complete: false
                 });
                 await fetch("/fantasy-matchup", {
@@ -3223,9 +3185,9 @@
                     body: JSON.stringify({ team1: firstteam, team2: secondteam })
                 });
 
-                aiBubble.innerHTML = "Matchup ready! Building Fantasy XI... ⏳";
+                aiBubble.innerHTML = "Matchup ready! Building Fantasy XI... â³";
                 upsertFantasyResponseCache(fantasyThreadId, {
-                    ai_response_partial: "Matchup ready! Building Fantasy XI... ⏳",
+                    ai_response_partial: "Matchup ready! Building Fantasy XI... â³",
                     is_complete: false
                 });
 
@@ -3293,7 +3255,7 @@
             const aiBubble = document.createElement("div");
             aiBubble.className = "chat-bubble ai-bubble";
             aiBubble.style.cssText = "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
-            aiBubble.innerHTML = "<span style='color: #8e94a0;'>Calculating scenarios... ⏳</span>";
+            aiBubble.innerHTML = "<span style='color: #8e94a0;'>Calculating scenarios... â³</span>";
             chatHistory.appendChild(aiBubble);
 
             // Scroll to bottom

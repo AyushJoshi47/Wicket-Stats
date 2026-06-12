@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
+import hashlib
+import hmac
 import rag_engine
 import numpy as np
 import polars as pl
@@ -19,6 +21,7 @@ import systemprompts
 import urllib.request
 import urllib.parse
 import image_mapping
+import razorpay
 
 
 
@@ -90,6 +93,47 @@ PLAN_MAX_OUTPUT_TOKENS = {
     'Premium': 1200
 }
 REFILL_INTERVAL_HOURS = 6
+PLAN_PRICES = {
+    'Basic': 0,
+    'Plus': 49900,
+    'Premium': 99900
+}
+
+
+def get_razorpay_creds():
+    key_id = (os.getenv('RAZOR_PAY_KEY') or os.getenv('RAZORPAY_KEY_ID') or '').strip()
+    key_secret = (os.getenv('RAZOR_PAY_SECRET') or os.getenv('RAZORPAY_KEY_SECRET') or '').strip()
+    return key_id, key_secret
+
+
+def get_razorpay_client():
+    key_id, key_secret = get_razorpay_creds()
+    if not key_id or not key_secret:
+        return None, key_id, key_secret
+    return razorpay.Client(auth=(key_id, key_secret)), key_id, key_secret
+
+
+def validate_latest_email_otp(cursor, email, user_otp):
+    otp_row = cursor.execute(
+        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+        (email,)
+    ).fetchone()
+    if not otp_row:
+        return False, 'No OTP found for this email'
+
+    db_otp, created_at = otp_row
+    if str(db_otp).strip() != str(user_otp).strip():
+        return False, 'Invalid OTP'
+
+    try:
+        otp_time = datetime.datetime.fromisoformat(created_at)
+    except Exception:
+        return False, 'OTP data is invalid. Please request a new OTP.'
+
+    if datetime.datetime.utcnow() - otp_time > datetime.timedelta(minutes=5):
+        return False, 'OTP expired'
+
+    return True, None
 
 def normalize_plan(plan_value):
     plan_raw = (plan_value or '').strip().lower()
@@ -1599,68 +1643,95 @@ def send_otp():
     except Exception:
         return jsonify({'message': 'Failed to send OTP'}), 500
 
-def mask_email(email):
-    if not email or '@' not in email:
-        return email or ""
-    name, domain = email.split('@', 1)
-    if len(name) <= 2:
-        masked_name = name[0] + "*" * max(0, len(name) - 1)
-    else:
-        masked_name = name[:2] + "*" * (len(name) - 2)
-    return f"{masked_name}@{domain}"
+@app.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    payload = request.get_json(silent=True) or {}
+    email = (
+        request.form.get('email')
+        or payload.get('email')
+        or ''
+    ).strip()
+    user_otp = (
+        request.form.get('otp')
+        or payload.get('otp')
+        or ''
+    ).strip()
 
-@app.route('/dashboard/upgrade-plan/request-otp', methods=['POST'])
-def request_upgrade_otp():
-    if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+    if not email or not user_otp:
+        return jsonify({'status': 'error', 'message': 'Email and OTP are required'}), 400
 
-    user_id = session['user_id']
-    new_plan = normalize_plan((request.json or {}).get('plan', '').strip())
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
+    conn.close()
+
+    if not is_valid:
+        return jsonify({'status': 'error', 'message': error_message}), 400
+
+    return jsonify({'status': 'success', 'message': 'OTP verified successfully'})
+
+
+@app.route('/register/create-order', methods=['POST'])
+def create_register_order():
+    data = request.json or {}
+    name = str(data.get('name', '')).strip()
+    email = str(data.get('email', '')).strip()
+    password = str(data.get('password', '')).strip()
+    user_otp = str(data.get('otp', '')).strip()
+    plan = normalize_plan(str(data.get('plan', '')).strip())
     allowed_plans = {'Basic', 'Plus', 'Premium'}
-    if new_plan not in allowed_plans:
+
+    if not all([name, email, password, user_otp]):
+        return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+    if plan not in allowed_plans:
         return jsonify({'status': 'error', 'message': 'Invalid plan selected'}), 400
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    user_row = cursor.execute(
-        'SELECT email, plan FROM users WHERE id = ?',
-        (user_id,)
-    ).fetchone()
-    if not user_row:
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'User not found'}), 404
 
-    email, current_plan = user_row
-    current_plan = normalize_plan(current_plan)
-    if current_plan == new_plan:
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    if cursor.fetchone():
         conn.close()
-        return jsonify({'status': 'error', 'message': 'Plan is already active'}), 400
+        return jsonify({'status': 'error', 'message': 'Email already registered'}), 400
 
-    otp = f"{random.randint(100000, 999999)}"
-    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
-    cursor.execute(
-        "INSERT INTO otp_codes (email, otp) VALUES (?, ?)",
-        (email, otp)
-    )
-    conn.commit()
+    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
     conn.close()
+    if not is_valid:
+        return jsonify({'status': 'error', 'message': error_message}), 400
 
-    msg = MIMEText(f"Your WicketStats upgrade OTP is: {otp}\n\nThis OTP expires in 5 minutes.")
-    msg['Subject'] = 'WicketStats Plan Upgrade OTP'
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = email
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg)
+    amount = PLAN_PRICES.get(plan, 0)
+    if amount <= 0:
         return jsonify({
             'status': 'success',
-            'message': 'OTP sent to your registered email',
-            'email_masked': mask_email(email)
+            'requires_payment': False,
+            'order_id': '',
+            'amount': 0,
+            'currency': 'INR',
+            'plan': plan
         })
-    except Exception:
-        return jsonify({'status': 'error', 'message': 'Failed to send OTP'}), 500
+
+    client, key_id, _ = get_razorpay_client()
+    if not client:
+        return jsonify({'status': 'error', 'message': 'Razorpay keys are missing in environment'}), 500
+
+    order = client.order.create({
+        'amount': amount,
+        'currency': 'INR',
+        'notes': {
+            'email': email,
+            'plan': plan,
+            'flow': 'register'
+        }
+    })
+    return jsonify({
+        'status': 'success',
+        'requires_payment': True,
+        'order_id': order['id'],
+        'amount': amount,
+        'currency': 'INR',
+        'key_id': key_id,
+        'plan': plan
+    })
 
 
 @app.route('/register', methods=['POST'])
@@ -1670,6 +1741,9 @@ def register():
     plan = normalize_plan(request.form.get('plan'))
     password = request.form.get('password')
     user_otp = request.form.get('otp')
+    razorpay_order_id = request.form.get('razorpay_order_id', '').strip()
+    razorpay_payment_id = request.form.get('razorpay_payment_id', '').strip()
+    razorpay_signature = request.form.get('razorpay_signature', '').strip()
 
     if not all([name, email, password, user_otp]):
         return jsonify({'message': 'All fields required'}), 400
@@ -1677,36 +1751,36 @@ def register():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
-        (email,)
-    )
-    result = cursor.fetchone()
-
-    if not result:
+    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
+    if not is_valid:
         conn.close()
-        return jsonify({'message': 'No OTP found for this email'}), 400
-
-    db_otp, created_at = result
-
-    if db_otp != user_otp:
-        conn.close()
-        return jsonify({'message': 'Invalid OTP'}), 400
-
-    otp_time = datetime.datetime.fromisoformat(created_at)
-    if datetime.datetime.utcnow() - otp_time > datetime.timedelta(minutes=5):
-        conn.close()
-        return jsonify({'message': 'OTP expired'}), 400
+        return jsonify({'message': error_message}), 400
 
     cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
     if cursor.fetchone():
         conn.close()
         return jsonify({'message': 'Email already registered'}), 400
 
+    if PLAN_PRICES.get(plan, 0) > 0:
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            conn.close()
+            return jsonify({'message': 'Payment details are required for selected plan'}), 400
+
+        _, _, key_secret = get_razorpay_client()
+        if not key_secret:
+            conn.close()
+            return jsonify({'message': 'Razorpay keys are missing in environment'}), 500
+
+        message = f"{razorpay_order_id}|{razorpay_payment_id}".encode()
+        expected = hmac.new(key_secret.encode(), message, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, razorpay_signature):
+            conn.close()
+            return jsonify({'message': 'Payment verification failed'}), 400
+
     hashed_password = generate_password_hash(password)
     cursor.execute(
-        "INSERT INTO users (name, email,plan, password) VALUES (?, ?, ?, ?)",
-        (name, email,plan, hashed_password)
+        "INSERT INTO users (name, email, plan, password) VALUES (?, ?, ?, ?)",
+        (name, email, plan, hashed_password)
     )
     conn.commit()
 
@@ -1875,63 +1949,118 @@ def fantasy_session(thread_id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Unable to load fantasy session: {str(e)}'}), 500
 
-@app.route('/dashboard/upgrade-plan', methods=['POST'])
-def upgrade_plan():
+@app.route('/dashboard/upgrade-plan/create-order', methods=['POST'])
+def create_razorpay_order():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
 
     user_id = session['user_id']
     new_plan = normalize_plan((request.json or {}).get('plan', '').strip())
-    user_otp = str((request.json or {}).get('otp', '')).strip()
     allowed_plans = {'Basic', 'Plus', 'Premium'}
 
     if new_plan not in allowed_plans:
-        return jsonify({'status': 'error', 'message': 'Invalid plan selected'}), 400
-    if not user_otp:
-        return jsonify({'status': 'error', 'message': 'OTP is required for upgrade'}), 400
+        return jsonify({'status': 'error', 'message': 'Invalid plan'}), 400
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    current = cursor.execute(
-        'SELECT email, plan FROM users WHERE id = ?',
+    user_row = cursor.execute(
+        'SELECT plan FROM users WHERE id = ?',
         (user_id,)
     ).fetchone()
+    conn.close()
 
-    if not current:
+    if not user_row:
+        return jsonify({'status': 'error', 'message': 'User not found'}), 404
+
+    current_plan = normalize_plan(user_row[0])
+    if current_plan == new_plan:
+        return jsonify({'status': 'error', 'message': 'Already on this plan'}), 400
+
+    amount = PLAN_PRICES.get(new_plan, 0)
+    if amount <= 0:
+        return jsonify({
+            'status': 'success',
+            'requires_payment': False,
+            'order_id': '',
+            'amount': 0,
+            'currency': 'INR',
+            'key_id': '',
+            'plan': new_plan
+        })
+
+    client, key_id, _ = get_razorpay_client()
+    if not client:
+        return jsonify({'status': 'error', 'message': 'Razorpay keys are missing in environment'}), 500
+
+    order = client.order.create({
+        'amount': amount,
+        'currency': 'INR',
+        'notes': {
+            'user_id': str(user_id),
+            'plan': new_plan
+        }
+    })
+    return jsonify({
+        'status': 'success',
+        'requires_payment': True,
+        'order_id': order['id'],
+        'amount': amount,
+        'currency': 'INR',
+        'key_id': key_id,
+        'plan': new_plan
+    })
+
+
+@app.route('/dashboard/upgrade-plan/verify-payment', methods=['POST'])
+def verify_razorpay_payment():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    data = request.json or {}
+    razorpay_order_id = str(data.get('razorpay_order_id', '')).strip()
+    razorpay_payment_id = str(data.get('razorpay_payment_id', '')).strip()
+    razorpay_signature = str(data.get('razorpay_signature', '')).strip()
+    new_plan = normalize_plan(data.get('plan', ''))
+    allowed_plans = {'Basic', 'Plus', 'Premium'}
+
+    if new_plan not in allowed_plans:
+        return jsonify({'status': 'error', 'message': 'Invalid plan'}), 400
+
+    if PLAN_PRICES.get(new_plan, 0) > 0:
+        _, _, key_secret = get_razorpay_client()
+        if not key_secret:
+            return jsonify({'status': 'error', 'message': 'Razorpay keys are missing in environment'}), 500
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return jsonify({'status': 'error', 'message': 'Missing payment details'}), 400
+
+        message = f"{razorpay_order_id}|{razorpay_payment_id}".encode()
+        expected = hmac.new(key_secret.encode(), message, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, razorpay_signature):
+            return jsonify({'status': 'error', 'message': 'Payment verification failed'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    old_plan_row = cursor.execute(
+        'SELECT plan FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+    if not old_plan_row:
         conn.close()
         return jsonify({'status': 'error', 'message': 'User not found'}), 404
 
-    email = current[0]
-    old_plan = normalize_plan(current[1])
+    old_plan = normalize_plan(old_plan_row[0] if old_plan_row else 'Basic')
     if old_plan == new_plan:
         conn.close()
         status = get_token_status_for_user(user_id)
         return jsonify({
             'status': 'success',
-            'message': 'Plan is already active',
+            'message': f'Plan is already {new_plan}',
             'plan': status['plan'],
             'tokens_remaining': status['tokens_remaining'],
             'next_refill': status['next_refill']
         })
-
-    otp_row = cursor.execute(
-        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
-        (email,)
-    ).fetchone()
-    if not otp_row:
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'No OTP found. Please request a new OTP.'}), 400
-
-    db_otp, created_at = otp_row
-    if str(db_otp).strip() != user_otp:
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'Invalid OTP'}), 400
-
-    otp_time = datetime.datetime.fromisoformat(created_at)
-    if datetime.datetime.utcnow() - otp_time > datetime.timedelta(minutes=5):
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'OTP expired. Please request a new OTP.'}), 400
 
     cursor.execute(
         'UPDATE users SET plan = ? WHERE id = ?',
@@ -1958,14 +2087,12 @@ def upgrade_plan():
         'INSERT INTO plan_change_history (user_id, old_plan, new_plan) VALUES (?, ?, ?)',
         (user_id, old_plan or 'Basic', new_plan)
     )
-    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
-
     conn.commit()
     conn.close()
     status = get_token_status_for_user(user_id)
     return jsonify({
         'status': 'success',
-        'message': 'Plan upgraded successfully',
+        'message': f'Upgraded to {new_plan} successfully',
         'plan': status['plan'],
         'tokens_remaining': status['tokens_remaining'],
         'next_refill': status['next_refill']
