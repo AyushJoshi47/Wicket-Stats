@@ -54,7 +54,7 @@
             z-index: 0;
             overflow: hidden;
             pointer-events: none;
-            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #f4f7fb 100%);
+            background: linear-gradient(135deg, #7FA5FA 0%, #9EB5FA 60%, #C3B4FC 100%);
         }
 
         .orb-1, .orb-2, .orb-3 {
@@ -1804,7 +1804,7 @@
 
         /* WicketStats Premium Footer */
         .wicket-footer {
-            background: linear-gradient(135deg, #C2D9FF 0%, #EEF2F7 60%, #D0E1F9 100%);
+            background: linear-gradient(135deg, #C3B4FC 0%, #9EB5FA 40%, #7FA5FA 100%);
             color: var(--text-main);
             padding: 220px 80px 60px;
             display: flex;
@@ -1815,8 +1815,8 @@
             border-radius: 24px; /* Matches the hero-section border-radius */
             border: none;
             box-shadow: 0 30px 60px rgba(100, 140, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 200px, rgba(0,0,0,1) 100%);
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 200px, rgba(0,0,0,1) 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
         }
 
         .footer-top {
@@ -2507,7 +2507,7 @@
                     <a href="{{ url_for('player_comparison') }}">Compare</a>
                 </div>
 
-                {% if logged_in %}
+                {% if session.get('user_id') or logged_in %}
                 <a href="/dashboard" class="btn-register" id="registerLink">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />

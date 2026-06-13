@@ -65,7 +65,7 @@
             z-index: 0;
             overflow: hidden;
             pointer-events: none;
-            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #f4f7fb 100%);
+            background: linear-gradient(135deg, #7FA5FA 0%, #9EB5FA 60%, #C3B4FC 100%);
         }
 
         .orb-1, .orb-2, .orb-3 {
@@ -1098,6 +1098,384 @@
                 margin-bottom: -30px;
             }
         }
+        /* Header Shell Consistency (match index.html exactly) */
+        body {
+            padding: 12px !important;
+            overflow-x: hidden !important;
+            min-height: 100vh !important;
+        }
+        .hero-section {
+            border-radius: 24px !important;
+            overflow: hidden !important;
+            margin: 0 0 32px !important;
+        }
+        .navbar-wrapper {
+            position: absolute !important;
+            top: 28px !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 100 !important;
+        }
+        .navbar {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: initial !important;
+            padding: 10px 10px 10px 32px !important;
+            border-radius: 60px !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+            gap: 100px !important;
+        }
+
+        /* History Simplified UI (Apple-like) */
+        .history-hint {
+            margin: 10px 0 22px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: #1D1D1F;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .season-grid {
+            gap: 24px !important;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+        }
+
+        .season-card {
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+            border-radius: 22px !important;
+            padding: 26px 24px !important;
+            min-height: 210px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+            overflow: hidden !important;
+        }
+        .season-card:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09) !important;
+            border-color: rgba(0, 0, 0, 0.14) !important;
+        }
+        .season-card.active {
+            transform: none !important;
+            border-color: rgba(0, 102, 255, 0.45) !important;
+            box-shadow: 0 10px 26px rgba(0, 102, 255, 0.14) !important;
+        }
+        .season-card::before,
+        .season-card::after,
+        .ticket-perforation-h {
+            display: none !important;
+            content: none !important;
+        }
+
+        .season-year-row {
+            align-items: flex-start !important;
+            margin-bottom: 22px !important;
+        }
+        .season-year {
+            font-family: var(--font-display) !important;
+            font-size: 2.1rem !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.02em !important;
+            text-align: left !important;
+        }
+        .season-matches-text {
+            font-size: 0.92rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.03em !important;
+            text-transform: uppercase !important;
+            margin-top: 8px !important;
+            text-align: left !important;
+        }
+
+        .season-champion-row {
+            flex-direction: row !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin-top: 0 !important;
+            text-align: left !important;
+        }
+        .champion-circle-logo {
+            width: 38px !important;
+            height: 38px !important;
+        }
+        .champion-details {
+            align-items: flex-start !important;
+        }
+        .champion-label {
+            font-size: 0.76rem !important;
+        }
+        .champion-team-name {
+            font-family: var(--font-display) !important;
+            font-size: 1.08rem !important;
+            font-weight: 700 !important;
+        }
+
+        .match-list {
+            gap: 20px !important;
+        }
+        .match-card {
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+            border-radius: 22px !important;
+            padding: 26px 28px !important;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06) !important;
+            gap: 22px !important;
+            overflow: hidden !important;
+        }
+        .match-card:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+            border-color: rgba(0, 0, 0, 0.14) !important;
+        }
+        .match-card.active {
+            border-color: rgba(0, 102, 255, 0.45) !important;
+            box-shadow: 0 10px 24px rgba(0, 102, 255, 0.13) !important;
+            transform: none !important;
+        }
+        .match-card::before,
+        .match-card::after,
+        .ticket-perforation-v,
+        .ticket-barcode {
+            display: none !important;
+            content: none !important;
+        }
+
+        .match-meta-left {
+            width: auto !important;
+            align-items: flex-start !important;
+            text-align: left !important;
+            padding-right: 0 !important;
+            gap: 8px !important;
+        }
+        .match-id-badge {
+            background: #F5F5F7 !important;
+            color: #6B7280 !important;
+            border: 1px solid rgba(0, 0, 0, 0.06) !important;
+            font-size: 0.9rem !important;
+            padding: 7px 13px !important;
+        }
+        .match-date-text {
+            font-size: 0.98rem !important;
+            font-weight: 600 !important;
+        }
+        .match-scoreboard-center {
+            padding-left: 0 !important;
+            gap: 18px !important;
+        }
+        .team-logo-sm {
+            width: 46px !important;
+            height: 46px !important;
+        }
+        .team-name {
+            font-size: 1.12rem !important;
+            font-weight: 700 !important;
+        }
+        .scoreboard-score-left,
+        .scoreboard-score-right {
+            width: auto !important;
+            font-size: 1.28rem !important;
+            font-weight: 700 !important;
+        }
+        .scoreboard-vs {
+            background: #F5F5F7 !important;
+            border: 1px solid rgba(0, 0, 0, 0.06) !important;
+            color: #6B7280 !important;
+            font-size: 0.86rem !important;
+            padding: 5px 10px !important;
+        }
+        .scoreboard-score-left.is-winner,
+        .scoreboard-score-right.is-winner {
+            color: #1D1D1F !important;
+            font-weight: 700 !important;
+        }
+        .match-result-right {
+            border-left: none !important;
+            padding-left: 0 !important;
+            width: 300px !important;
+            gap: 6px !important;
+        }
+        .outcome-value {
+            font-size: 1.08rem !important;
+            font-weight: 750 !important;
+        }
+        .venue-text {
+            font-size: 0.94rem !important;
+        }
+
+        #matchesTitle.section-title {
+            font-size: 2.2rem !important;
+        }
+        #status.status {
+            font-size: 1.03rem !important;
+            font-weight: 600 !important;
+        }
+
+        @media (max-width: 900px) {
+            .season-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .match-card {
+                padding: 20px !important;
+                gap: 16px !important;
+            }
+            .team-name {
+                font-size: 1rem !important;
+            }
+            .scoreboard-score-left,
+            .scoreboard-score-right {
+                font-size: 1.1rem !important;
+            }
+            .match-result-right {
+                width: 100% !important;
+            }
+        }
+
+        /* Scorecard Upgrade (match Batter/Bowler table richness) */
+        .scorecard-wrap {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+            border: 1px solid rgba(93, 137, 214, 0.18) !important;
+            border-radius: 28px !important;
+            box-shadow: 0 18px 40px rgba(59, 130, 246, 0.09), 0 8px 18px rgba(0, 0, 0, 0.04) !important;
+        }
+        .scorecard-head {
+            font-size: 1.85rem !important;
+            letter-spacing: -0.04em !important;
+            margin-bottom: 26px !important;
+            line-height: 1.2 !important;
+        }
+        .innings-block {
+            background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(244,249,255,0.95) 100%) !important;
+            border: 1px solid rgba(93, 137, 214, 0.2) !important;
+            border-radius: 22px !important;
+            box-shadow: 0 12px 26px rgba(59, 130, 246, 0.08) !important;
+            padding: 24px !important;
+            margin-bottom: 24px !important;
+        }
+        .innings-title {
+            font-size: 1.35rem !important;
+            margin-bottom: 14px !important;
+        }
+        .sub-title {
+            margin: 18px 0 10px !important;
+            color: #2563eb !important;
+            font-size: 0.78rem !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.11em !important;
+        }
+        .table-wrap {
+            margin: 10px 0 14px !important;
+            border-radius: 16px !important;
+            border: 1px solid hsl(214 60% 88%) !important;
+            overflow: auto !important;
+            background: #ffffff !important;
+        }
+        .scorecard-wrap table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 0.95rem !important;
+            color: #111827 !important;
+        }
+        .scorecard-wrap th {
+            background: hsl(214 82% 92%) !important;
+            color: hsl(220 45% 22%) !important;
+            font-weight: 700 !important;
+            font-size: 0.76rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            border-bottom: 1px solid hsl(214 60% 84%) !important;
+            padding: 13px 14px !important;
+            text-align: center !important;
+        }
+        .scorecard-wrap th:first-child,
+        .scorecard-wrap td:first-child {
+            text-align: left !important;
+        }
+        .scorecard-wrap td {
+            padding: 12px 14px !important;
+            border-bottom: 1px solid hsl(214 45% 92%) !important;
+            font-weight: 500 !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+        .scorecard-wrap tbody tr:nth-child(even) td {
+            background: hsl(213 90% 98%) !important;
+        }
+        .scorecard-wrap tbody tr:hover td {
+            background: hsl(213 95% 96%) !important;
+        }
+        .scorecard-wrap tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+        .tiny {
+            background: hsl(214 82% 94%) !important;
+            border: 1px solid hsl(214 60% 86%) !important;
+            border-radius: 10px !important;
+            padding: 10px 12px !important;
+            margin: 10px 0 !important;
+            color: hsl(220 30% 28%) !important;
+            font-size: 0.89rem !important;
+        }
+        .scorecard-wrap .section-title {
+            margin: 10px 0 18px !important;
+            font-size: 1.55rem !important;
+            letter-spacing: -0.03em !important;
+        }
+        .details-grid {
+            gap: 16px !important;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) !important;
+        }
+        .detail-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%) !important;
+            border: 1px solid hsl(214 55% 86%) !important;
+            border-radius: 16px !important;
+            padding: 16px 18px !important;
+            box-shadow: 0 8px 18px rgba(59, 130, 246, 0.08) !important;
+        }
+        .detail-label {
+            color: hsl(217 85% 45%) !important;
+            font-size: 0.72rem !important;
+            letter-spacing: 0.09em !important;
+            margin-bottom: 4px !important;
+        }
+        .detail-value {
+            font-size: 0.98rem !important;
+            line-height: 1.35 !important;
+            color: #111827 !important;
+        }
+
+        @media (max-width: 900px) {
+            .scorecard-wrap {
+                padding: 18px !important;
+            }
+            .scorecard-head {
+                font-size: 1.42rem !important;
+            }
+            .innings-block {
+                padding: 16px !important;
+            }
+            .scorecard-wrap th,
+            .scorecard-wrap td {
+                padding: 10px 10px !important;
+                font-size: 0.84rem !important;
+            }
+            .detail-value {
+                font-size: 0.92rem !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1163,15 +1541,6 @@
                         <div class="hero-title">Match History</div>
                         <div class="hero-sub">Choose a season card, then click any match card to open full analytics scorecard.</div>
                     </div>
-                    <div class="ai-badge">
-                        <span class="ai-dot"></span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="16" height="16" x="4" y="4" rx="2"/>
-                            <rect width="6" height="6" x="9" y="9" rx="1"/>
-                            <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"/>
-                        </svg>
-                        AI Powered
-                    </div>
                 </div>
             </div>
         </div>
@@ -1180,6 +1549,7 @@
     <div class="container">
         <section id="seasonSection">
             <h2 class="section-title">Seasons</h2>
+            <div class="history-hint">Click any season card to open matches.</div>
             <section id="seasonGrid" class="season-grid"></section>
         </section>
 
@@ -1332,7 +1702,7 @@
                     <article class="season-card" data-season="${escapeHtml(season.season)}">
                         <div class="season-year-row">
                             <span class="season-year">${escapeHtml(season.season)}</span>
-                            <span class="season-matches-text">Match Admit: ${escapeHtml(season.matches)} Matches</span>
+                            <span class="season-matches-text">Matches: ${escapeHtml(season.matches)}</span>
                         </div>
                         <div class="ticket-perforation-h"></div>
                         <div class="season-champion-row">
@@ -1488,8 +1858,8 @@
                 ["Toss", details.toss],
                 ["Series", details.series],
                 ["Season", details.season],
+                ["Result", details.result],
                 ["Player Of The Match", details.player_of_the_match],
-                ["Player Of The Series", details.player_of_the_series],
                 ["Series Result", details.series_result],
                 ["Match Days", details.match_days],
                 ["Stage", details.stage],

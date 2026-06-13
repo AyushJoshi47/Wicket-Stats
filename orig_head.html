@@ -1,0 +1,500 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WicketStats ΓÇö Batter Intelligence</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" />
+    
+    <style>
+        
+        :root {
+            --ps-radius: 0.5rem;
+            --ps-bg:           oklch(0.985 0.003 90);
+            --ps-fg:           oklch(0.20  0.01  60);
+            --ps-ink:          oklch(0.18  0.01  60);
+            --ps-card:         oklch(1     0     0);
+            --ps-muted:        oklch(0.96  0.005 90);
+            --ps-muted-fg:     oklch(0.48  0.01  70);
+            --ps-accent:       oklch(0.62  0.16  32);
+            --ps-hairline:     oklch(0.20  0.01  60 / 0.10);
+
+            --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+            --font-sans:    "Instrument Serif", ui-serif, Georgia, serif;
+            --font-mono:    "Instrument Serif", ui-serif, Georgia, serif;
+
+            --WC_BLUE: oklch(62.3% .214 259.815);
+
+            --background: 0 0% 100%;
+            --foreground: 222 47% 11%;
+            --card: 0 0% 100%;
+            --card-foreground: 222 47% 11%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222 47% 11%;
+            --primary: 217 91% 55%;
+            --primary-foreground: 0 0% 100%;
+            --primary-glow: 199 95% 60%;
+            --secondary: 210 40% 96%;
+            --secondary-foreground: 222 47% 11%;
+            --muted: 210 40% 96%;
+            --muted-foreground: 215 16% 47%;
+            --accent: 199 95% 60%;
+            --accent-foreground: 0 0% 100%;
+            --destructive: 0 84% 60%;
+            --destructive-foreground: 0 0% 100%;
+            --border: 214 32% 91%;
+            --input: 214 32% 91%;
+            --ring: 217 91% 55%;
+            --success: 142 71% 45%;
+            --radius: 1rem;
+            --gradient-bg: radial-gradient(ellipse 70% 50% at 10% 0%, hsl(217 91% 55% / 0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, hsl(199 95% 60% / 0.10) 0%, transparent 55%);
+            --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+            --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 99%));
+            --shadow-glow: 0 10px 30px -10px hsl(var(--primary) / 0.35);
+            --shadow-card: 0 4px 20px -8px hsl(217 91% 30% / 0.08);
+            --shadow-elevated: 0 20px 50px -20px hsl(217 91% 40% / 0.18);
+            --transition-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-color: hsl(var(--border));
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+        }
+
+        a {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background: #ffffff;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            color: var(--ps-fg);
+            background-attachment: fixed;
+        }
+
+        h1, h2, h3, h4 { font-family: "Instrument Serif", ui-serif, Georgia, serif; letter-spacing: -0.02em; }
+
+        .surface-card {
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border));
+            background: hsl(var(--card));
+            box-shadow: var(--shadow-card);
+        }
+
+        .surface-nav {
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border) / 0.8);
+            background: hsl(var(--card) / 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .pulse-dot {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 hsl(var(--success) / 0.5); }
+            50% { box-shadow: 0 0 0 8px hsl(var(--success) / 0); }
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in { animation: fade-in 0.4s var(--transition-smooth); }
+
+        /* ΓöÇΓöÇ Full-screen wrapper ΓöÇΓöÇ */
+        .hero-wrap {
+            position: relative;
+            width: 100vw; height: 30vh;
+             background: linear-gradient(
+        to top, 
+        #ffffff 0%,           /* Start pure white at the very top edge */
+        rgba(255,255,255,0.5) 30%, /* Quick transition to semi-transparent */
+        #1e88e5 99%,    /* Fully blue by 40% of the way down */
+        #1e88e5 100%    /* Stay solid blue to the bottom */
+    );
+        }
+
+        /* ΓöÇΓöÇ Background image ΓöÇΓöÇ */
+        .bg-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        /* ΓöÇΓöÇ Bottom fade-out gradient ΓöÇΓöÇ */
+        .bg-fade {
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 60%, #ffffff 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* ΓöÇΓöÇ SVG noise texture (reusable) ΓöÇΓöÇ */
+        .noise-layer {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ΓöÇΓöÇ Navbar ΓöÇΓöÇ */
+       .navbar {
+    position: absolute;
+    top: 28px; left: 50%;
+    transform: translateX(-50%);
+    width: 94%; max-width: 1500px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-radius: 20px; /* Slightly rounder for the soft look */
+    z-index: 20;
+    
+    /* The Core Neomorphic Base */
+    background: rgba(255, 255, 255, 0.05); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    
+    /* One thin border for glass-like definition */
+
+    /* 
+       Proper Neomorphic Stack:
+       1. Soft Outer Shadow (Depth)
+       2. Soft Outer Highlight (Light Source)
+       3. Inset Highlight (Bevel effect)
+       4. Inset Shadow (Inner Depth)
+    */
+    box-shadow: 
+        10px 10px 20px rgba(0, 0, 0, 0.3),            /* Outer Shadow */
+        -5px -5px 15px rgba(255, 255, 255, 0.05),     /* Outer Glow */
+        inset 1px 1px 2px rgba(255, 255, 255, 0.2),   /* Top-left inner bevel */
+        inset -1px -1px 2px rgba(0, 0, 0, 0.2);       /* Bottom-right inner bevel */
+}
+
+        /* Navbar noise overlay */
+        .navbar::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            pointer-events: none;
+            border-radius: inherit;
+            z-index: 0;
+        }
+        .navbar > * { position: relative; z-index: 1; }
+
+        .nav-brand {
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #fff;
+            letter-spacing: .5px;
+            text-decoration: none;
+            flex-shrink: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,.3);
+        }
+
+        .nav-center {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .nav-center a {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: .6px;
+            padding: 9px 20px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: background .3s, border-color .3s, color .25s, box-shadow .3s;
+        }
+        .nav-center a::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+        .nav-center a:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.18);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(255,255,255,0.06);
+        }
+        .nav-center a:hover::before { opacity: 1; }
+
+        .btn-register {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            color: #fff;
+            padding: 11px 30px;
+            border-radius: 12px;
+            font-family: "Instrument Serif", ui-serif, Georgia, serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: capitalize;
+            letter-spacing: .5px;
+            cursor: pointer;
+            transition: background .3s, transform .3s, box-shadow .3s;
+        }
+        .btn-register::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: inherit;
+        }
+        .btn-register:hover {
+               transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+        }
+
+    
+.wc-footer {
+    position: relative;
+    /* This creates the smooth 'entry' from the white page into the blue footer */
+    background: linear-gradient(
+        to bottom, 
+        #ffffff 10%,           /* Start pure white at the very top edge */
+        rgba(255,255,255,0.5) 18%, /* Quick transition to semi-transparent */
+        var(--WC_BLUE) 70%,    /* Fully blue by 40% of the way down */
+        var(--WC_BLUE) 100%    /* Stay solid blue to the bottom */
+    );
+    
+    color: white;
+    padding: 120px 40px 80px; /* Increased top padding to give the fade space */
+    margin-top: 6rem; /* Reduced margin since the fade acts as visual space */
+}
+
+
+
+
+/* STACK LAYOUT (NO FLEX ROW) */
+.wc-footer-container {
+    max-width: 1200px;
+    margin: 5rem;
+
+    display: flex;
+    flex-direction: column;  /* KEY CHANGE */
+    gap: 60px;
+}
+
+/* ===== CTA SECTION ===== */
+.launch-wc {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    max-width: 700px;
+}
+.wc-other-brand {
+    width: 250px; 
+    aspect-ratio: 1 / 1; 
+    border-radius: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Base color (important for neumorphism) */
+ background: linear-gradient(
+        to bottom,
+        15deg, 
+        #ffffff 0%, 
+        rgba(255, 255, 255, 0.5) 15%, 
+        var(--WC_BLUE) 95%, 
+        var(--WC_BLUE) 100%
+    );
+    /* Classic neumorphic dual shadow */
+    box-shadow:
+        12px 12px 25px rgba(0, 0, 0, 0.15),   /* dark shadow */
+        -12px -12px 25px rgba(255, 255, 255, 0.9); /* light highlight */
+
+    transform: rotate(-15deg);
+
+    border-radius: 40px;
+    overflow: hidden;
+}
+
+.wc-other-brand:active {
+    box-shadow:
+        inset 8px 8px 18px rgba(0,0,0,0.15),
+        inset -8px -8px 18px rgba(255,255,255,0.9);
+}
+
+.wc-other-brand img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* FIX: Scale the image up to remove the built-in padding of the file */
+    transform: scale(1.4); 
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+}
+
+
+
+
+
+/* ===== LINKS SECTION ===== */
+.wc-footer-links {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+/* Logo */
+.wc-footer-brand img {
+    width: 130px;
+    margin-bottom: 10px;
+}
+
+/* Columns */
+.wc-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.wc-footer-column h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.wc-footer-column a {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: 0.2s ease;
+}
+
+.wc-footer-column a:hover {
+    color: white;
+    transform: translateX(4px);
+}
+
+        /* --- DASHBOARD GRID --- */
+        .dashboard-container {
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            margin: 0 2rem 2rem;
+            gap: 18px;
+            padding-top: 2rem;
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Common Card Styles */
+        .dash-card {
+            border-radius: var(--radius);
+            border: 1px solid hsl(214 60% 85%);
+            background-image: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            box-shadow: 
+                10px 10px 20px rgba(0, 0, 0, 0.1),            
+                -5px -5px 15px rgba(255, 255, 255, 0.8),     
+                inset 1px 1px 2px rgba(255, 255, 255, 0.8),   
+                inset -1px -1px 2px rgba(0, 0, 0, 0.05);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Stronger text on cards */
+        .dash-card h1, .dash-card h2, .dash-card h3,
+        .dash-card .greet-sub, .dash-card .user-card-name,
+        .dash-card .stat-val, .dash-card .nav-option-btn span {
+            color: hsl(220 35% 16%);
+        }
+
+        .dash-card .greet-desc, .dash-card .user-card-email,
+        .dash-card .stat-lbl, .dash-card .nav-desc {
+            color: hsl(215 20% 42%);
+        }
+
+        /* div1: USER PROFILE */
+        .dash-user-card {
+            position: relative;
+            overflow: hidden;
+            padding: 26px;
+        }
+
+        .dash-user-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, hsl(var(--primary) / 0.08), transparent, hsl(var(--accent) / 0.08));
+            pointer-events: none;
+        }
+
+        .user-card-content {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-card-icon-box {
+            display: grid;
+            place-items: center;
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0;
+            border-radius: 16px;
+            background: var(--gradient-primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .user-card-icon-box i {
+            color: hsl(var(--primary-foreground));

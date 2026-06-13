@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, Response, stream_with_context
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # must be before any other matplotlib import
 import matplotlib.pyplot as plt
 import sqlite3
 from flask import redirect, url_for
@@ -26,6 +28,30 @@ import razorpay
 
 
 app = Flask(__name__)
+
+
+def json_safe(value):
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [json_safe(v) for v in value]
+    if isinstance(value, tuple):
+        return [json_safe(v) for v in value]
+    if isinstance(value, (np.floating, float)):
+        if not np.isfinite(value):
+            return None
+        return float(value)
+    if isinstance(value, (np.integer, int)):
+        return int(value)
+    if value is None:
+        return None
+    # pandas NA / NaT safe handling
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    return value
 
 pl.Config.set_float_precision(2)
 pd.set_option('display.max_rows', None)
@@ -920,6 +946,45 @@ def history_match_scorecard():
         return jsonify({'status': 'error', 'message': 'match metadata unavailable'}), 404
     meta_row = meta.iloc[0]
 
+    def _pick_meta_value(field_name):
+        series = match_df[field_name] if field_name in match_df.columns else pd.Series(dtype=object)
+        for value in series:
+            if pd.isna(value):
+                continue
+            text = str(value).strip()
+            if not text or text.lower() in {'nan', 'none', 'null'}:
+                continue
+            return text
+        fallback = meta_row[field_name] if field_name in meta_row.index else None
+        if pd.notna(fallback):
+            text = str(fallback).strip()
+            if text and text.lower() not in {'nan', 'none', 'null'}:
+                return text
+        return None
+
+    def _clean_display(text):
+        if text is None:
+            return None
+        t = str(text).strip()
+        if not t or t.lower() in {'nan', 'none', 'null', 'n/a', 'na', 'unknown'}:
+            return None
+        return t
+
+    def _derive_result_type(result_margin):
+        margin = _clean_display(result_margin)
+        if not margin:
+            return None
+        lower = margin.lower()
+        if 'wicket' in lower:
+            return 'By Wickets'
+        if 'run' in lower:
+            return 'By Runs'
+        if 'tie' in lower:
+            return 'Tie'
+        if 'no result' in lower or 'abandon' in lower:
+            return 'No Result'
+        return 'Win'
+
     innings_payload = []
     innings_values = sorted([int(x) for x in match_df['innings'].dropna().unique().tolist()])
     first_innings_total = None
@@ -944,37 +1009,73 @@ def history_match_scorecard():
     if not season_final.empty and pd.notna(season_final.iloc[0]['match_won_by']):
         season_winner = str(season_final.iloc[0]['match_won_by'])
 
+    winner = _clean_display(_pick_meta_value('match_won_by'))
+    win_outcome = _clean_display(_pick_meta_value('win_outcome'))
+    toss_winner = _clean_display(_pick_meta_value('toss_winner'))
+    toss_decision = _clean_display(_pick_meta_value('toss_decision'))
+    venue = _clean_display(_pick_meta_value('venue'))
+    city = _clean_display(_pick_meta_value('city'))
+    event_name = _clean_display(_pick_meta_value('event_name'))
+    player_of_match = _clean_display(_pick_meta_value('player_of_match'))
+    match_type = _clean_display(_pick_meta_value('match_type'))
+    stage = _clean_display(_pick_meta_value('stage'))
+    result_type = _clean_display(_pick_meta_value('result_type'))
+    method = _clean_display(_pick_meta_value('method'))
+
+    # Build a cleaner ground string without duplicate city text.
+    ground = venue or 'N/A'
+    if venue and city and city.lower() not in venue.lower():
+        ground = f"{venue}, {city}"
+
+    # Derive consistent result text for details panel.
+    if winner and win_outcome:
+        result_summary = f"{winner} won by {win_outcome}"
+    elif winner:
+        result_summary = f"{winner} won"
+    elif win_outcome:
+        result_summary = win_outcome
+    else:
+        result_summary = 'N/A'
+
+    final_match_id = int(season_final.iloc[0]['match_id']) if not season_final.empty and pd.notna(season_final.iloc[0]['match_id']) else None
+    if not stage:
+        stage = 'Final' if final_match_id == match_id else 'League Stage'
+    if not result_type:
+        result_type = _derive_result_type(win_outcome) or 'N/A'
+    if not method:
+        method = 'Normal'
+
     umpires = [
         str(x) for x in match_df['umpire'].dropna().unique().tolist()
         if str(x).strip() and str(x).strip().lower() != 'none'
     ]
     details = {
-        'ground': f"{meta_row['venue']}, {meta_row['city']}" if pd.notna(meta_row['city']) else str(meta_row['venue']),
-        'toss': f"{meta_row['toss_winner']}, elected to {meta_row['toss_decision']} first" if pd.notna(meta_row['toss_winner']) else 'N/A',
-        'series': str(meta_row['event_name']) if pd.notna(meta_row['event_name']) else 'Indian Premier League',
+        'ground': ground,
+        'toss': f"{toss_winner}, elected to {toss_decision} first" if toss_winner else 'N/A',
+        'series': event_name or 'Indian Premier League',
         'season': season,
-        'player_of_the_match': str(meta_row['player_of_match']) if pd.notna(meta_row['player_of_match']) else 'N/A',
-        'player_of_the_series': 'N/A (not present in dataset)',
+        'result': result_summary,
+        'player_of_the_match': player_of_match or 'N/A',
         'series_result': (
             f"{season_winner} won the {season} Indian Premier League"
             if season_winner else 'N/A'
         ),
         'match_days': (
-            f"{meta_row['date'].strftime('%d %B %Y')} - {str(meta_row['match_type']).lower()}"
-            if pd.notna(meta_row['date']) and pd.notna(meta_row['match_type']) else 'N/A'
+            f"{meta_row['date'].strftime('%d %B %Y')} - {match_type.lower()}"
+            if pd.notna(meta_row['date']) and match_type else 'N/A'
         ),
-        'stage': str(meta_row['stage']) if pd.notna(meta_row['stage']) else 'N/A',
+        'stage': stage,
         'umpires': ', '.join(umpires) if umpires else 'N/A',
-        'result_type': str(meta_row['result_type']) if pd.notna(meta_row['result_type']) else 'N/A',
-        'method': str(meta_row['method']) if pd.notna(meta_row['method']) else 'N/A'
+        'result_type': result_type,
+        'method': method
     }
 
     return jsonify({
         'status': 'success',
         'match_id': match_id,
         'season': season,
-        'winner': str(meta_row['match_won_by']) if pd.notna(meta_row['match_won_by']) else None,
-        'result': str(meta_row['win_outcome']) if pd.notna(meta_row['win_outcome']) else None,
+        'winner': winner,
+        'result': win_outcome,
         'innings': innings_payload,
         'match_details': details
     })
@@ -1391,12 +1492,15 @@ def top_scorer():
     })
  
 
-def batter_index(batter, team, role):
+def batter_index(batter, team, role, include_summary=True):
 
-    df_bat = df[df['batter'] == batter]
+    batter_norm = (batter or "").strip().lower()
+    team_norm = (team or "").strip().lower()
 
-    if team:
-        df_bat = df_bat[df_bat['batting_team'] == team]
+    df_bat = df[df['batter'].astype(str).str.strip().str.lower() == batter_norm]
+
+    if team_norm:
+        df_bat = df_bat[df_bat['batting_team'].astype(str).str.strip().str.lower() == team_norm]
     
     df1 = df_bat.drop_duplicates(subset='match_id')
 
@@ -1553,8 +1657,10 @@ def batter_index(batter, team, role):
                Geneate me a summary on the given data for the Batter: {batter}, across all seasons the batter have played and give me an overview of the batter performance
                over all the season's while also summarise what the batter's strength's and short-cummings are, with proper evaluation on how he can can improve.
                 """
-    rag_engine.team_store(batting_data)
-    batting = rag_engine.ask_team(question)
+    batting = ""
+    if include_summary:
+        rag_engine.team_store(batting_data)
+        batting = rag_engine.ask_team(question)
 
     if role == 'batter':
         return batting_data
@@ -1573,6 +1679,71 @@ def batter_index(batter, team, role):
     "playerstats": plt_image,
     'batter_llm': batting
 }
+
+
+def _build_batter_summary_chunks(player_name, season_rows):
+    chunks = []
+    for row in season_rows or []:
+        chunks.append({
+            "id": f"{str(player_name).replace(' ', '_')}_{row.get('season', 'na')}",
+            "text": (
+                f"Player: {player_name}\n"
+                f"Season: {row.get('season', 'NA')}\n"
+                f"Matches Played: {row.get('matches_played', 0)}\n"
+                f"Total Runs: {row.get('total_runs', 0)}\n"
+                f"Average Runs: {row.get('avg_runs', 0)}\n"
+                f"Sixes: {row.get('sixes', 0)}\n"
+                f"Fours: {row.get('fours', 0)}\n"
+                f"Consistency: {row.get('consistency', 0)}"
+            )
+        })
+    return chunks
+
+
+def _build_bowler_summary_chunks(player_name, season_rows):
+    chunks = []
+    for row in season_rows or []:
+        chunks.append({
+            "id": f"{str(player_name).replace(' ', '_')}_{row.get('season', 'na')}",
+            "text": (
+                f"Bowler: {player_name}\n"
+                f"Season: {row.get('season', 'NA')}\n"
+                f"Matches: {row.get('Matches', 0)}\n"
+                f"Wickets: {row.get('Total_Wickets', 0)}\n"
+                f"Overs: {row.get('Total_Overs', 0)}\n"
+                f"Runs Conceded: {row.get('Total_Runs', 0)}\n"
+                f"Economy: {row.get('Seasonal_Economy', 0)}\n"
+                f"Average: {row.get('Seasonal_Average', 0)}\n"
+                f"Strike Rate: {row.get('Seasonal_Strike_Rate', 0)}"
+            )
+        })
+    return chunks
+
+
+def _build_team_summary_chunks(team_name, season_rows):
+    chunks = []
+    for idx, row in enumerate(season_rows or []):
+        chunks.append({
+            "id": f"{str(team_name).replace(' ', '_')}_{row.get('season', 'na')}_{idx}",
+            "text": (
+                f"Season: {row.get('season', 'NA')}\n"
+                f"Team: {team_name}\n"
+                f"Wins: {row.get('wins', 0)}\n"
+                f"Wickets Taken: {row.get('wickets_taken', 0)}\n"
+                f"Runs Scored: {row.get('runs_scored', 0)}"
+            )
+        })
+    return chunks
+
+
+def _stream_team_summary(question, chunks):
+    if not chunks:
+        yield "No data available for summary."
+        return
+    rag_engine.team_store(chunks)
+    for token in rag_engine.ask_team_stream(question):
+        if token:
+            yield token
 
 @app.route('/player_index', methods=['POST'])
 def player_index():
@@ -1593,7 +1764,7 @@ def player_index():
         image_url = f"https://documents.iplt20.com/ipl/assets/images/{batter_id}.png"
     role = ""
 
-    bat_index = batter_index(batter, team, role)
+    bat_index = batter_index(batter, team, role, include_summary=False)
     
     return jsonify({
     "player": batter,
@@ -1610,8 +1781,31 @@ def player_index():
     "dismissible": bat_index["wicket_kind"],
     "matches_played": bat_index["matches_played"],
     "matches_lost": int(bat_index["matches_lost"]),
-    'batting_data': bat_index['batter_llm']
+    'batting_data': "",
+    'summary_input_rows': bat_index["player_stats_one"].to_dict(orient='records')
 })
+
+
+@app.route('/player_index/summary_stream', methods=['POST'])
+def player_index_summary_stream():
+    payload = request.get_json(silent=True) or {}
+    batter = (payload.get('player') or "").strip()
+    team = (payload.get('team') or "").strip()
+    rows = payload.get('season_stats') or []
+    if not batter:
+        return Response("Please provide a batter name.", mimetype='text/plain')
+
+    scope_text = f"for team {team}" if team else "across all teams"
+    question = f"""
+               Geneate me a summary on the given data for the Batter: {batter}, {scope_text}, across all seasons the batter have played and give me an overview of the batter performance
+               over all the season's while also summarise what the batter's strength's and short-cummings are, with proper evaluation on how he can can improve.
+                """
+    chunks = _build_batter_summary_chunks(batter, rows)
+
+    return Response(
+        stream_with_context(_stream_team_summary(question, chunks)),
+        mimetype='text/plain'
+    )
 
 @app.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -3306,10 +3500,13 @@ def give_query():
         "thread_id": thread_id
     })
 
-def bowler_pipeline(bowl, bowl_team, role, pipeline):
-    df = dataframe.filter(pl.col('bowler') == bowl)
-    if bowl_team:
-        df = df.filter(pl.col('bowling_team') == bowl_team)
+def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
+    bowl_norm = (bowl or "").strip().lower()
+    team_norm = (bowl_team or "").strip().lower()
+
+    df = dataframe.filter(pl.col('bowler').cast(pl.Utf8).str.to_lowercase() == bowl_norm)
+    if team_norm:
+        df = df.filter(pl.col('bowling_team').cast(pl.Utf8).str.to_lowercase() == team_norm)
 
     value = df.group_by(['match_id', 'season', 'bowler', 'bowling_team']).agg([
         pl.sum('bowler_wicket').alias('Wickets Taken'),
@@ -3331,12 +3528,32 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline):
         (pl.sum('balls bowled') / pl.sum('Wickets Taken')).alias('Seasonal_Strike_Rate')
     ]).sort('season')
 
+    if total.is_empty():
+        empty_summary = "No bowling records found for the selected filters."
+        if role == 'bowler':
+            return []
+        return {
+            'stats_image': '',
+            'total': [],
+            'high_wkt': {},
+            'best_avg': {},
+            'best_eco': {},
+            'best_sr': {},
+            'bowler_data': empty_summary
+        }
+
     season_df = total.to_pandas()
+    season_df = season_df.replace([np.inf, -np.inf], np.nan)
 
     best_wickets = season_df.loc[season_df['Total_Wickets'].idxmax(), ['season', 'Total_Wickets']]
-    best_avg     = season_df.loc[season_df['Seasonal_Average'].idxmin(), ['season', 'Seasonal_Average']]
-    best_eco     = season_df.loc[season_df['Seasonal_Economy'].idxmin(), ['season', 'Seasonal_Economy']]
-    best_sr      = season_df.loc[season_df['Seasonal_Strike_Rate'].idxmin(), ['season', 'Seasonal_Strike_Rate']]
+
+    avg_df = season_df[season_df['Seasonal_Average'].notna()]
+    eco_df = season_df[season_df['Seasonal_Economy'].notna()]
+    sr_df = season_df[season_df['Seasonal_Strike_Rate'].notna()]
+
+    best_avg = avg_df.loc[avg_df['Seasonal_Average'].idxmin(), ['season', 'Seasonal_Average']] if not avg_df.empty else pd.Series(dtype='object')
+    best_eco = eco_df.loc[eco_df['Seasonal_Economy'].idxmin(), ['season', 'Seasonal_Economy']] if not eco_df.empty else pd.Series(dtype='object')
+    best_sr  = sr_df.loc[sr_df['Seasonal_Strike_Rate'].idxmin(), ['season', 'Seasonal_Strike_Rate']] if not sr_df.empty else pd.Series(dtype='object')
 
     labels = season_df['season'].astype(str) + '\n(' + season_df['Matches'].astype(str) + ' matches)'
 
@@ -3374,21 +3591,41 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline):
     plt.close(fig)
 
    
+    if not include_summary and role != 'bowler':
+        return ({
+            'stats_image': '/static/images/filename.png',
+            'total':     season_df.where(pd.notna(season_df), None).to_dict(orient='records'),
+            'high_wkt':  best_wickets.to_dict(),
+            'best_avg':  best_avg.to_dict() if not best_avg.empty else {},
+            'best_eco':  best_eco.to_dict() if not best_eco.empty else {},
+            'best_sr':   best_sr.to_dict() if not best_sr.empty else {},
+            'bowler_data': ""
+        })
+
     bowler_data = []
-    rows = total.to_dicts()
+    rows = season_df.where(pd.notna(season_df), None).to_dict(orient='records')
+
+    def _fmt_num(v, digits=2):
+        try:
+            n = float(v)
+            if not np.isfinite(n):
+                return "NA"
+            return f"{n:.{digits}f}"
+        except Exception:
+            return "NA"
 
     for row in rows:
         text = (
-            f"Bowler {row['bowler']} from {row['bowling_team']} in season {row['season']} "
-            f"played {row['Matches']} matches, took {row['Total_Wickets']} wickets, "
-            f"bowled {row['Total_Overs']:.1f} overs, conceded {row['Total_Runs']} runs. "
-            f"Economy: {row['Seasonal_Economy']:.2f}, "
-            f"Average: {row['Seasonal_Average']:.2f}, "
-            f"Strike Rate: {row['Seasonal_Strike_Rate']:.2f}."
+            f"Bowler {row.get('bowler')} from {row.get('bowling_team')} in season {row.get('season')} "
+            f"played {row.get('Matches')} matches, took {row.get('Total_Wickets')} wickets, "
+            f"bowled {_fmt_num(row.get('Total_Overs'), 1)} overs, conceded {row.get('Total_Runs')} runs. "
+            f"Economy: {_fmt_num(row.get('Seasonal_Economy'), 2)}, "
+            f"Average: {_fmt_num(row.get('Seasonal_Average'), 2)}, "
+            f"Strike Rate: {_fmt_num(row.get('Seasonal_Strike_Rate'), 2)}."
         )
 
         bowler_data.append({
-            "id": f"{pipeline}_{row['bowler']}_{row['season']}",
+            "id": f"{pipeline}_{row.get('bowler')}_{row.get('season')}",
             "text": text
         })
 
@@ -3399,16 +3636,19 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline):
                Geneate me a summary on the given data for the Bowler: {bowl}, across all seasons the bowler have played and give me an overview of the bowler performance
                over all the season's while also summarise what the bowlers's strength's and short-cummings are, with proper evaluation on how he can can improve.
                 """
-    rag_engine.team_store(bowler_data)
-    bowler_data = rag_engine.ask_team(question)
+    if include_summary:
+        rag_engine.team_store(bowler_data)
+        bowler_data = rag_engine.ask_team(question)
+    else:
+        bowler_data = ""
     
     return ({
         'stats_image': '/static/images/filename.png',
-        'total':     season_df.to_dict(orient='records'),
+        'total':     season_df.where(pd.notna(season_df), None).to_dict(orient='records'),
         'high_wkt':  best_wickets.to_dict(),
-        'best_avg':  best_avg.to_dict(),
-        'best_eco':  best_eco.to_dict(),
-        'best_sr':   best_sr.to_dict(),
+        'best_avg':  best_avg.to_dict() if not best_avg.empty else {},
+        'best_eco':  best_eco.to_dict() if not best_eco.empty else {},
+        'best_sr':   best_sr.to_dict() if not best_sr.empty else {},
         'bowler_data': bowler_data
     })
 
@@ -3426,9 +3666,9 @@ def bowler_index():
     else:
         image_url = "https://documents.iplt20.com/ipl/assets/images/default.png"
 
-    bowler_stats = bowler_pipeline(bowl, bowl_team, role, pipeline)
+    bowler_stats = bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=False)
 
-    return jsonify({
+    payload = json_safe({
         'stats_image': bowler_stats['stats_image'],
         'total': bowler_stats['total'],
         'high_wkt': bowler_stats['high_wkt'],
@@ -3436,8 +3676,35 @@ def bowler_index():
         'best_eco': bowler_stats['best_eco'],
         'best_sr': bowler_stats['best_sr'],
         'image_url': image_url,
-        'bowler_data': bowler_stats['bowler_data']
+        'bowler_data': "",
+        'summary_input_rows': bowler_stats['total']
     })
+    return Response(
+        json.dumps(payload, allow_nan=False),
+        mimetype='application/json'
+    )
+
+
+@app.route('/bowler_index/summary_stream', methods=['POST'])
+def bowler_index_summary_stream():
+    payload = request.get_json(silent=True) or {}
+    bowl = (payload.get('bowl_player') or "").strip()
+    bowl_team = (payload.get('bowl_team') or "").strip()
+    rows = payload.get('season_stats') or []
+    if not bowl:
+        return Response("Please provide a bowler name.", mimetype='text/plain')
+
+    scope_text = f"for team {bowl_team}" if bowl_team else "across all teams"
+    question = f"""
+               Geneate me a summary on the given data for the Bowler: {bowl}, {scope_text}, across all seasons the bowler have played and give me an overview of the bowler performance
+               over all the season's while also summarise what the bowlers's strength's and short-cummings are, with proper evaluation on how he can can improve.
+                """
+    chunks = _build_bowler_summary_chunks(bowl, rows)
+
+    return Response(
+        stream_with_context(_stream_team_summary(question, chunks)),
+        mimetype='text/plain'
+    )
 
 @app.route('/teamgraph', methods=['POST'])
 def teamgraph():
@@ -3576,22 +3843,6 @@ def teamgraph():
     plt.tight_layout(pad=1.5)
     filename = "static/images/team.png"
     plt.savefig(filename)
-    question = f"""
-               Geneate me a summary on the given data for the team: {team}, across all seasons the team have played and give me an overview of the team performance
-               over all the season's while also summarise what the team's strength's and short-cummings are, with proper evaluation on how they can improve.
-                """
-    Data = []
-
-    for idx, row in combined.iterrows():
-        Data.append({
-            "id": f"{team}_{row['season']}_{idx}",
-            "text": f"{row['season']}: {team} won {row['wins']} matches in {row['season']} "
-                    f"and took {row['wickets_taken']} wickets while scoring {row['runs_scored']} runs in that season."
-        })
-
-    rag_engine.team_store(Data)
-    image_summary = rag_engine.ask_team(question)
-
     return jsonify(
         {
             'Total_matches': int(match_played),
@@ -3600,8 +3851,29 @@ def teamgraph():
             'Total_null': int(no_result),
             'Team_graph': "static/images/team.png",
             'Total_wins': Total_wins,
-            'image_summary': image_summary
+            'image_summary': "",
+            'summary_input_rows': combined.fillna(0).to_dict(orient='records')
         }
+    )
+
+
+@app.route('/teamgraph/summary_stream', methods=['POST'])
+def teamgraph_summary_stream():
+    payload = request.get_json(silent=True) or {}
+    team = (payload.get('teamname') or "").strip()
+    rows = payload.get('season_stats') or []
+    if not team:
+        return Response("Please provide a team name.", mimetype='text/plain')
+
+    question = f"""
+               Geneate me a summary on the given data for the team: {team}, across all seasons the team have played and give me an overview of the team performance
+               over all the season's while also summarise what the team's strength's and short-cummings are, with proper evaluation on how they can improve.
+                """
+    chunks = _build_team_summary_chunks(team, rows)
+
+    return Response(
+        stream_with_context(_stream_team_summary(question, chunks)),
+        mimetype='text/plain'
     )
 
 def whatif_weather(date):

@@ -2254,6 +2254,41 @@ border-top-left-radius: 12px;
             letter-spacing:-1.2px;
           }
         }
+        /* Header Shell Consistency (match index.html exactly) */
+        body {
+            padding: 12px !important;
+            overflow-x: hidden !important;
+            min-height: 100vh !important;
+        }
+        .hero-section {
+            border-radius: 24px !important;
+            overflow: hidden !important;
+            margin: 0 0 32px !important;
+        }
+        .navbar-wrapper {
+            position: absolute !important;
+            top: 28px !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 100 !important;
+        }
+        .navbar {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: initial !important;
+            padding: 10px 10px 10px 32px !important;
+            border-radius: 60px !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+            gap: 100px !important;
+        }
     </style>
 </head>
 
@@ -2513,8 +2548,28 @@ border-top-left-radius: 12px;
         </footer>
     </div>
 
-    <script>
-let typingInterval;
+<script>
+let teamSummaryController;
+let teamSummaryLastPayload = null;
+const SUMMARY_STREAM_TIMEOUT_MS = 45000;
+
+function renderSummaryRetry(outputEl, message, onRetry) {
+    outputEl.innerHTML = "";
+    const msg = document.createElement("div");
+    msg.textContent = message;
+    msg.style.marginBottom = "10px";
+    const retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.textContent = "Retry";
+    retryBtn.style.padding = "8px 14px";
+    retryBtn.style.borderRadius = "10px";
+    retryBtn.style.border = "1px solid rgba(0,0,0,0.15)";
+    retryBtn.style.background = "white";
+    retryBtn.style.cursor = "pointer";
+    retryBtn.addEventListener("click", onRetry);
+    outputEl.appendChild(msg);
+    outputEl.appendChild(retryBtn);
+}
 
 
         function showSkeletons() {
@@ -2594,23 +2649,15 @@ document.querySelectorAll('.gen_tgraph').forEach(img => {
                 modal.classList.add('show');
             });
 
-            // LLM typing effect for the summary
-            if (typingInterval) clearInterval(typingInterval);
             const sumBox = document.getElementById("img_sum");
-            sumBox.innerText = ""; // clear previous
-            
-            const textToType = matchData.image_summary || "";
-            const words = textToType.split(" ");
-            let wordIndex = 0;
-            
-            typingInterval = setInterval(() => {
-                if (wordIndex < words.length) {
-                    sumBox.innerText += (wordIndex > 0 ? " " : "") + words[wordIndex];
-                    wordIndex++;
-                } else {
-                    clearInterval(typingInterval);
-                }
-            }, 60); // Types a word every 60ms for a natural LLM feel
+            sumBox.innerText = "";
+            teamSummaryLastPayload = {
+                teamname,
+                seasonStats: matchData.summary_input_rows || []
+            };
+            if (teamSummaryController) teamSummaryController.abort();
+            teamSummaryController = new AbortController();
+            streamTeamSummary(teamSummaryLastPayload.teamname, teamSummaryLastPayload.seasonStats, sumBox, teamSummaryController.signal);
 
         } catch (error) {
             console.error("Fetch failed:", error);
@@ -2619,6 +2666,57 @@ document.querySelectorAll('.gen_tgraph').forEach(img => {
         }
     });
 });
+
+async function streamTeamSummary(teamname, seasonStats, outputEl, signal) {
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+        timedOut = true;
+        if (teamSummaryController && !teamSummaryController.signal.aborted) {
+            teamSummaryController.abort();
+        }
+    }, SUMMARY_STREAM_TIMEOUT_MS);
+    try {
+        const response = await fetch("/teamgraph/summary_stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ teamname, season_stats: seasonStats }),
+            signal
+        });
+        if (!response.ok || !response.body) {
+            outputEl.innerText = "Failed to stream insights.";
+            return;
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            outputEl.innerText += decoder.decode(value, { stream: true });
+        }
+        clearTimeout(timeoutId);
+    } catch (e) {
+        clearTimeout(timeoutId);
+        if (e.name === "AbortError" && !timedOut) {
+            return;
+        }
+        renderSummaryRetry(
+            outputEl,
+            timedOut ? "Insights are taking longer than expected." : "Failed to stream insights.",
+            () => {
+                if (!teamSummaryLastPayload) return;
+                outputEl.innerText = "";
+                if (teamSummaryController) teamSummaryController.abort();
+                teamSummaryController = new AbortController();
+                streamTeamSummary(
+                    teamSummaryLastPayload.teamname,
+                    teamSummaryLastPayload.seasonStats,
+                    outputEl,
+                    teamSummaryController.signal
+                );
+            }
+        );
+    }
+}
 
 // Modal Close Handlers (Fallback)
 document.getElementById('graph-modal').addEventListener('click', (e) => {

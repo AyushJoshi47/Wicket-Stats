@@ -855,3 +855,36 @@ def get_team(content, question):
 def ask_team(question):
     get_result = get_answer(question)
     return get_team(get_result, question)
+
+
+def ask_team_stream(question):
+    content = get_answer(question)
+    messages = [
+        {
+            'role': 'system',
+            'content': f"{systemprompts.systemPrompts.image_llm}\n\n=== MATCH DATA ===\n{content}\n=== END OF MATCH DATA ==="
+        },
+        {
+            'role': 'user',
+            'content': question
+        }
+    ]
+
+    try:
+        stream = or_client.chat.completions.create(
+            model=os.getenv("IMAGE_MODEL"),
+            messages=messages,
+            temperature=0,
+            stream=True
+        )
+
+        for chunk in stream:
+            try:
+                delta = chunk.choices[0].delta.content
+            except Exception:
+                delta = None
+            if delta:
+                yield delta
+    except Exception:
+        # Fallback for providers/models that do not support streaming.
+        yield get_team(content, question)

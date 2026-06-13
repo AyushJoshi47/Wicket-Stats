@@ -2275,11 +2275,6 @@ border-top-left-radius: 12px;
             --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
         }
 
-        body {
-            background: #ffffff !important;
-            min-height: 100vh;
-        }
-
         /* Scope font overrides to dashboard container elements only to protect the header */
         .dashboard-container, .dashboard-container * {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif !important;
@@ -2292,9 +2287,7 @@ border-top-left-radius: 12px;
             margin: 0 auto 2rem !important;
             max-width: 1320px;
             padding: 0 20px 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 24px !important;
+            gap: 16px;
             box-shadow: none !important;
             border: none !important;
         }
@@ -2318,92 +2311,15 @@ border-top-left-radius: 12px;
                 inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
         }
 
-        /* Spotlight Horizontal Search Card */
-        .pi-top-grid {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 24px !important;
-            width: 100% !important;
-            min-height: auto !important;
-        }
-
-        .pi-top-grid > div:nth-child(2) {
-            width: 100% !important;
-            height: auto !important;
-        }
-
-        .pi-search-card {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 16px !important;
-            padding: 24px 28px !important;
-            width: 100% !important;
-            max-width: 850px !important;
-            margin: 0 auto 8px !important;
-        }
-
-        .pi-search-header-row {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            gap: 16px !important;
-            width: 100% !important;
-        }
-
-        .pi-search-inputs-row {
-            display: flex !important;
-            align-items: center !important;
-            gap: 16px !important;
-            width: 100% !important;
-        }
-
-        .pi-search-inputs-wrapper {
-            display: flex !important;
-            flex: 1 !important;
-            gap: 12px !important;
-        }
-
-        .pi-search-card .pi-toggle-container {
-            width: 220px !important;
-            margin-bottom: 0 !important;
-        }
-
-        .pi-search-card .pi-submit-btn {
-            width: 140px !important;
-            height: 48px !important;
-            margin-top: 0 !important;
-        }
-
-        @media (max-width: 700px) {
-            .pi-search-header-row {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-                gap: 12px !important;
-            }
-            .pi-search-card .pi-toggle-container {
-                width: 100% !important;
-            }
-            .pi-search-inputs-row {
-                flex-direction: column !important;
-                gap: 12px !important;
-            }
-            .pi-search-inputs-wrapper {
-                flex-direction: column !important;
-                width: 100% !important;
-            }
-            .pi-search-card .pi-submit-btn {
-                width: 100% !important;
-            }
-        }
-
         /* Toggle Container & Buttons */
         .pi-toggle-container {
             display: flex;
-            gap: 4px;
-            background: rgba(0, 102, 255, 0.04) !important;
+            gap: 8px;
+            margin-bottom: 18px;
+            background: rgba(0, 102, 255, 0.03) !important;
             border-radius: 12px;
             padding: 4px;
-            border: 1px solid rgba(0, 102, 255, 0.08) !important;
+            border: 1px solid rgba(0, 102, 255, 0.06) !important;
         }
 
         .pi-toggle-btn {
@@ -2412,16 +2328,17 @@ border-top-left-radius: 12px;
             align-items: center;
             justify-content: center;
             gap: 6px;
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
             border: 1px solid transparent !important;
             background: transparent !important;
             color: var(--text-muted) !important;
-            font-size: 0.9rem !important;
+            font-size: 1rem !important;
             font-weight: 600 !important;
             cursor: pointer;
             text-transform: capitalize;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: none !important;
         }
 
         .pi-toggle-btn:hover {
@@ -2431,13 +2348,12 @@ border-top-left-radius: 12px;
         .pi-toggle-btn.active {
             background: #ffffff !important;
             color: var(--blue) !important;
-            border-color: rgba(0, 102, 255, 0.12) !important;
-            box-shadow: 0 4px 10px rgba(0, 102, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(0, 102, 255, 0.15) !important;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
         }
 
         /* Input Wrappers */
         .pi-input-wrapper {
-            flex: 1;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -2459,7 +2375,7 @@ border-top-left-radius: 12px;
             border-radius: 0 !important;
             outline: none !important;
             background: transparent !important;
-            font-size: 0.98rem !important;
+            font-size: 1rem !important;
             color: var(--text-main) !important;
             width: 100%;
             padding: 0 !important;
@@ -2468,26 +2384,28 @@ border-top-left-radius: 12px;
 
         /* Submit Button */
         .pi-submit-btn {
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 12px 20px;
+            padding: 14px 20px;
             background: var(--blue-purple-gradient) !important;
             color: #ffffff !important;
             border: none !important;
             border-radius: 12px;
-            font-size: 0.98rem !important;
+            font-size: 1.05rem !important;
             font-weight: 600 !important;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.15) !important;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2) !important;
             text-transform: capitalize;
+            margin-top: auto;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
         .pi-submit-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.25) !important;
+            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.3) !important;
             opacity: 0.95;
         }
 
@@ -2507,29 +2425,6 @@ border-top-left-radius: 12px;
             color: var(--blue) !important;
             font-size: 0.85rem !important;
             font-weight: 600 !important;
-        }
-
-        .pi-placeholder-card {
-            width: 100% !important;
-            max-width: 850px !important;
-            margin: 0 auto !important;
-            padding: 48px 32px !important;
-            text-align: center !important;
-        }
-
-        /* Results 2-Column Grid (Bento style) */
-        .pi-results-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr !important;
-            gap: 20px !important;
-            width: 100% !important;
-            height: auto !important;
-        }
-
-        @media (max-width: 850px) {
-            .pi-results-grid {
-                grid-template-columns: 1fr !important;
-            }
         }
 
         /* Player Image Card Layout */
@@ -2561,25 +2456,6 @@ border-top-left-radius: 12px;
             font-size: 1rem;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .pi-mode-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.35);
-            background: rgba(255,255,255,0.15);
-            color: #ffffff;
-            font-size: 0.72rem;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            font-weight: 700;
-            white-space: nowrap;
         }
 
         .pi-ai-content {
@@ -2602,33 +2478,23 @@ border-top-left-radius: 12px;
             font-family: var(--font-display) !important;
         }
 
-        /* Mini Stats Bento Cells */
-        .pi-stats-grid-card {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-
+        /* Mini Stats Grid & Cards */
         .pi-mini-stat {
             display: flex !important;
             align-items: center !important;
             gap: 14px !important;
             padding: 16px 20px !important;
             border-radius: 16px !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(240, 246, 255, 0.85) 100%) !important;
+            background: rgba(0, 102, 255, 0.03) !important;
             border: 1px solid rgba(0, 102, 255, 0.08) !important;
-            box-shadow: 0 10px 25px rgba(0, 102, 255, 0.02), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+            box-shadow: 0 2px 12px rgba(0, 102, 255, 0.02) !important;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
         .pi-mini-stat:hover {
             border-color: rgba(0, 102, 255, 0.18) !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(240, 246, 255, 0.95) 100%) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 15px 35px rgba(0, 102, 255, 0.06), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+            background: rgba(0, 102, 255, 0.05) !important;
+            transform: translateY(-1px);
         }
 
         .pi-stat-icon-box {
@@ -2732,125 +2598,6 @@ border-top-left-radius: 12px;
         .pi-table tr:hover td {
             background: rgba(0, 102, 255, 0.04) !important;
         }
-
-        /* Lightbox Modal CSS */
-        .pi-lightbox {
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            pointer-events: none;
-        }
-        
-        .pi-lightbox.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        
-        .pi-lightbox-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(10, 15, 30, 0.75);
-            backdrop-filter: blur(12px) saturate(120%);
-            -webkit-backdrop-filter: blur(12px) saturate(120%);
-        }
-        
-        .pi-lightbox-content {
-            position: relative;
-            z-index: 10001;
-            max-width: 90%;
-            max-height: 90%;
-            transform: scale(0.95);
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .pi-lightbox.active .pi-lightbox-content {
-            transform: scale(1);
-        }
-        
-        .pi-lightbox-content img {
-            max-width: 100%;
-            max-height: 85vh;
-            object-fit: contain;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-            background: #ffffff;
-        }
-        
-        .pi-lightbox-close {
-            position: absolute;
-            top: -50px;
-            right: 0;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25) !important;
-            color: #ffffff !important;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .pi-lightbox-close:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: scale(1.05);
-        }
-
-        /* Make clickable elements show pointer cursor */
-        .pi-graph-card img, .pi-player-card img {
-            cursor: zoom-in;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-
-        .pi-graph-card img:hover {
-            transform: scale(1.015);
-        }
-        /* Header Shell Consistency (match index.html exactly) */
-        body {
-            padding: 12px !important;
-            overflow-x: hidden !important;
-            min-height: 100vh !important;
-        }
-        .hero-section {
-            border-radius: 24px !important;
-            overflow: hidden !important;
-            margin: 0 0 32px !important;
-        }
-        .navbar-wrapper {
-            position: absolute !important;
-            top: 28px !important;
-            left: 0 !important;
-            width: 100% !important;
-            display: flex !important;
-            justify-content: center !important;
-            z-index: 100 !important;
-        }
-        .navbar {
-            position: static !important;
-            top: auto !important;
-            left: auto !important;
-            transform: none !important;
-            width: auto !important;
-            max-width: none !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: initial !important;
-            padding: 10px 10px 10px 32px !important;
-            border-radius: 60px !important;
-            border: 1px solid rgba(255,255,255,0.4) !important;
-            gap: 100px !important;
-        }
     </style>
 </head>
 
@@ -2868,8 +2615,8 @@ border-top-left-radius: 12px;
 
                 <div class="nav-links">
                     <a href="/">Home</a>
-                    <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
-                    <a href="{{ url_for('history') }}">History</a>
+                    <a href="/top_scorer_page">Top Scorer</a>
+                    <a href="/history">History</a>
                     <div class="dropdown">
                         <a href="#">
                             Index
@@ -2880,29 +2627,22 @@ border-top-left-radius: 12px;
                             </svg>
                         </a>
                         <div class="dropdown-content">
-                            <a href="{{ url_for('bowlerindex') }}">Bowler index</a>
-                            <a href="{{ url_for('player_index1') }}">Batsmen index</a>
-                            <a href="{{ url_for('team_graph') }}">Team index</a>
+                            <a href="/bowlerindex">Bowler index</a>
+                            <a href="/player_index1">Batsmen index</a>
+                            <a href="/team_graph">Team index</a>
                         </div>
                     </div>
-                    <a href="{{ url_for('player_comparison') }}">Compare</a>
+                    <a href="/player_comparison">Compare</a>
                 </div>
 
-                {% if session.get('user_id') or logged_in %}
-                <a href="/dashboard" class="btn-register" id="registerLink">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                    </svg>
-                    Dashboard
-                </a>
-                {% else %}
+                
                 <a href="#" class="btn-register" id="registerLink">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
                     </svg>
                     Register
                 </a>
-                {% endif %}
+                
             </nav>
         </div>
 
@@ -2931,39 +2671,35 @@ border-top-left-radius: 12px;
         <div class="pi-top-grid">
 
             <!-- LEFT: Search Card -->
-            <div class="dash-card pi-search-card">
-                <div class="pi-search-header-row">
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 1.3rem; text-transform: capitalize; color: var(--text-main); font-weight: bold;">
-                        <i data-lucide="search" style="width:18px;height:18px;color:var(--blue);"></i>
-                        <span>Search Batter</span>
-                    </div>
-
-                    <div class="pi-toggle-container">
-                        <button id="careerBtn" class="pi-toggle-btn active">
-                            <i data-lucide="user" style="width:18px;height:18px;"></i> Career
-                        </button>
-                        <button id="teamBtn" class="pi-toggle-btn">
-                            <i data-lucide="shield" style="width:18px;height:18px;"></i> Vs Team
-                        </button>
-                    </div>
+            <div class="dash-card pi-search-card" style="height: 100%; padding: 26px; display: flex; flex-direction: column;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.3rem; text-transform: capitalize; color: var(--text-main); font-weight: bold;">
+                    <i data-lucide="search" style="width:18px;height:18px;color:var(--blue);"></i>
+                    <span>Search Batter</span>
                 </div>
 
-                <div class="pi-search-inputs-row">
-                    <div class="pi-search-inputs-wrapper">
-                        <div class="pi-input-wrapper">
-                            <i data-lucide="user-search" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
-                            <input type="text" id="player_name" class="pi-input-field" placeholder="Batter name">
-                        </div>
-                        <div id="team_name_wrap" class="pi-input-wrapper" style="display: none;">
-                            <i data-lucide="shield-check" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
-                            <input type="text" id="team_name" class="pi-input-field" placeholder="e.g. Mumbai Indians">
-                        </div>
-                    </div>
-
-                    <button id="submitt" class="pi-submit-btn">
-                        <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i> Get Stats
+                <div class="pi-toggle-container">
+                    <button id="careerBtn" class="pi-toggle-btn active">
+                        <i data-lucide="user" style="width:18px;height:18px;"></i> Career
+                    </button>
+                    <button id="teamBtn" class="pi-toggle-btn">
+                        <i data-lucide="shield" style="width:18px;height:18px;"></i> Vs Team
                     </button>
                 </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                    <div class="pi-input-wrapper">
+                        <i data-lucide="user-search" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
+                        <input type="text" id="player_name" class="pi-input-field" placeholder="Batter name">
+                    </div>
+                    <div id="team_name_wrap" class="pi-input-wrapper" style="display: none;">
+                        <i data-lucide="shield-check" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
+                        <input type="text" id="team_name" class="pi-input-field" placeholder="e.g. Mumbai Indians">
+                    </div>
+                </div>
+
+                <button id="submitt" class="pi-submit-btn">
+                    <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i> Get Stats
+                </button>
             </div>
 
             <!-- RIGHT: Placeholder OR Image+AI Grid -->
@@ -3003,8 +2739,7 @@ border-top-left-radius: 12px;
                     <!-- AI Summary (Takes remaining space) -->
                     <div class="dash-card pi-ai-card">
                         <div class="pi-ai-header">
-                            <span>WicketStats AI</span>
-                            <span class="pi-mode-badge" id="ai_mode_badge">Career</span>
+                            WicketStats AI
                         </div>
 
                         <!-- Content wrapper -->
@@ -3031,52 +2766,52 @@ border-top-left-radius: 12px;
         <div id="full_width_results" style="display:none; flex-direction:column; gap:20px; margin-top:20px;">
 
             <!-- Small Cards -->
-            <div class="dash-card pi-stats-grid-card">
+            <div class="dash-card pi-stats-grid-card" style="padding: 24px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="calendar"></i></div>
-                        <div><div class="pi-stat-val" id="val1"></div><div class="pi-stat-lbl">Seasons</div></div>
+                        <div class="stat-icon"><i data-lucide="calendar" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val1"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Seasons</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="trophy"></i></div>
-                        <div><div class="pi-stat-val" id="val2"></div><div class="pi-stat-lbl">Best Season</div></div>
+                        <div class="stat-icon"><i data-lucide="trophy" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val2"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Season</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="target"></i></div>
-                        <div><div class="pi-stat-val" id="val3"></div><div class="pi-stat-lbl">Best Avg</div></div>
+                        <div class="stat-icon"><i data-lucide="target" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val3"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Avg</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="zap"></i></div>
-                        <div><div class="pi-stat-val" id="val4"></div><div class="pi-stat-lbl">Sixes</div></div>
+                        <div class="stat-icon"><i data-lucide="zap" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val4"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Sixes</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="square"></i></div>
-                        <div><div class="pi-stat-val" id="val5"></div><div class="pi-stat-lbl">Fours</div></div>
+                        <div class="stat-icon"><i data-lucide="square" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val5"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Fours</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative; grid-column: span 2;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative; grid-column: span 2;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="alert-triangle"></i></div>
-                        <div style="flex:1; min-width:0;"><div class="pi-stat-val" id="val6" style="white-space:normal; line-height:1.2; font-size:1.1rem !important;"></div><div class="pi-stat-lbl">Most Dismissals</div></div>
+                        <div class="stat-icon"><i data-lucide="alert-triangle" style="width:20px;height:20px;"></i></div>
+                        <div style="flex:1; min-width:0;"><div class="stat-val" id="val6" style="white-space:normal; line-height:1.2; font-size:1.1rem !important;"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Most Dismissals</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="activity"></i></div>
-                        <div><div class="pi-stat-val" id="val7"></div><div class="pi-stat-lbl">Matches</div></div>
+                        <div class="stat-icon"><i data-lucide="activity" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val7"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Matches</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="trending-down"></i></div>
-                        <div><div class="pi-stat-val" id="val8"></div><div class="pi-stat-lbl">Lost Matches</div></div>
+                        <div class="stat-icon"><i data-lucide="trending-down" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val8"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Lost Matches</div></div>
                     </div>
-                    <div class="pi-mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
-                        <div class="pi-stat-icon-box"><i data-lucide="bar-chart"></i></div>
-                        <div><div class="pi-stat-val" id="val9"></div><div class="pi-stat-lbl">Peak Consistency</div></div>
+                        <div class="stat-icon"><i data-lucide="bar-chart" style="width:20px;height:20px;"></i></div>
+                        <div><div class="stat-val" id="val9"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Peak Consistency</div></div>
                     </div>
                 </div>
             </div>
@@ -3096,20 +2831,20 @@ border-top-left-radius: 12px;
                     <div class="pi-skeleton pi-sk-table-row" style="opacity:0.45;"></div>
                 </div>
 
-                <div class="pi-table-wrap" id="table_actual" style="display:none;">
-                    <table class="pi-table">
+                <div class="ps-table-wrap" id="table_actual" style="display:none; border: none; overflow: hidden; border-radius: var(--radius);">
+                    <table class="ps-table">
                         <thead>
                             <tr>
-                                <th>Season</th>
-                                <th>Matches</th>
-                                <th>Total Runs</th>
-                                <th>Average</th>
-                                <th>Fours</th>
-                                <th>Sixes</th>
-                                <th>Consistency</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Season</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Matches</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Total Runs</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Average</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Fours</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Sixes</th>
+                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Consistency</th>
                             </tr>
                         </thead>
-                        <tbody id="all_season_body"></tbody>
+                        <tbody id="all_season_body" style="font-weight: normal;"></tbody>
                     </table>
                 </div>
             </div>
@@ -3137,10 +2872,10 @@ border-top-left-radius: 12px;
                     <div class="footer-column">
                         <h3>Platform</h3>
                         <a href="#">Match Predictor</a>
-                        <a href="{{ url_for('player_index1') }}">Player Index</a>
-                        <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
-                        <a href="{{ url_for('team_graph') }}">Team Graphs</a>
-                        <a href="{{ url_for('player_comparison') }}">Comparison Engine</a>
+                        <a href="/player_index1">Player Index</a>
+                        <a href="/bowlerindex">Bowler Index</a>
+                        <a href="/team_graph">Team Graphs</a>
+                        <a href="/player_comparison">Comparison Engine</a>
                     </div>
                     <div class="footer-column">
                         <h3>Intelligence</h3>
@@ -3148,7 +2883,7 @@ border-top-left-radius: 12px;
                         <a href="#">Fantasy XI</a>
                         <a href="#">What If Engine</a>
                         <a href="#">WicketStats AI</a>
-                        <a href="{{ url_for('top_scorer_page') }}">Top Scorers</a>
+                        <a href="/top_scorer_page">Top Scorers</a>
                     </div>
                     <div class="footer-column">
                         <h3>Account</h3>
@@ -3169,77 +2904,44 @@ border-top-left-radius: 12px;
         </footer>
     </div>
 
-    <!-- Lightbox Modal -->
-    <div id="pi-lightbox" class="pi-lightbox" style="display: none;">
-        <div class="pi-lightbox-overlay"></div>
-        <div class="pi-lightbox-content">
-            <img id="pi-lightbox-img" src="" alt="Full size view">
-            <button id="pi-lightbox-close" class="pi-lightbox-close">
-                <i data-lucide="x"></i>
-            </button>
-        </div>
-    </div>
-
     <script>
         lucide.createIcons();
-        let playerSummaryController = null;
-        let playerSummaryLastPayload = null;
-        const SUMMARY_STREAM_TIMEOUT_MS = 45000;
-
-        function renderSummaryRetry(outputEl, message, onRetry) {
-            outputEl.innerHTML = "";
-            const msg = document.createElement("div");
-            msg.textContent = message;
-            msg.style.marginBottom = "10px";
-            const retryBtn = document.createElement("button");
-            retryBtn.type = "button";
-            retryBtn.textContent = "Retry";
-            retryBtn.style.padding = "8px 14px";
-            retryBtn.style.borderRadius = "10px";
-            retryBtn.style.border = "1px solid rgba(0,0,0,0.15)";
-            retryBtn.style.background = "white";
-            retryBtn.style.cursor = "pointer";
-            retryBtn.addEventListener("click", onRetry);
-            outputEl.appendChild(msg);
-            outputEl.appendChild(retryBtn);
-        }
 
         const careerBtn    = document.getElementById("careerBtn");
         const teamBtn      = document.getElementById("teamBtn");
         const teamNameWrap = document.getElementById("team_name_wrap");
-        const teamNameInput = document.getElementById("team_name");
-        const aiModeBadge = document.getElementById("ai_mode_badge");
         const playerInput  = document.getElementById("player_name");
 
-        function updateModeBadge() {
-            const isTeamScope = teamBtn.classList.contains("active") && teamNameInput.value.trim().length > 0;
-            aiModeBadge.textContent = isTeamScope ? "Team-filtered" : "Career";
-        }
-
         function setActive(activeBtn) {
-            careerBtn.classList.remove("active");
-            teamBtn.classList.remove("active");
-            activeBtn.classList.add("active");
+            careerBtn.style.background = "transparent";
+            careerBtn.style.color = "hsl(var(--muted-foreground))";
+            careerBtn.style.borderColor = "transparent";
+            careerBtn.style.boxShadow = "none";
+
+            teamBtn.style.background = "transparent";
+            teamBtn.style.color = "hsl(var(--muted-foreground))";
+            teamBtn.style.borderColor = "transparent";
+            teamBtn.style.boxShadow = "none";
+
+            activeBtn.style.background = "hsl(var(--card))";
+            activeBtn.style.color = "hsl(var(--primary))";
+            activeBtn.style.borderColor = "hsl(var(--primary) / 0.25)";
+            activeBtn.style.boxShadow = "0 2px 10px hsl(217 91% 55% / 0.14), inset 0 1px 0 rgba(255,255,255,0.9)";
         }
 
         playerInput.addEventListener("input", () => {
             setActive(careerBtn);
             teamNameWrap.style.display = "none";
-            updateModeBadge();
         });
         careerBtn.addEventListener("click", () => {
             setActive(careerBtn);
             teamNameWrap.style.display = "none";
-            updateModeBadge();
         });
         teamBtn.addEventListener("click", () => {
             setActive(teamBtn);
             teamNameWrap.style.display = "flex";
-            updateModeBadge();
         });
-        teamNameInput.addEventListener("input", updateModeBadge);
         setActive(careerBtn);
-        updateModeBadge();
 
         function showSkeletons() {
             document.querySelectorAll('.pi-sk-full').forEach(el => el.style.display = 'block');
@@ -3271,7 +2973,6 @@ border-top-left-radius: 12px;
             const player_name = document.getElementById('player_name').value.trim();
             const team_name   = document.getElementById('team_name').value.trim();
             const btn         = document.getElementById('submitt');
-            updateModeBadge();
 
             if (!player_name) {
                 alert("Please enter a batter name.");
@@ -3314,7 +3015,7 @@ border-top-left-radius: 12px;
                 }
                 
                 if (data.player_plot) {
-                    document.getElementById('image_plt').innerHTML = `<img src="${data.player_plot}?v=${Date.now()}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
+                    document.getElementById('image_plt').innerHTML = `<img src="${data.player_plot}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
                 }
 
                 const tbody = document.getElementById('all_season_body');
@@ -3322,30 +3023,30 @@ border-top-left-radius: 12px;
                 if (data.season_stats && data.season_stats.length > 0) {
                     data.season_stats.forEach(row => {
                         tbody.innerHTML += `<tr>
-                            <td>${row.season}</td>
-                            <td>${row.matches_played}</td>
-                            <td>${row.total_runs}</td>
-                            <td>${row.avg_runs.toFixed(2)}</td>
-                            <td>${row.fours}</td>
-                            <td>${row.sixes}</td>
-                            <td>${row.consistency.toFixed(2)}</td>
+                            <td style="font-weight: normal;">${row.season}</td>
+                            <td style="font-weight: normal;">${row.matches_played}</td>
+                            <td style="font-weight: normal;">${row.total_runs}</td>
+                            <td style="font-weight: normal;">${row.avg_runs.toFixed(2)}</td>
+                            <td style="font-weight: normal;">${row.fours}</td>
+                            <td style="font-weight: normal;">${row.sixes}</td>
+                            <td style="font-weight: normal;">${row.consistency.toFixed(2)}</td>
                         </tr>`;
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:hsl(var(--muted-foreground));">No seasonal data available</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:hsl(var(--muted-foreground));font-weight:normal;">No seasonal data available</td></tr>';
                 }
 
                 hideSkeletons();
 
+                if (window.typingInterval) clearInterval(window.typingInterval);
                 const sumBox = document.getElementById("llm_response");
                 sumBox.innerText = "";
-                playerSummaryLastPayload = {
-                    playerName: player_name,
-                    seasonStats: data.summary_input_rows || data.season_stats || []
-                };
-                if (playerSummaryController) playerSummaryController.abort();
-                playerSummaryController = new AbortController();
-                streamPlayerSummary(playerSummaryLastPayload.playerName, team_name, playerSummaryLastPayload.seasonStats, sumBox, playerSummaryController.signal);
+                const words = (data.batting_data || "").split(" ");
+                let i = 0;
+                window.typingInterval = setInterval(() => {
+                    if (i < words.length) { sumBox.innerText += (i > 0 ? " " : "") + words[i]; i++; }
+                    else clearInterval(window.typingInterval);
+                }, 30);
 
             } catch (err) {
                 console.error(err);
@@ -3358,58 +3059,6 @@ border-top-left-radius: 12px;
             btn.innerHTML = `<i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i> Get Stats`;
             lucide.createIcons();
         });
-
-        async function streamPlayerSummary(playerName, teamName, seasonStats, outputEl, signal) {
-            let timedOut = false;
-            const timeoutId = setTimeout(() => {
-                timedOut = true;
-                if (playerSummaryController && !playerSummaryController.signal.aborted) {
-                    playerSummaryController.abort();
-                }
-            }, SUMMARY_STREAM_TIMEOUT_MS);
-            try {
-                const response = await fetch('/player_index/summary_stream', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player: playerName, team: teamName, season_stats: seasonStats }),
-                    signal
-                });
-                if (!response.ok || !response.body) {
-                    outputEl.innerText = "Failed to stream analysis.";
-                    return;
-                }
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    outputEl.innerText += decoder.decode(value, { stream: true });
-                }
-                clearTimeout(timeoutId);
-            } catch (e) {
-                clearTimeout(timeoutId);
-                if (e.name === 'AbortError' && !timedOut) {
-                    return;
-                }
-                renderSummaryRetry(
-                    outputEl,
-                    timedOut ? "Summary is taking longer than expected." : "Failed to stream analysis.",
-                    () => {
-                        if (!playerSummaryLastPayload) return;
-                        outputEl.innerText = "";
-                        if (playerSummaryController) playerSummaryController.abort();
-                        playerSummaryController = new AbortController();
-                        streamPlayerSummary(
-                            playerSummaryLastPayload.playerName,
-                            document.getElementById('team_name').value.trim(),
-                            playerSummaryLastPayload.seasonStats,
-                            outputEl,
-                            playerSummaryController.signal
-                        );
-                    }
-                );
-            }
-        }
 
         const phrases = ["stop guessing?", "start analyzing?", "make predictions?", "win your leagues?", "own the game?"];
         let phraseIndex = 0;
@@ -3451,55 +3100,6 @@ border-top-left-radius: 12px;
         if (typewriterElement) {
             type();
         }
-
-        // Lightbox Zoom Logic
-        const lightbox = document.getElementById("pi-lightbox");
-        const lightboxImg = document.getElementById("pi-lightbox-img");
-        const lightboxClose = document.getElementById("pi-lightbox-close");
-        const lightboxOverlay = lightbox.querySelector(".pi-lightbox-overlay");
-
-        function openLightbox(src) {
-            lightboxImg.src = src;
-            lightbox.style.display = "flex";
-            // Trigger reflow for transition
-            lightbox.offsetHeight;
-            lightbox.classList.add("active");
-            document.body.style.overflow = "hidden"; // Prevent scrolling
-        }
-
-        function closeLightbox() {
-            lightbox.classList.remove("active");
-            document.body.style.overflow = ""; // Restore scrolling
-            setTimeout(() => {
-                if (!lightbox.classList.contains("active")) {
-                    lightbox.style.display = "none";
-                    lightboxImg.src = "";
-                }
-            }, 250);
-        }
-
-        if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
-        if (lightboxOverlay) lightboxOverlay.addEventListener("click", closeLightbox);
-
-        // Escape key to close lightbox
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && lightbox.classList.contains("active")) {
-                closeLightbox();
-            }
-        });
-
-        // Event delegation for dynamically loaded images
-        document.getElementById("image_plt").addEventListener("click", (e) => {
-            if (e.target.tagName === "IMG") {
-                openLightbox(e.target.src);
-            }
-        });
-
-        document.getElementById("player_image").addEventListener("click", (e) => {
-            if (e.target.tagName === "IMG") {
-                openLightbox(e.target.src);
-            }
-        });
     </script>
 </body>
 </html>

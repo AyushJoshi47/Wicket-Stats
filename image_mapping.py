@@ -13,7 +13,7 @@ def batter_map_short():
     "S Raina": 14,
 
     # Royal Challengers Bengaluru (RCB)
-    "V Kohli": 2,
+    "Virat Kohli": 2,
     "F du Plessis": 24,
     "G Maxwell": 28,
     "M Siraj": 63,
@@ -138,7 +138,7 @@ def batter_map():
         'SK Raina': 14,
 
         # Royal Challengers Bengaluru (RCB)
-        "V Kohli": 2,
+        "Virat Kohli": 2,
         "F du Plessis": 24,
         "GJ Maxwell": 28,
         "M Siraj": 63,

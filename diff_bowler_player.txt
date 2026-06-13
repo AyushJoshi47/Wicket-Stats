@@ -1,0 +1,630 @@
+﻿diff --git a/templates/bowler_index.html b/templates/player_index.html
+index a47e844..ffa1fff 100644
+--- a/templates/bowler_index.html
++++ b/templates/player_index.html
+@@ -2254,6 +2254,350 @@ border-top-left-radius: 12px;
+             letter-spacing:-1.2px;
+           }
+         }
++
++        /* ΓöÇΓöÇΓöÇ DASHBOARD REDESIGN OVERRIDES ΓöÇΓöÇΓöÇ */
++        :root {
++            --text-main: #1A1D20;
++            --text-muted: #6B7280;
++            --blue: #0066FF;
++            --blue-light: #eff6ff;
++            --blue-mid: rgba(0, 102, 255, 0.15);
++            --sky: #e0f2fe;
++            --sky-mid: #bae6fd;
++            --bg: #F4F7FB;
++            --card-bg: rgba(255,255,255,0.72);
++            --card-border: rgba(255,255,255,0.9);
++            --radius: 24px;
++            --radius-sm: 16px;
++            --radius-xs: 12px;
++            --shadow: 0 10px 30px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
++            --shadow-md: 0 20px 45px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.02);
++            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
++        }
++
++        /* Scope font overrides to dashboard container elements only to protect the header */
++        .dashboard-container, .dashboard-container * {
++            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif !important;
++            font-style: normal !important;
++        }
++
++        /* Layout structure & card design */
++        .dashboard-container {
++            background: transparent !important;
++            margin: 0 auto 2rem !important;
++            max-width: 1320px;
++            padding: 0 20px 0 !important;
++            gap: 16px;
++            box-shadow: none !important;
++            border: none !important;
++        }
++
++        .dash-card {
++            background: linear-gradient(135deg, rgba(126, 182, 255, 0.03) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(174, 149, 255, 0.03) 100%) !important;
++            border: 1px solid rgba(174, 149, 255, 0.18) !important;
++            border-radius: 24px !important;
++            backdrop-filter: blur(24px) saturate(160%) !important;
++            -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
++            box-shadow: 
++                0 20px 40px rgba(126, 182, 255, 0.03),
++                inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
++            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
++        }
++
++        .dash-card:hover {
++            transform: translateY(-2px);
++            box-shadow: 
++                0 28px 55px rgba(126, 182, 255, 0.06),
++                inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
++        }
++
++        /* Toggle Container & Buttons */
++        .pi-toggle-container {
++            display: flex;
++            gap: 8px;
++            margin-bottom: 18px;
++            background: rgba(0, 102, 255, 0.03) !important;
++            border-radius: 12px;
++            padding: 4px;
++            border: 1px solid rgba(0, 102, 255, 0.06) !important;
++        }
++
++        .pi-toggle-btn {
++            flex: 1;
++            display: flex;
++            align-items: center;
++            justify-content: center;
++            gap: 6px;
++            padding: 10px 14px;
++            border-radius: 10px;
++            border: 1px solid transparent !important;
++            background: transparent !important;
++            color: var(--text-muted) !important;
++            font-size: 1rem !important;
++            font-weight: 600 !important;
++            cursor: pointer;
++            text-transform: capitalize;
++            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
++            box-shadow: none !important;
++        }
++
++        .pi-toggle-btn:hover {
++            color: var(--text-main) !important;
++        }
++
++        .pi-toggle-btn.active {
++            background: #ffffff !important;
++            color: var(--blue) !important;
++            border-color: rgba(0, 102, 255, 0.15) !important;
++            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
++        }
++
++        /* Input Wrappers */
++        .pi-input-wrapper {
++            display: flex;
++            align-items: center;
++            gap: 10px;
++            padding: 12px 16px;
++            border-radius: 12px;
++            border: 1px solid rgba(0, 102, 255, 0.1) !important;
++            background: #ffffff !important;
++            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
++        }
++
++        .pi-input-wrapper:focus-within {
++            border-color: var(--blue) !important;
++            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.08) !important;
++        }
++
++        .pi-input-field {
++            flex: 1;
++            border: none !important;
++            border-radius: 0 !important;
++            outline: none !important;
++            background: transparent !important;
++            font-size: 1rem !important;
++            color: var(--text-main) !important;
++            width: 100%;
++            padding: 0 !important;
++            font-weight: 500 !important;
++        }
++
++        /* Submit Button */
++        .pi-submit-btn {
++            width: 100%;
++            display: flex;
++            align-items: center;
++            justify-content: center;
++            gap: 8px;
++            padding: 14px 20px;
++            background: var(--blue-purple-gradient) !important;
++            color: #ffffff !important;
++            border: none !important;
++            border-radius: 12px;
++            font-size: 1.05rem !important;
++            font-weight: 600 !important;
++            cursor: pointer;
++            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2) !important;
++            text-transform: capitalize;
++            margin-top: auto;
++            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
++        }
++
++        .pi-submit-btn:hover {
++            transform: translateY(-1px);
++            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.3) !important;
++            opacity: 0.95;
++        }
++
++        .pi-submit-btn:active {
++            transform: translateY(1px);
++        }
++
++        /* Hint Chips override */
++        .pi-hint-chip {
++            display: inline-flex !important;
++            align-items: center !important;
++            gap: 6px !important;
++            padding: 6px 14px !important;
++            border-radius: 99px !important;
++            background: rgba(0, 102, 255, 0.04) !important;
++            border: 1px solid rgba(0, 102, 255, 0.1) !important;
++            color: var(--blue) !important;
++            font-size: 0.85rem !important;
++            font-weight: 600 !important;
++        }
++
++        /* Player Image Card Layout */
++        .pi-player-card {
++            display: flex;
++            flex-direction: column;
++            justify-content: center;
++            height: 100%;
++            border-radius: 24px;
++            padding: 0 !important;
++            overflow: hidden;
++        }
++
++        /* WicketStats AI Card Style */
++        .pi-ai-card {
++            height: 100%;
++            display: flex;
++            flex-direction: column;
++            padding: 0 !important;
++            overflow: hidden;
++            border: 1px solid rgba(0, 102, 255, 0.15) !important;
++        }
++
++        .pi-ai-header {
++            background: var(--blue) !important;
++            padding: 14px 20px;
++            color: #ffffff !important;
++            font-weight: 700;
++            font-size: 1rem;
++            letter-spacing: 0.06em;
++            text-transform: uppercase;
++        }
++
++        .pi-ai-content {
++            padding: 24px 28px;
++            flex: 1;
++            display: flex;
++            flex-direction: column;
++            background: rgba(255, 255, 255, 0.45);
++        }
++
++        .pi-ai-response {
++            font-size: 1.05rem !important;
++            font-weight: 500 !important;
++            line-height: 1.6 !important;
++            color: var(--text-main) !important;
++            flex: 1;
++            overflow-y: auto;
++            max-height: 250px;
++            font-style: italic !important;
++            font-family: var(--font-display) !important;
++        }
++
++        /* Mini Stats Grid & Cards */
++        .pi-mini-stat {
++            display: flex !important;
++            align-items: center !important;
++            gap: 14px !important;
++            padding: 16px 20px !important;
++            border-radius: 16px !important;
++            background: rgba(0, 102, 255, 0.03) !important;
++            border: 1px solid rgba(0, 102, 255, 0.08) !important;
++            box-shadow: 0 2px 12px rgba(0, 102, 255, 0.02) !important;
++            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
++        }
++
++        .pi-mini-stat:hover {
++            border-color: rgba(0, 102, 255, 0.18) !important;
++            background: rgba(0, 102, 255, 0.05) !important;
++            transform: translateY(-1px);
++        }
++
++        .pi-stat-icon-box {
++            display: grid !important;
++            place-items: center !important;
++            width: 44px !important;
++            height: 44px !important;
++            border-radius: 12px !important;
++            background: rgba(0, 102, 255, 0.08) !important;
++            color: var(--blue) !important;
++            border: 1px solid rgba(0, 102, 255, 0.08) !important;
++            flex-shrink: 0 !important;
++        }
++
++        .pi-stat-icon-box svg {
++            width: 20px;
++            height: 20px;
++            stroke: var(--blue) !important;
++        }
++
++        .pi-stat-val {
++            font-size: 1.5rem !important;
++            font-weight: 700 !important;
++            color: var(--text-main) !important;
++            letter-spacing: -0.5px !important;
++            line-height: 1.2 !important;
++        }
++
++        .pi-stat-lbl {
++            font-size: 0.85rem !important;
++            font-weight: 500 !important;
++            color: var(--text-muted) !important;
++            text-transform: capitalize;
++            margin-top: 2px;
++        }
++
++        /* Breakdown Table Styling (Minimalist Clean Grid) */
++        .pi-table-title-wrap {
++            display: flex;
++            align-items: center;
++            gap: 8px;
++            margin-bottom: 18px;
++            font-size: 1.2rem;
++            font-weight: 700;
++            color: var(--text-main);
++        }
++
++        .pi-table-title-wrap svg {
++            color: var(--blue) !important;
++        }
++
++        .pi-table-wrap {
++            border: none !important;
++            border-radius: 0;
++            overflow: visible;
++            background: transparent !important;
++        }
++
++        .pi-table {
++            width: 100% !important;
++            border-collapse: collapse !important;
++            font-size: 0.925rem !important;
++        }
++
++        .pi-table th {
++            padding: 14px 16px !important;
++            text-align: right !important;
++            background: transparent !important;
++            font-weight: 600 !important;
++            font-size: 0.9rem !important;
++            color: var(--blue) !important;
++            border-bottom: 2px solid rgba(0, 102, 255, 0.15) !important;
++            letter-spacing: 0.02em !important;
++            text-transform: capitalize;
++        }
++
++        .pi-table th:first-child {
++            text-align: left !important;
++        }
++
++        .pi-table td {
++            padding: 12px 16px !important;
++            text-align: right !important;
++            border-bottom: 1px solid rgba(0, 102, 255, 0.08) !important;
++            color: var(--text-main) !important;
++            background: transparent !important;
++            font-size: 0.925rem !important;
++            font-weight: 500 !important;
++            transition: background-color 0.2s ease;
++        }
++
++        .pi-table td:first-child {
++            text-align: left !important;
++            font-weight: 600 !important;
++        }
++
++        .pi-table tr:last-child td {
++            border-bottom: none !important;
++        }
++
++        .pi-table tr:hover td {
++            background: rgba(0, 102, 255, 0.04) !important;
++        }
+     </style>
+ </head>
+ 
+@@ -2315,7 +2659,7 @@ border-top-left-radius: 12px;
+                 <div class="hero-card">
+                     <div>
+                         <div class="hero-label">Player Intelligence</div>
+-                        <div class="hero-title">Bowler Index</div>
++                        <div class="hero-title">Batter Index</div>
+                         <div class="hero-sub">Full IPL career breakdowns, season timelines &amp; AI-powered analysis.</div>
+                     </div>
+                     <div class="ai-badge">
+@@ -2335,32 +2679,32 @@ border-top-left-radius: 12px;
+ 
+             <!-- LEFT: Search Card -->
+             <div class="dash-card pi-search-card" style="height: 100%; padding: 26px; display: flex; flex-direction: column;">
+-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.3rem; text-transform: capitalize; color: var(--ps-ink); font-weight: bold;">
+-                    <i data-lucide="search" style="width:18px;height:18px;color:hsl(var(--primary));"></i>
+-                    <span>Search Bowler</span>
++                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.3rem; text-transform: capitalize; color: var(--text-main); font-weight: bold;">
++                    <i data-lucide="search" style="width:18px;height:18px;color:var(--blue);"></i>
++                    <span>Search Batter</span>
+                 </div>
+ 
+-                <div style="display: flex; gap: 8px; margin-bottom: 18px; background: hsl(var(--secondary)); border-radius: 12px; padding: 4px; border: 1px solid hsl(var(--border));">
+-                    <button id="careerBtn" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; border: 1px solid transparent; background: hsl(var(--card)); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.25); box-shadow: 0 2px 10px hsl(217 91% 55% / 0.14), inset 0 1px 0 rgba(255,255,255,0.9); font-size: 1.1rem; font-weight: 500; cursor: pointer; text-transform: capitalize;">
++                <div class="pi-toggle-container">
++                    <button id="careerBtn" class="pi-toggle-btn active">
+                         <i data-lucide="user" style="width:18px;height:18px;"></i> Career
+                     </button>
+-                    <button id="teamBtn" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: hsl(var(--muted-foreground)); font-size: 1.1rem; font-weight: 500; cursor: pointer; text-transform: capitalize;">
++                    <button id="teamBtn" class="pi-toggle-btn">
+                         <i data-lucide="shield" style="width:18px;height:18px;"></i> Vs Team
+                     </button>
+                 </div>
+ 
+                 <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+-                    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card));">
+-                        <i data-lucide="user-search" style="width:18px;height:18px;color:hsl(var(--muted-foreground));flex-shrink:0;"></i>
+-                        <input type="text" id="player_name" placeholder="Bowler name" style="flex: 1; border: none; border-radius: 0; outline: none; background: transparent; font-size: 1.1rem; color: var(--ps-ink); width: 100%; padding: 0; font-weight: normal;">
++                    <div class="pi-input-wrapper">
++                        <i data-lucide="user-search" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
++                        <input type="text" id="player_name" class="pi-input-field" placeholder="Batter name">
+                     </div>
+-                    <div id="team_name_wrap" style="display: none; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card));">
+-                        <i data-lucide="shield-check" style="width:18px;height:18px;color:hsl(var(--muted-foreground));flex-shrink:0;"></i>
+-                        <input type="text" id="team_name" placeholder="e.g. Mumbai Indians" style="flex: 1; border: none; border-radius: 0; outline: none; background: transparent; font-size: 1.1rem; color: var(--ps-ink); width: 100%; padding: 0; font-weight: normal;">
++                    <div id="team_name_wrap" class="pi-input-wrapper" style="display: none;">
++                        <i data-lucide="shield-check" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
++                        <input type="text" id="team_name" class="pi-input-field" placeholder="e.g. Mumbai Indians">
+                     </div>
+                 </div>
+ 
+-                <button id="submitt" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 20px; background: var(--gradient-primary); color: #fff; border: none; border-radius: 10px; font-size: 1.2rem; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-glow); text-transform: capitalize; margin-top: auto;">
++                <button id="submitt" class="pi-submit-btn">
+                     <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i> Get Stats
+                 </button>
+             </div>
+@@ -2370,11 +2714,11 @@ border-top-left-radius: 12px;
+ 
+                 <!-- Placeholder state -->
+                 <div class="dash-card pi-placeholder-card" id="placeholder_main" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 32px;">
+-                    <div style="display: grid; place-items: center; width: 72px; height: 72px; border-radius: 20px; border: 1px solid hsl(var(--border)); background: linear-gradient(135deg, hsl(var(--secondary)), hsl(210 100% 97%)); box-shadow: 0 4px 20px hsl(217 91% 55% / 0.1), inset 0 1px 0 rgba(255,255,255,0.9); margin-bottom: 24px;">
+-                        <i data-lucide="search" style="width:30px;height:30px;color:hsl(var(--primary)/0.6);"></i>
++                    <div style="display: grid; place-items: center; width: 68px; height: 68px; border-radius: 20px; border: 1px solid rgba(0, 102, 255, 0.08); background: linear-gradient(135deg, rgba(126, 182, 255, 0.08) 0%, rgba(174, 149, 255, 0.08) 100%); box-shadow: 0 4px 20px rgba(0, 102, 255, 0.03), inset 0 1px 0 rgba(255,255,255,0.9); margin-bottom: 24px;">
++                        <i data-lucide="search" style="width:26px;height:26px;color:var(--blue);"></i>
+                     </div>
+-                    <div style="font-size: 3.5rem; font-weight: bold; color: hsl(215 20% 42%); text-transform: capitalize; margin-bottom: 10px; line-height: 1.1;">Search For A Bowler</div>
+-                    <div style="font-size: 1.2rem; color: hsl(var(--muted-foreground)); font-weight: normal; max-width: 28rem; line-height: 1.65; margin-bottom: 24px;">Enter a player name on the left to reveal their full IPL career statistics, season timeline &amp; AI analysis.</div>
++                    <div style="font-size: 2.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; line-height: 1.15; letter-spacing: -0.5px;">Search For A Batter</div>
++                    <div style="font-size: 1.05rem; color: var(--text-muted); font-weight: 500; max-width: 26rem; line-height: 1.5; margin-bottom: 24px;">Enter a player name on the left to reveal their full IPL career statistics, season timeline &amp; AI analysis.</div>
+                     <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                         <span class="pi-hint-chip"><i data-lucide="trending-up" style="width:14px;height:14px;"></i> Season Trends</span>
+                         <span class="pi-hint-chip"><i data-lucide="zap" style="width:14px;height:14px;"></i> AI Summary</span>
+@@ -2383,11 +2727,11 @@ border-top-left-radius: 12px;
+                 </div>
+ 
+                 <!-- 2-Column Results Area (Image + AI) -->
+-                <div id="top_results_area" class="pi-results-grid">
++                <div id="top_results_area" class="pi-results-grid" style="display:none;">
+                     
+                     <!-- Player Photo (Constrained Width) -->
+-                    <div class="dash-card pi-player-card" style="display: flex; flex-direction: column; justify-content: center; height: 100%; border-radius: var(--radius); padding: 0; overflow: hidden;">
+-                        <div style="flex: 1; position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; background: linear-gradient(180deg, transparent 50%, hsl(var(--primary)/0.05) 100%);">
++                    <div class="dash-card pi-player-card">
++                        <div style="flex: 1; position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; background: linear-gradient(180deg, transparent 50%, rgba(0,102,255,0.03) 100%);">
+                             <div class="pi-skeleton pi-skeleton-photo" id="player_image_skeleton" style="position: absolute; inset: 0;"></div>
+                             <div class="profile-photo" id="player_image" style="width:100%; height:100%; display:flex; justify-content:center; align-items:flex-end; position:relative; min-height: 250px;">
+                                 <div class="profile-glow"></div>
+@@ -2400,13 +2744,13 @@ border-top-left-radius: 12px;
+                     </div>
+ 
+                     <!-- AI Summary (Takes remaining space) -->
+-                    <div class="dash-card pi-ai-card" style="height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden; border: 1px solid var(--primary);">
+-                        <div style="background: var(--WC_BLUE, #8cb4f5); padding: 14px 20px; color: white; font-weight: 800; font-size: 1.1rem; letter-spacing: 0.05em; text-transform: uppercase;">
++                    <div class="dash-card pi-ai-card">
++                        <div class="pi-ai-header">
+                             WicketStats AI
+                         </div>
+ 
+                         <!-- Content wrapper -->
+-                        <div style="padding: 24px 28px; flex: 1; display: flex; flex-direction: column; background: rgba(255,255,255,0.4);">
++                        <div class="pi-ai-content">
+                             <!-- Skeleton loader for AI text -->
+                             <div id="ai_skeleton_lines" style="flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center; padding: 4px 0;">
+                                 <div class="pi-skeleton pi-sk-line" style="width:95%;"></div>
+@@ -2416,7 +2760,7 @@ border-top-left-radius: 12px;
+                                 <div class="pi-skeleton pi-sk-line" style="width:85%;"></div>
+                             </div>
+ 
+-                            <div id="llm_response" style="display:none; font-size: 1.2rem; font-weight: normal; line-height: 1.6; color: var(--ps-fg); flex: 1; overflow-y: auto; max-height: 250px; font-style: italic; font-family: 'Instrument Serif', ui-serif, Georgia, serif;"></div>
++                            <div id="llm_response" class="pi-ai-response" style="display:none;"></div>
+                         </div>
+                     </div>
+ 
+@@ -2433,26 +2777,52 @@ border-top-left-radius: 12px;
+                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+                     <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
+-                        <div class="stat-icon"><i data-lucide="target" style="width:20px;height:20px;"></i></div>
+-                        <div><div class="stat-val" id="val1"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Highest Wickets</div></div>
++                        <div class="stat-icon"><i data-lucide="calendar" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val1"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Seasons</div></div>
+                     </div>
+                     <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
+-                        <div class="stat-icon"><i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i></div>
+-                        <div><div class="stat-val" id="val2"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Average</div></div>
++                        <div class="stat-icon"><i data-lucide="trophy" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val2"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Season</div></div>
+                     </div>
+                     <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
+-                        <div class="stat-icon"><i data-lucide="shield" style="width:20px;height:20px;"></i></div>
+-                        <div><div class="stat-val" id="val3"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Economy</div></div>
++                        <div class="stat-icon"><i data-lucide="target" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val3"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best Avg</div></div>
+                     </div>
+                     <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
+                         <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
+                         <div class="stat-icon"><i data-lucide="zap" style="width:20px;height:20px;"></i></div>
+-                        <div><div class="stat-val" id="val4"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Best SR</div></div>
++                        <div><div class="stat-val" id="val4"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Sixes</div></div>
++                    </div>
++                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
++                        <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
++                        <div class="stat-icon"><i data-lucide="square" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val5"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Fours</div></div>
++                    </div>
++                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative; grid-column: span 2;">
++                        <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
++                        <div class="stat-icon"><i data-lucide="alert-triangle" style="width:20px;height:20px;"></i></div>
++                        <div style="flex:1; min-width:0;"><div class="stat-val" id="val6" style="white-space:normal; line-height:1.2; font-size:1.1rem !important;"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Most Dismissals</div></div>
++                    </div>
++                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
++                        <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
++                        <div class="stat-icon"><i data-lucide="activity" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val7"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Matches</div></div>
++                    </div>
++                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
++                        <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
++                        <div class="stat-icon"><i data-lucide="trending-down" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val8"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Lost Matches</div></div>
++                    </div>
++                    <div class="mini-stat pi-stat-skeleton-wrap" style="position: relative;">
++                        <div class="pi-skeleton pi-sk-full" style="display:none;"></div>
++                        <div class="stat-icon"><i data-lucide="bar-chart" style="width:20px;height:20px;"></i></div>
++                        <div><div class="stat-val" id="val9"></div><div class="stat-lbl" style="font-size: 1.1rem; text-transform: capitalize; font-weight: 500;">Peak Consistency</div></div>
+                     </div>
+                 </div>
+             </div>
++
+             <!-- Table -->
+             <div class="dash-card pi-table-card" style="padding: 24px;">
+                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom:18px; font-size: 1.3rem; text-transform: capitalize; color: var(--ps-ink); font-weight: bold;">
+@@ -2474,12 +2844,11 @@ border-top-left-radius: 12px;
+                             <tr>
+                                 <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Season</th>
+                                 <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Matches</th>
+-                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Wickets</th>
+-                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Overs</th>
+-                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Runs</th>
+-                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Economy</th>
++                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Total Runs</th>
+                                 <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Average</th>
+-                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Strike Rate</th>
++                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Fours</th>
++                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Sixes</th>
++                                <th style="font-weight: 500; font-size: 1.1rem; text-transform: capitalize;">Consistency</th>
+                             </tr>
+                         </thead>
+                         <tbody id="all_season_body" style="font-weight: normal;"></tbody>
+@@ -2613,7 +2982,7 @@ border-top-left-radius: 12px;
+             const btn         = document.getElementById('submitt');
+ 
+             if (!player_name) {
+-                alert("Please enter a bowler name.");
++                alert("Please enter a batter name.");
+                 return;
+             }
+ 
+@@ -2627,42 +2996,47 @@ border-top-left-radius: 12px;
+             lucide.createIcons();
+ 
+             try {
+-                const response = await fetch('/bowler_index', {
++                const response = await fetch('/player_index', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+-                    body: JSON.stringify({ bowl_player: player_name, bowl_team: team_name })
++                    body: JSON.stringify({ player: player_name, team: team_name })
+                 });
+                 const data = await response.json();
+ 
+-                document.getElementById('val1').innerText = (data.high_wkt && data.high_wkt.Total_Wickets) ? data.high_wkt.Total_Wickets : "ΓÇö";
+-                document.getElementById('val2').innerText = (data.best_avg && data.best_avg.Seasonal_Average) ? data.best_avg.Seasonal_Average.toFixed(2) : "ΓÇö";
+-                document.getElementById('val3').innerText = (data.best_eco && data.best_eco.Seasonal_Economy) ? data.best_eco.Seasonal_Economy.toFixed(2) : "ΓÇö";
+-                document.getElementById('val4').innerText = (data.best_sr && data.best_sr.Seasonal_Strike_Rate) ? data.best_sr.Seasonal_Strike_Rate.toFixed(2) : "ΓÇö";
+-                                                                                                
+-                document.getElementById('batter_name_display').innerText  = player_name ? player_name + " ΓÇö Stats" : "Career Overview";
++                document.getElementById('val1').innerText = data.total_seasons_played || "ΓÇö";
++                document.getElementById('val2').innerText = data.best_season_by_runs  || "ΓÇö";
++                document.getElementById('val3').innerText = data.highest_average      || "ΓÇö";
++                document.getElementById('val4').innerText = data.total_sixes          || "ΓÇö";
++                document.getElementById('val5').innerText = data.total_fours          || "ΓÇö";
++                document.getElementById('val6').innerText = data.dismissible          || "ΓÇö";
++                document.getElementById('val7').innerText = data.matches_played       || "ΓÇö";
++                document.getElementById('val8').innerText = data.matches_lost         || "ΓÇö";
++                document.getElementById('val9').innerText = data.peak_consistency     || "ΓÇö";
++                
++                document.getElementById('batter_name_display').innerText  = data.player ? data.player + " ΓÇö Stats" : "Career Overview";
+ 
+                 if (data.image_url) {
+                     document.getElementById('player_image').innerHTML = `<img src="${data.image_url}" style="width:100%;height:100%;min-height:250px;max-height:400px;object-fit:contain;object-position:bottom;border-radius:var(--radius);" />`;
+                 } else {
+                     document.getElementById('player_image').innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));">No image found</div>`;
+                 }
+-                if (data.stats_image) {
+-                    document.getElementById('image_plt').innerHTML = `<img src="${data.stats_image}?v=${new Date().getTime()}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
++                
++                if (data.player_plot) {
++                    document.getElementById('image_plt').innerHTML = `<img src="${data.player_plot}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
+                 }
+ 
+                 const tbody = document.getElementById('all_season_body');
+                 tbody.innerHTML = '';
+-                if (data.total && data.total.length > 0) {
+-                    data.total.forEach(row => {
++                if (data.season_stats && data.season_stats.length > 0) {
++                    data.season_stats.forEach(row => {
+                         tbody.innerHTML += `<tr>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.season}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Matches}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Total_Wickets}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Total_Overs.toFixed(1)}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Total_Runs}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Seasonal_Economy.toFixed(2)}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Seasonal_Average.toFixed(2)}</td>
+-                            <td style="font-weight: normal; font-size: 1.25rem;">${row.Seasonal_Strike_Rate.toFixed(2)}</td>
++                            <td style="font-weight: normal;">${row.season}</td>
++                            <td style="font-weight: normal;">${row.matches_played}</td>
++                            <td style="font-weight: normal;">${row.total_runs}</td>
++                            <td style="font-weight: normal;">${row.avg_runs.toFixed(2)}</td>
++                            <td style="font-weight: normal;">${row.fours}</td>
++                            <td style="font-weight: normal;">${row.sixes}</td>
++                            <td style="font-weight: normal;">${row.consistency.toFixed(2)}</td>
+                         </tr>`;
+                     });
+                 } else {
+@@ -2674,7 +3048,7 @@ border-top-left-radius: 12px;
+                 if (window.typingInterval) clearInterval(window.typingInterval);
+                 const sumBox = document.getElementById("llm_response");
+                 sumBox.innerText = "";
+-                const words = (data.bowling_data || data.bowler_data || "").split(" ");
++                const words = (data.batting_data || "").split(" ");
+                 let i = 0;
+                 window.typingInterval = setInterval(() => {
+                     if (i < words.length) { sumBox.innerText += (i > 0 ? " " : "") + words[i]; i++; }
