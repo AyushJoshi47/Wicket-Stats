@@ -24,6 +24,7 @@ import urllib.request
 import urllib.parse
 import image_mapping
 import razorpay
+import re
 
 
 
@@ -571,7 +572,148 @@ df['toss_winner'] = df['toss_winner'].replace({'Punjab Kings': 'Kings XI Punjab'
 df['season'] = df['season'].replace({'2007/08': '2008'})
 df['season'] = df['season'].replace({'2009/10': '2010'})
 df['season'] = df['season'].replace({'2020/21': '2020'})    
-df_new = df_new[df_new['season'].isin(['2024', '2025'])]
+
+# Updated on 2026-06-14 12:00:33 +05:30: unified historical (<=2025) + 2026 merge helpers for index/compare/teamgraph endpoints.
+def _season_start_year(val, fallback_date=None):
+    text = str(val) if val is not None else ""
+    m = re.search(r"(19|20)\d{2}", text)
+    if m:
+        return int(m.group(0))
+    if pd.notna(fallback_date):
+        return int(pd.to_datetime(fallback_date).year)
+    return None
+
+def _safe_int_series(series, default=0):
+    return pd.to_numeric(series, errors='coerce').fillna(default).astype(int)
+
+def _safe_float_series(series, default=0.0):
+    return pd.to_numeric(series, errors='coerce').fillna(default).astype(float)
+
+def _normalize_2026_for_combined(raw_2026_df):
+    d = raw_2026_df.copy()
+    d['date'] = pd.to_datetime(d['date'], errors='coerce')
+    d['season'] = '2026'
+    d['match_id'] = d['match_no'].astype(str)
+    d['batting_team'] = d['batting_team'].replace({
+        'RCB': 'Royal Challengers Bangalore',
+        'DC': 'Delhi Capitals',
+        'PBKS': 'Kings XI Punjab',
+        'MI': 'Mumbai Indians',
+        'CSK': 'Chennai Super Kings',
+        'KKR': 'Kolkata Knight Riders',
+        'RR': 'Rajasthan Royals',
+        'SRH': 'Sunrisers Hyderabad',
+        'LSG': 'Lucknow Super Giants',
+        'GT': 'Gujarat Titans',
+    })
+    d['bowling_team'] = d['bowling_team'].replace({
+        'RCB': 'Royal Challengers Bangalore',
+        'DC': 'Delhi Capitals',
+        'PBKS': 'Kings XI Punjab',
+        'MI': 'Mumbai Indians',
+        'CSK': 'Chennai Super Kings',
+        'KKR': 'Kolkata Knight Riders',
+        'RR': 'Rajasthan Royals',
+        'SRH': 'Sunrisers Hyderabad',
+        'LSG': 'Lucknow Super Giants',
+        'GT': 'Gujarat Titans',
+    })
+
+    d['runs_batter'] = _safe_int_series(d.get('runs_of_bat', 0), 0)
+    d['runs_extras'] = _safe_int_series(d.get('extras', 0), 0)
+    d['runs_total'] = d['runs_batter'] + d['runs_extras']
+    d['runs_bowler'] = d['runs_total']
+
+    wides = _safe_float_series(d.get('wide', 0), 0.0)
+    no_balls = _safe_float_series(d.get('noballs', 0), 0.0) if 'noballs' in d.columns else 0
+    legal_ball = ((wides == 0) & (no_balls == 0)).astype(int)
+    d['balls_faced'] = legal_ball
+    d['valid_ball'] = legal_ball
+
+    d['batter'] = d.get('striker')
+    d['non_striker'] = None
+    d['player_out'] = d.get('player_dismissed')
+    d['wicket_kind'] = d.get('wicket_type')
+    d['fielders'] = d.get('fielder')
+    d['ball_no'] = d.get('over')
+    d['over'] = _safe_float_series(d.get('over', 0), 0.0)
+
+    over_as_text = d['over'].astype(str)
+    ball_part = over_as_text.str.split('.').str[-1]
+    ball_part = pd.to_numeric(ball_part, errors='coerce').fillna(0).astype(int)
+    d['ball'] = ball_part
+
+    non_bowler_wickets = {
+        'run out', 'retired hurt', 'retired out', 'obstructing the field',
+        'hit wicket', 'retired'
+    }
+    wk = d['wicket_kind'].astype(str).str.strip().str.lower()
+    d['bowler_wicket'] = ((d['wicket_kind'].notna()) & (~wk.isin(non_bowler_wickets))).astype(int)
+
+    innings_totals = (
+        d.groupby(['match_id', 'batting_team'], as_index=False)['runs_total']
+        .sum()
+        .sort_values(['match_id', 'runs_total'], ascending=[True, False])
+    )
+
+    winners = []
+    for match_id, grp in innings_totals.groupby('match_id'):
+        if grp.empty:
+            winners.append((match_id, 'Unknown'))
+            continue
+        top_score = grp.iloc[0]['runs_total']
+        top_rows = grp[grp['runs_total'] == top_score]
+        winner = 'Unknown' if len(top_rows) != 1 else top_rows.iloc[0]['batting_team']
+        winners.append((match_id, winner))
+    winner_df = pd.DataFrame(winners, columns=['match_id', 'match_won_by'])
+    d = d.merge(winner_df, on='match_id', how='left')
+    d['match_won_by'] = d['match_won_by'].fillna('Unknown')
+    d['toss_winner'] = None
+    d['toss_decision'] = None
+    d['innings'] = _safe_int_series(d.get('innings', 0), 0)
+    return d
+
+TEAM_ALIASES = {
+    'Royal Challengers Bangalore': {'Royal Challengers Bangalore', 'Royal Challengers Bengaluru'},
+    'Kings XI Punjab': {'Kings XI Punjab', 'Punjab Kings'},
+    'Delhi Capitals': {'Delhi Capitals', 'Delhi Daredevils'},
+}
+TEAM_ALIAS_LOOKUP = {}
+for canonical_name, alias_set in TEAM_ALIASES.items():
+    for alias in alias_set:
+        TEAM_ALIAS_LOOKUP[alias.strip().lower()] = set(alias_set)
+
+def get_team_aliases(team_name):
+    key = str(team_name or '').strip().lower()
+    if not key:
+        return set()
+    return TEAM_ALIAS_LOOKUP.get(key, {str(team_name).strip()})
+
+df_hist = df.copy()
+df_hist['season_year'] = df_hist.apply(lambda r: _season_start_year(r.get('season'), r.get('date')), axis=1)
+df_hist = df_hist[df_hist['season_year'].fillna(0).astype(int) <= 2025].copy()
+
+df_new = df_hist.copy()
+df_2026_combined = _normalize_2026_for_combined(df_2026)
+
+_all_cols = sorted(set(df_hist.columns).union(set(df_2026_combined.columns)))
+df_all = pd.concat(
+    [df_hist.reindex(columns=_all_cols), df_2026_combined.reindex(columns=_all_cols)],
+    ignore_index=True
+)
+# Build a typed Polars view only for bowler pipeline fields.
+# This avoids Arrow conversion failures from unrelated mixed-type object columns in df_all.
+_bowler_view_cols = ['match_id', 'season', 'bowler', 'bowling_team', 'bowler_wicket', 'balls_faced', 'runs_bowler', 'over']
+_bowler_view = df_all.reindex(columns=_bowler_view_cols).copy()
+_bowler_view['match_id'] = _bowler_view['match_id'].astype(str)
+_bowler_view['season'] = _bowler_view['season'].astype(str)
+_bowler_view['bowler'] = _bowler_view['bowler'].fillna('').astype(str)
+_bowler_view['bowling_team'] = _bowler_view['bowling_team'].fillna('').astype(str)
+_bowler_view['bowler_wicket'] = pd.to_numeric(_bowler_view['bowler_wicket'], errors='coerce').fillna(0).astype(int)
+_bowler_view['balls_faced'] = pd.to_numeric(_bowler_view['balls_faced'], errors='coerce').fillna(0).astype(int)
+_bowler_view['runs_bowler'] = pd.to_numeric(_bowler_view['runs_bowler'], errors='coerce').fillna(0).astype(float)
+_bowler_view['over'] = pd.to_numeric(_bowler_view['over'], errors='coerce').fillna(0).astype(float)
+dataframe_all = pl.from_pandas(_bowler_view)
 
 # -------- Match history dataset (pandas only) --------
 history_df = df[
@@ -859,6 +1001,24 @@ def new_teamgraph():
 def top_scorer_page():
     return render_template('top_score.html')
 
+@app.route('/predict_winner_page')
+def predict_winner_page():
+    # Updated on 2026-06-14 13:46:10 +05:30: restrict predictor inputs to the same 10 active teams used in Top Scorer page.
+    teams = [
+        "Chennai Super Kings",
+        "Delhi Capitals",
+        "Gujarat Titans",
+        "Kolkata Knight Riders",
+        "Lucknow Super Giants",
+        "Mumbai Indians",
+        "Kings XI Punjab",
+        "Rajasthan Royals",
+        "Royal Challengers Bangalore",
+        "Sunrisers Hyderabad",
+    ]
+    logged_in = 'user_id' in session
+    return render_template('predict_winner.html', teams=teams, logged_in=logged_in)
+ 
 @app.route('/history')
 def history():
     logged_in = 'user_id' in session
@@ -1495,12 +1655,29 @@ def top_scorer():
 def batter_index(batter, team, role, include_summary=True):
 
     batter_norm = (batter or "").strip().lower()
-    team_norm = (team or "").strip().lower()
+    team_aliases = get_team_aliases(team)
 
-    df_bat = df[df['batter'].astype(str).str.strip().str.lower() == batter_norm]
+    df_bat = df_all[df_all['batter'].astype(str).str.strip().str.lower() == batter_norm]
 
-    if team_norm:
-        df_bat = df_bat[df_bat['batting_team'].astype(str).str.strip().str.lower() == team_norm]
+    if team_aliases:
+        alias_lc = {t.lower() for t in team_aliases}
+        df_bat = df_bat[df_bat['batting_team'].astype(str).str.strip().str.lower().isin(alias_lc)]
+
+    if df_bat.empty:
+        return {
+            "total_seasons": 0,
+            "best_season": {'season': None},
+            "best_average": {'avg_runs': 0},
+            "peak_consistency": None,
+            "player_stats_one": pd.DataFrame(columns=['season', 'matches_played', 'total_runs', 'avg_runs', 'std_runs', 'sixes', 'fours', 'consistency']),
+            "six": 0,
+            "fours": 0,
+            "wicket_kind": "No dismissal data available.",
+            "matches_played": 0,
+            "matches_lost": 0,
+            "playerstats": '',
+            'batter_llm': ""
+        }
     
     df1 = df_bat.drop_duplicates(subset='match_id')
 
@@ -1509,13 +1686,19 @@ def batter_index(batter, team, role, include_summary=True):
 
     matches_played = df_bat.groupby('season')['match_id'].nunique()
 
-    matches_won = df1[df1['match_won_by'] == team]
+    if team_aliases:
+        matches_won = df1[df1['match_won_by'].isin(team_aliases)]
+    else:
+        matches_won = pd.DataFrame(columns=df1.columns)
     matches_won = len(matches_won)
 
-    no_result = len(df1[df1['match_won_by'] == 'Unknown'])
+    no_result = len(df1[df1['match_won_by'].fillna('Unknown') == 'Unknown'])
 
-    matches_lost = df1[df1['match_won_by'] != team]
-    matches_lost = len(matches_lost)
+    if team_aliases:
+        matches_lost = df1[~df1['match_won_by'].isin(team_aliases) & (df1['match_won_by'].fillna('Unknown') != 'Unknown')]
+        matches_lost = len(matches_lost)
+    else:
+        matches_lost = int(max(len(df1) - no_result - matches_won, 0))
 
 
     sixes = df_bat.groupby(['season']).apply(
@@ -1532,7 +1715,10 @@ def batter_index(batter, team, role, include_summary=True):
     value = df_bat[df_bat['player_out'] == batter]
 
     wicket_kind = value['wicket_kind'].value_counts().sort_values(ascending=False)
-    wicket_kind = f"Most common mode of dismissal: {wicket_kind.index[0]} ({wicket_kind.iloc[0]} times)."
+    if wicket_kind.empty:
+        wicket_kind = "No dismissal data available."
+    else:
+        wicket_kind = f"Most common mode of dismissal: {wicket_kind.index[0]} ({wicket_kind.iloc[0]} times)."
 
 
     player_stats = match_batter.groupby('season').agg(
@@ -1728,9 +1914,16 @@ def _build_team_summary_chunks(team_name, season_rows):
             "text": (
                 f"Season: {row.get('season', 'NA')}\n"
                 f"Team: {team_name}\n"
+                f"Matches: {row.get('matches_played', 0)}\n"
                 f"Wins: {row.get('wins', 0)}\n"
+                f"Losses: {row.get('losses', 0)}\n"
+                f"No Result: {row.get('no_result', 0)}\n"
+                f"Runs Scored: {row.get('runs_scored', 0)}\n"
+                f"Fours: {row.get('fours', 0)}\n"
+                f"Sixes: {row.get('sixes', 0)}\n"
                 f"Wickets Taken: {row.get('wickets_taken', 0)}\n"
-                f"Runs Scored: {row.get('runs_scored', 0)}"
+                f"Top Batter: {row.get('top_batter', 'NA')} ({row.get('top_batter_runs', 0)})\n"
+                f"Top Bowler: {row.get('top_bowler', 'NA')} ({row.get('top_bowler_wickets', 0)})"
             )
         })
     return chunks
@@ -2866,12 +3059,12 @@ def get_llm():
 def comp_player(player):
     
     player1 = player
-    df_compare_bat = df[df['batter'] == player1]
+    df_compare_bat = df_all[df_all['batter'] == player1]
 
-    player1_matches = df[
-        (df['batter'] == player1) |
-        (df['bowler'] == player1) |
-        (df['non_striker'] == player1)
+    player1_matches = df_all[
+        (df_all['batter'] == player1) |
+        (df_all['bowler'] == player1) |
+        (df_all['non_striker'] == player1)
     ]
     player1_total_matches_played = player1_matches['match_id'].nunique()
     player1_innings = (
@@ -2883,8 +3076,8 @@ def comp_player(player):
     player1_total_runs = df_compare_bat['runs_batter'].sum()
     player1_total_balls_faced = df_compare_bat['balls_faced'].sum()
     player1_highest_score = df_compare_bat.groupby(['match_id', 'innings'])['runs_batter'].sum().max()
-    player1_bat_average = player1_total_runs / player1_innings
-    player1_strike_rate = (player1_total_runs / player1_total_balls_faced * 100)
+    player1_bat_average = player1_total_runs / player1_innings if player1_innings else 0
+    player1_strike_rate = (player1_total_runs / player1_total_balls_faced * 100) if player1_total_balls_faced else 0
     player1_runs_per_innings = df_compare_bat.groupby(['match_id', 'innings'])['runs_batter'].sum()
     total_100 = (player1_runs_per_innings >= 100).sum()
     total_50 = ((player1_runs_per_innings >= 50) & (player1_runs_per_innings < 100)).sum()
@@ -2892,7 +3085,7 @@ def comp_player(player):
     player1_total_fours = (df_compare_bat['runs_batter'] == 4).sum()
 
 
-    df_compare_bowl = df[df['bowler'] == player1]
+    df_compare_bowl = df_all[df_all['bowler'] == player1]
     player1_bowl_stats = df_compare_bowl[['match_id', 'innings']].drop_duplicates().shape[0]
     player1_runs_bowl = df_compare_bowl['runs_bowler'].sum()
     player1_total_bowl_balls = df_compare_bowl.groupby(['match_id', 'over'])['ball'].nunique().sum()
@@ -2909,12 +3102,12 @@ def comp_player(player):
     five_wkt_haul=five_wkt_haul[five_wkt_haul].count()
 
 
-    catches = df[(df['wicket_kind'] == 'caught') & (df['fielders'] == player1)].shape[0]
-    stumping = df[(df['wicket_kind'] == 'stumped') & (df['fielders'] == player1)].shape[0]
-    runout = df[
-    (df['wicket_kind'] == 'run out') &
-    (df['fielders'].notna()) &
-    (df['fielders'].str.contains(player1, case=False))
+    catches = df_all[(df_all['wicket_kind'] == 'caught') & (df_all['fielders'] == player1)].shape[0]
+    stumping = df_all[(df_all['wicket_kind'] == 'stumped') & (df_all['fielders'] == player1)].shape[0]
+    runout = df_all[
+    (df_all['wicket_kind'] == 'run out') &
+    (df_all['fielders'].notna()) &
+    (df_all['fielders'].str.contains(player1, case=False))
     ].shape[0]
 
     stats = {
@@ -3502,11 +3695,11 @@ def give_query():
 
 def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
     bowl_norm = (bowl or "").strip().lower()
-    team_norm = (bowl_team or "").strip().lower()
+    team_aliases = get_team_aliases(bowl_team)
 
-    df = dataframe.filter(pl.col('bowler').cast(pl.Utf8).str.to_lowercase() == bowl_norm)
-    if team_norm:
-        df = df.filter(pl.col('bowling_team').cast(pl.Utf8).str.to_lowercase() == team_norm)
+    df = dataframe_all.filter(pl.col('bowler').cast(pl.Utf8).str.to_lowercase() == bowl_norm)
+    if team_aliases:
+        df = df.filter(pl.col('bowling_team').is_in(list(team_aliases)))
 
     value = df.group_by(['match_id', 'season', 'bowler', 'bowling_team']).agg([
         pl.sum('bowler_wicket').alias('Wickets Taken'),
@@ -3708,153 +3901,180 @@ def bowler_index_summary_stream():
 
 @app.route('/teamgraph', methods=['POST'])
 def teamgraph():
-    data = request.get_json() 
-    
-    if not data:
-        return jsonify({"error": "No data received"}), 400
-    team = data.get('teamname')
+    # Updated on 2026-06-14 12:00:33 +05:30: season table + top batter/bowler metrics using merged 2008-2025 and 2026 data.
+    data = request.get_json(silent=True) or {}
+    team = (data.get('teamname') or '').strip()
+    if not team:
+        return jsonify({"error": "No team provided"}), 400
 
-    matches = df.drop_duplicates(subset='match_id')
+    team_aliases = get_team_aliases(team)
+    team_rows = df_all[
+        df_all['batting_team'].isin(team_aliases) |
+        df_all['bowling_team'].isin(team_aliases)
+    ].copy()
+    if team_rows.empty:
+        return jsonify({"error": "No data found for selected team"}), 404
 
-    batting_dframe = df[df['batting_team'] == team]
-    batting_matches = batting_dframe.drop_duplicates('match_id')
-
-    bowling_dframe = df[df['bowling_team'] == team]
-
-    team_matches = matches[(matches['batting_team'] == team) | (matches['bowling_team'] == team)]
-    no_result = len(team_matches[team_matches['match_won_by'] == 'Unknown'])
-
-    match_played = team_matches['match_id'].nunique()
-
-    match_won = team_matches[team_matches['match_won_by'] == team]
-    match_won1 = len(match_won)
-
-    match_lost = team_matches[
-        (team_matches['match_won_by'] != team) &
-        (team_matches['match_won_by'] != 'Unknown')
-    ]
-    match_lost = len(match_lost)
-
-    wins_per_season = match_won.groupby('season').size().reset_index(name='wins')
-
-    finals = matches.groupby('season').last().reset_index()
-    titles = finals[finals['match_won_by'] == team]
-
-    runs_per_season = batting_dframe.groupby('season')['runs_batter'].sum().reset_index(name='runs_scored')
-
-    wickets_per_season = bowling_dframe.groupby('season')['bowler_wicket'].sum().reset_index(name='wickets_taken')
-    Total_wins = titles['season'].tolist() if not titles.empty else []
-
-    runs_per_season = runs_per_season.sort_values('season')
-    wins_per_season = wins_per_season.sort_values('season')
-    
-    combined = wins_per_season.merge(
-        wickets_per_season,
-        on='season',
-        how='left'
-    ).merge(
-        runs_per_season,
-        on='season',
-        how='left'
+    team_rows['season_num'] = team_rows.apply(
+        lambda r: _season_start_year(r.get('season'), r.get('date')),
+        axis=1
     )
-    
+    team_rows = team_rows[team_rows['season_num'].notna()].copy()
+    team_rows['season_num'] = team_rows['season_num'].astype(int)
+
+    match_meta = team_rows[
+        ['match_id', 'season_num', 'date', 'batting_team', 'bowling_team', 'match_won_by']
+    ].drop_duplicates(subset='match_id')
+
+    batting_rows = team_rows[team_rows['batting_team'].isin(team_aliases)].copy()
+    bowling_rows = team_rows[team_rows['bowling_team'].isin(team_aliases)].copy()
+
+    wins_by_season = (
+        match_meta[match_meta['match_won_by'].isin(team_aliases)]
+        .groupby('season_num', as_index=False)
+        .agg(wins=('match_id', 'nunique'))
+    )
+    no_result_by_season = (
+        match_meta[match_meta['match_won_by'].fillna('Unknown').eq('Unknown')]
+        .groupby('season_num', as_index=False)
+        .agg(no_result=('match_id', 'nunique'))
+    )
+    matches_by_season = (
+        match_meta.groupby('season_num', as_index=False)
+        .agg(matches_played=('match_id', 'nunique'))
+    )
+    runs_by_season = (
+        batting_rows.groupby('season_num', as_index=False)
+        .agg(runs_scored=('runs_total', 'sum'))
+    )
+    fours_sixes_by_season = (
+        batting_rows.groupby('season_num', as_index=False)
+        .agg(
+            fours=('runs_batter', lambda s: int((s == 4).sum())),
+            sixes=('runs_batter', lambda s: int((s == 6).sum()))
+        )
+    )
+    wickets_by_season = (
+        bowling_rows.groupby('season_num', as_index=False)
+        .agg(wickets_taken=('bowler_wicket', 'sum'))
+    )
+
+    season_table = matches_by_season.merge(wins_by_season, on='season_num', how='left')
+    season_table = season_table.merge(no_result_by_season, on='season_num', how='left')
+    season_table = season_table.merge(runs_by_season, on='season_num', how='left')
+    season_table = season_table.merge(fours_sixes_by_season, on='season_num', how='left')
+    season_table = season_table.merge(wickets_by_season, on='season_num', how='left')
+    season_table = season_table.fillna(0)
+    season_table['losses'] = (
+        season_table['matches_played'] - season_table['wins'] - season_table['no_result']
+    ).clip(lower=0)
+
+    top_batter_df = (
+        batting_rows.groupby(['season_num', 'batter'], as_index=False)['runs_batter'].sum()
+        .sort_values(['season_num', 'runs_batter'], ascending=[True, False])
+        .drop_duplicates(subset=['season_num'])
+        .rename(columns={'batter': 'top_batter', 'runs_batter': 'top_batter_runs'})
+    )
+    top_bowler_df = (
+        bowling_rows.groupby(['season_num', 'bowler'], as_index=False)['bowler_wicket'].sum()
+        .sort_values(['season_num', 'bowler_wicket'], ascending=[True, False])
+        .drop_duplicates(subset=['season_num'])
+        .rename(columns={'bowler': 'top_bowler', 'bowler_wicket': 'top_bowler_wickets'})
+    )
+    season_table = season_table.merge(top_batter_df, on='season_num', how='left')
+    season_table = season_table.merge(top_bowler_df, on='season_num', how='left')
+    season_table[['top_batter', 'top_bowler']] = season_table[['top_batter', 'top_bowler']].fillna('N/A')
+    season_table[['top_batter_runs', 'top_bowler_wickets']] = season_table[['top_batter_runs', 'top_bowler_wickets']].fillna(0)
+
+    season_table = season_table.sort_values('season_num').rename(columns={'season_num': 'season'})
+    for col in ['matches_played', 'wins', 'losses', 'no_result', 'runs_scored', 'fours', 'sixes', 'wickets_taken', 'top_batter_runs', 'top_bowler_wickets']:
+        season_table[col] = season_table[col].astype(int)
+
+    # Updated on 2026-06-14 12:35:14 +05:30: Title seasons computed from all-team finals, not team-filtered matches.
+    all_match_meta = df_all[['match_id', 'season', 'date', 'stage', 'match_won_by']].drop_duplicates(subset='match_id').copy()
+    all_match_meta['season_num'] = all_match_meta.apply(
+        lambda r: _season_start_year(r.get('season'), r.get('date')),
+        axis=1
+    )
+    all_match_meta = all_match_meta[all_match_meta['season_num'].notna()].copy()
+    all_match_meta['season_num'] = all_match_meta['season_num'].astype(int)
+    all_match_meta['date'] = pd.to_datetime(all_match_meta['date'], errors='coerce')
+    all_match_meta['stage_lc'] = all_match_meta['stage'].astype(str).str.lower()
+
+    # Updated on 2026-06-14 12:54:00 +05:30: avoid groupby-apply index quirks that can drop season_num on some pandas versions.
+    sorted_meta = all_match_meta.sort_values(['season_num', 'date'])
+    season_finals = (
+        sorted_meta[sorted_meta['stage_lc'].str.contains('final', na=False)]
+        .drop_duplicates(subset='season_num', keep='last')
+    )
+    all_seasons = set(sorted_meta['season_num'].dropna().astype(int).tolist())
+    final_seasons = set(season_finals['season_num'].dropna().astype(int).tolist())
+    missing_seasons = all_seasons - final_seasons
+    fallback_rows = (
+        sorted_meta[sorted_meta['season_num'].isin(missing_seasons)]
+        .drop_duplicates(subset='season_num', keep='last')
+    )
+    season_final_rows = pd.concat([season_finals, fallback_rows], ignore_index=True)
+    season_final_rows = season_final_rows[season_final_rows['season_num'].notna()].copy()
+    season_final_rows['season_num'] = season_final_rows['season_num'].astype(int)
+    titles = (
+        season_final_rows[season_final_rows['match_won_by'].isin(team_aliases)]['season_num']
+        .astype(int)
+        .sort_values()
+        .tolist()
+    )
+
     fig, ax1 = plt.subplots(figsize=(14, 7))
-
-    ax1.plot(
-        wins_per_season['season'],
-        wins_per_season['wins'],
-        color="#175FAD",
-        marker='s',
-        linestyle='-',
-        label='Matches Won Per Season'
-    )
-
-
-    ax1.plot(
-        wickets_per_season['season'],
-        wickets_per_season['wickets_taken'],
-        color="#F52A18",
-        marker='o',
-        linewidth=2,
-        linestyle='--',
-        label='Wickets Taken Per Season'
-    )
-
+    ax1.plot(season_table['season'], season_table['wins'], color="#175FAD", marker='s', linestyle='-', label='Matches Won Per Season')
+    ax1.plot(season_table['season'], season_table['wickets_taken'], color="#F52A18", marker='o', linewidth=2, linestyle='--', label='Wickets Taken Per Season')
 
     ax2 = ax1.twinx()
+    ax2.plot(season_table['season'], season_table['runs_scored'], color="#0D7901", marker='D', linestyle='-.', linewidth=2, label='Runs Scored Per Season')
+    ax2.set_ylabel('Total Runs Made Per Season', fontsize=12, fontweight='bold')
 
-    ax2.plot(
-        runs_per_season['season'],
-        runs_per_season['runs_scored'],
-        color="#0D7901",
-        marker='D',
-        linestyle='-.',
-        linewidth=2,
-        label='Runs Scored Per Season'
-    )
-
-
-    ax2.set_ylabel('Total Runs Made Per season', fontsize=12, fontweight='bold')
-
-
-    title_seasons = titles['season']
-
-    title_wins = wins_per_season[
-        wins_per_season['season'].isin(title_seasons)
-    ]
-
-    ax1.scatter(
-        title_wins['season'],
-        title_wins['wins'],
-        marker='*',
-        zorder=5,
-        label='Season Winner',
-        color= "#CF9400",
-        s=400
-    )
-
-
-
-    for x, y in zip(wins_per_season['season'], wins_per_season['wins']):
-        ax1.annotate(
-            str(y),
-            (x, y),
-            textcoords="offset points",
-            xytext=(0, 8),   # moves text above the point
-            ha='center',
-            fontsize=10,
-            fontweight='bold',
-            color='black'
+    title_wins = season_table[season_table['season'].isin(titles)]
+    if not title_wins.empty:
+        ax1.scatter(
+            title_wins['season'],
+            title_wins['wins'],
+            marker='*',
+            zorder=5,
+            label='Season Winner',
+            color="#CF9400",
+            s=400
         )
 
+    for x, y in zip(season_table['season'], season_table['wins']):
+        ax1.annotate(str(int(y)), (x, y), textcoords="offset points", xytext=(0, 8), ha='center', fontsize=10, fontweight='bold', color='black')
 
     line1, label1 = ax1.get_legend_handles_labels()
     line2, label2 = ax2.get_legend_handles_labels()
-
-    ax1.legend(line1 + line2 , label1 + label2 , loc='upper left')
-
-
+    ax1.legend(line1 + line2, label1 + label2, loc='upper left')
     ax1.set_title(f"'{team}' - Performance Across Seasons", fontsize=16, fontweight='bold')
     ax1.set_xlabel("Season", fontsize=12, fontweight='bold')
-    ax1.set_ylabel("Total Matches won / Total Wickets Taken",fontweight='bold', fontsize=12)
-
-    ax1.grid(True, linestyle='--', color='black', alpha=0.5) 
+    ax1.set_ylabel("Total Matches Won / Total Wickets Taken", fontweight='bold', fontsize=12)
+    ax1.grid(True, linestyle='--', color='black', alpha=0.5)
 
     plt.tight_layout(pad=1.5)
     filename = "static/images/team.png"
     plt.savefig(filename)
-    return jsonify(
-        {
-            'Total_matches': int(match_played),
-            'Total_won': int(match_won1),      
-            'Total_lost': int(match_lost),     
-            'Total_null': int(no_result),
-            'Team_graph': "static/images/team.png",
-            'Total_wins': Total_wins,
-            'image_summary': "",
-            'summary_input_rows': combined.fillna(0).to_dict(orient='records')
-        }
-    )
+    plt.close(fig)
+
+    payload = {
+        'Total_matches': int(match_meta['match_id'].nunique()),
+        'Total_won': int(season_table['wins'].sum()),
+        'Total_lost': int(season_table['losses'].sum()),
+        'Total_null': int(season_table['no_result'].sum()),
+        'Total_runs': int(season_table['runs_scored'].sum()),
+        'Total_wickets': int(season_table['wickets_taken'].sum()),
+        'Team_graph': "static/images/team.png",
+        'Total_wins': [int(x) for x in titles],
+        'Title_count': int(len(titles)),
+        'image_summary': "",
+        'season_table': season_table.to_dict(orient='records'),
+        'summary_input_rows': season_table.to_dict(orient='records')
+    }
+    return jsonify(json_safe(payload))
 
 
 @app.route('/teamgraph/summary_stream', methods=['POST'])

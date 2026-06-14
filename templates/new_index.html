@@ -1124,7 +1124,13 @@ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     color: white;
     transform: translateX(4px);
 }
-    </style>
+            /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
+        .hero-section {
+            background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
+        }
+</style>
 </head>
 <body>
 
@@ -1150,6 +1156,7 @@ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
                     <a href="{{ url_for('whatif') }}">What-If Scenario</a>
                     <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
                     <a href="{{ url_for('team_graph') }}">Team Index</a>
+                    <a href="{{ url_for('predict_winner_page') }}">Predict Winner</a>
                 </div>
             </div>
         </div>
@@ -1434,6 +1441,12 @@ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         display: flex;
         justify-content: center;
     }
+        /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
+        .hero-section {
+            background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
+        }
 </style>
 <div class="modal-overlay" id="signinModal">
     <div class="modal-wrapper">
@@ -1560,3 +1573,4 @@ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 </script>
 </body>
 </html>
+

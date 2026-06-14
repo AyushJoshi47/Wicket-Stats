@@ -35,7 +35,7 @@
             --white-grey-main: #ffffff;
             --white-grey-muted: rgba(255, 255, 255, 0.65);
             --white-grey-accent: #7eb6ff;
-            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
             --perfect-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
             --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
         }
@@ -281,7 +281,7 @@
             letter-spacing: -2.3px;
         }
         .hero-sub {
-            font-size: clamp(1.05rem,1.25vw,1.25rem);
+            font-size: clamp(1.15rem, 1.4vw, 1.45rem);
             color: var(--text-muted);
             margin-top: 18px;
             line-height: 1.45;
@@ -570,6 +570,8 @@
     box-shadow: none;
     border: none;
     position: relative;
+    z-index: 50;
+    overflow: visible;
 }
 
 .input-row {
@@ -577,18 +579,25 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    overflow: visible;
+}
+
+.compare-input-wrap {
+    width: 42%;
+    position: relative;
+    overflow: visible;
 }
 
 .input-row input {
-    width: 42%;
+    width: 100%;
     font-size: 18px;
-    padding: 20px 25px;
+    padding: 13px 18px;
     border-radius: 60px;
     border: 3px solid transparent;
     background: #ffffff;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.08);
     text-align: center;
-    font-weight: 800;
+    font-weight: 700;
     color: #0f172a;
     transition: all 0.3s ease;
     flex: none;
@@ -597,8 +606,48 @@
 .input-row input:focus {
     outline: none;
     border-color: var(--WC_BLUE);
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(30, 136, 229, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(30, 136, 229, 0.2);
+}
+
+.ws-name-suggest {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid rgba(0, 102, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.10);
+    /* Updated on 2026-06-14 11:32:25 +05:30: Keep suggestions above all comparison cards. */
+    z-index: 999999;
+    padding: 6px;
+    display: none;
+}
+
+.ws-name-suggest.open {
+    display: block;
+}
+
+.ws-name-suggest-item {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.ws-name-suggest-item:hover,
+.ws-name-suggest-item.active {
+    background: rgba(0, 102, 255, 0.10);
+    color: #0066ff;
 }
 
 .wc-compare button {
@@ -606,7 +655,7 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    background: var(--WC_BLUE);
+    background: var(--perfect-blue-gradient);
     color: white;
     border: 6px solid #ffffff;
     width: 100px;
@@ -806,7 +855,100 @@
     z-index: 10;
     margin-top: 200px;
 }
-    </style>
+            /* Updated on 2026-06-14 13:40:00 +05:30: hero heading changed to centered text layout (no glass card container). */
+        .hero-card {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            padding: 0 !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 16px !important;
+        }
+        .hero-card > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero-sub {
+            margin-left: auto !important;
+            margin-right: auto !important;
+            text-align: center !important;
+        }
+        /* Updated on 2026-06-14 14:18:58 +05:30: ensure AI Powered badge sits below hero text and stays centered. */
+        .ai-badge {
+            margin-top: 12px;
+            align-self: center;
+        }
+        /* Updated on 2026-06-14 14:31:42 +05:30: match navbar sizing/weight/spacing exactly with index.html across non-dashboard pages. */
+        .navbar-wrapper {
+            position: absolute !important;
+            top: 28px !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 100 !important;
+        }
+        .navbar {
+            display: inline-flex !important;
+            align-items: center !important;
+            background: rgba(255,255,255,0.6) !important;
+            backdrop-filter: saturate(180%) blur(24px) !important;
+            -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+            padding: 10px 10px 10px 32px !important;
+            border-radius: 60px !important;
+            box-shadow:
+                0 12px 32px rgba(0,0,0,0.04),
+                inset 0 0 0 1px rgba(255,255,255,0.6),
+                inset 0 1px 1px rgba(255,255,255,0.9) !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+            gap: 100px !important;
+            position: relative !important;
+            overflow: visible !important;
+            z-index: 310 !important;
+        }
+        .brand { font-size: 19px !important; font-weight: 700 !important; letter-spacing: -0.6px !important; color: var(--text-main) !important; }
+        .nav-links { display: flex !important; gap: 44px !important; align-items: center !important; }
+        .nav-links a {
+            text-decoration: none !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: var(--text-muted) !important;
+            transition: color 0.2s !important;
+            letter-spacing: -0.1px !important;
+        }
+        .nav-links a:hover { color: var(--text-main) !important; }
+        .dropdown { position: relative !important; display: inline-block !important; height: 100% !important; z-index: 320 !important; }
+        .dropdown > a {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            height: 100% !important;
+            padding: 8px 0 !important;
+        }
+        .dropdown-content { z-index: 9999 !important; }
+        .btn-register {
+            padding: 12px 24px !important;
+            border-radius: 40px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            letter-spacing: -0.1px !important;
+        }
+        .btn-register svg { width: 18px !important; height: 18px !important; }
+        /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
+        .hero-section {
+            background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
+        }</style>
 </head>
 <body>
 
@@ -825,6 +967,7 @@
                 <a href="/">Home</a>
                 <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
                 <a href="{{ url_for('history') }}">History</a>
+                <a href="{{ url_for('predict_winner_page') }}">Predict Winner</a>
                 <div class="dropdown">
                     <a href="#">
                         Index
@@ -868,7 +1011,13 @@
                 <div>
                     <div class="hero-label">Player Intelligence</div>
                     <div class="hero-title">Player Comparison</div>
-                    <div class="hero-sub">Compare any two IPL players across 24 career metrics — batting, bowling, and fielding.</div>
+                    <div class="hero-sub">Compare any two IPL players across 24 career metrics &mdash; batting, bowling, and fielding.</div>
+                </div>
+                <!-- Updated on 2026-06-14 14:18:58 +05:30: restored AI Powered badge in Comparison hero. -->
+                <div class="ai-badge">
+                    <span class="ai-dot"></span>
+                    <i data-lucide="cpu" style="width:13px;height:13px;"></i>
+                    AI Powered
                 </div>
             </div>
         </div>
@@ -877,9 +1026,16 @@
 
 <div class="wc-compare">
     <div class="input-row">
-        <input type="text" id="player1Input" placeholder="Player 1">
+        <div class="compare-input-wrap">
+            <input type="text" id="player1Input" placeholder="Player 1" autocomplete="off">
+            <!-- Updated on 2026-06-14 11:28:02 +05:30: Custom dropdown panel replacing native datalist for better styling/placement. -->
+            <div id="player1Suggest" class="ws-name-suggest"></div>
+        </div>
         <button type="submit" class="save-team">VS</button>
-        <input type="text" id="player2Input" placeholder="Player 2">
+        <div class="compare-input-wrap">
+            <input type="text" id="player2Input" placeholder="Player 2" autocomplete="off">
+            <div id="player2Suggest" class="ws-name-suggest"></div>
+        </div>
     </div>
 </div>
 
@@ -1018,18 +1174,126 @@
         </footer>
     </div>
 
+<!-- Updated on 2026-06-14 11:20:59 +05:30: Shared full-name list include for autocomplete + exact-match checks. -->
+<script src="/static/full_names_data.js"></script>
 <script>
 lucide.createIcons();
+const MAX_NAME_SUGGESTIONS = 8;
+const fullNameList = Array.isArray(window.WS_FULL_NAMES) ? window.WS_FULL_NAMES : [];
+const normalizedFullNameSet = new Set(fullNameList.map((name) => String(name).trim().toLowerCase()).filter(Boolean));
+const dedupedFullNameList = (() => {
+    const seen = new Set();
+    return fullNameList
+        .map((name) => String(name).trim())
+        .filter((name) => {
+            if (!name) return false;
+            const key = name.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+})();
+
+function isKnownPlayerName(name) {
+    return normalizedFullNameSet.has(String(name).trim().toLowerCase());
+}
+
+function attachNameAutocomplete(inputId, panelId) {
+    const inputEl = document.getElementById(inputId);
+    const panelEl = document.getElementById(panelId);
+    if (!inputEl || !panelEl) return;
+    const container = inputEl.closest(".compare-input-wrap");
+    let activeIndex = -1;
+    let currentItems = [];
+
+    function closePanel() {
+        panelEl.classList.remove("open");
+        panelEl.innerHTML = "";
+        activeIndex = -1;
+        currentItems = [];
+    }
+
+    function chooseName(name) {
+        inputEl.value = name;
+        closePanel();
+    }
+
+    function renderSuggestions() {
+        const query = inputEl.value.trim().toLowerCase();
+        if (!query) {
+            closePanel();
+            return;
+        }
+        currentItems = dedupedFullNameList
+            .filter((name) => name.toLowerCase().includes(query))
+            .slice(0, MAX_NAME_SUGGESTIONS);
+        if (currentItems.length === 0) {
+            closePanel();
+            return;
+        }
+        panelEl.innerHTML = currentItems.map((name, idx) => `<button type="button" class="ws-name-suggest-item${idx === activeIndex ? " active" : ""}" data-name="${name.replace(/"/g, "&quot;")}">${name}</button>`).join("");
+        panelEl.classList.add("open");
+    }
+
+    panelEl.addEventListener("click", (event) => {
+        const item = event.target.closest(".ws-name-suggest-item");
+        if (!item) return;
+        chooseName(item.dataset.name || item.textContent || "");
+    });
+
+    inputEl.addEventListener("focus", renderSuggestions);
+    inputEl.addEventListener("input", () => {
+        activeIndex = -1;
+        renderSuggestions();
+    });
+    inputEl.addEventListener("keydown", (event) => {
+        if (!panelEl.classList.contains("open") || currentItems.length === 0) return;
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            activeIndex = (activeIndex + 1) % currentItems.length;
+            renderSuggestions();
+            return;
+        }
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+            activeIndex = activeIndex <= 0 ? currentItems.length - 1 : activeIndex - 1;
+            renderSuggestions();
+            return;
+        }
+        if (event.key === "Enter" && activeIndex >= 0) {
+            event.preventDefault();
+            chooseName(currentItems[activeIndex]);
+            return;
+        }
+        if (event.key === "Escape") {
+            closePanel();
+        }
+    });
+
+    document.addEventListener("click", (event) => {
+        if (container && !container.contains(event.target)) {
+            closePanel();
+        }
+    });
+}
+
+attachNameAutocomplete("player1Input", "player1Suggest");
+attachNameAutocomplete("player2Input", "player2Suggest");
+
 document.querySelector(".save-team").addEventListener('click', async () => {
-    const player1 = document.getElementById('player1Input').value;
-    const player2 = document.getElementById('player2Input').value;
+    const player1 = document.getElementById('player1Input').value.trim();
+    const player2 = document.getElementById('player2Input').value.trim();
 
     if (!player1 || !player2) {
         alert("Please enter both players!");
         return;
     }
+    if (!isKnownPlayerName(player1) || !isKnownPlayerName(player2)) {
+        alert("Please select both player names from the suggestions.");
+        return;
+    }
 
-    if (player1 === player2) {
+    if (player1.toLowerCase() === player2.toLowerCase()) {
         alert("Please enter two different players!");
         return;
     }
@@ -1164,3 +1428,11 @@ if (typewriterElement) {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

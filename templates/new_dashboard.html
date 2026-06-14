@@ -203,6 +203,7 @@
             <a href="{{ url_for('index') }}"><i data-lucide="home" style="width: 18px; height: 18px;"></i> Home</a>
             <a href="{{ url_for('comparison_page') }}"><i data-lucide="git-compare" style="width: 18px; height: 18px;"></i> Comparison</a>
             <a href="{{ url_for('top_scorer_page') }}"><i data-lucide="trophy" style="width: 18px; height: 18px;"></i> Top Scorer</a>
+            <a href="{{ url_for('predict_winner_page') }}"><i data-lucide="crosshair" style="width: 18px; height: 18px;"></i> Predict Winner</a>
         </div>
         {% if logged_in %}
             <a href="{{ url_for('dashboard') }}" class="btn-register">Dashboard</a>
@@ -641,3 +642,4 @@
 </script>
 </body>
 </html>
+

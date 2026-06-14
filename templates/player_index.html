@@ -1842,7 +1842,7 @@
         }
         .fantasy-btn{
             padding: 0 15px;
-            background: var(--WC_BLUE);
+            background: var(--perfect-blue-gradient);
             color: #fff;
             font-family: "Instrument Serif", ui-serif, Georgia, serif;
             font-size: 15px;
@@ -1948,7 +1948,7 @@ border-top-left-radius: 12px;
             --white-grey-main: #ffffff;
             --white-grey-muted: rgba(255, 255, 255, 0.65);
             --white-grey-accent: #7eb6ff;
-            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
             --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
         }
 
@@ -2183,7 +2183,7 @@ border-top-left-radius: 12px;
         }
         .hero-sub{
           font-family:var(--font-display);
-          font-size:clamp(1.05rem,1.25vw,1.25rem);
+          font-size:clamp(1.15rem,1.4vw,1.45rem);
           color:var(--text-muted);
           margin-top:18px;
           line-height:1.45;
@@ -2272,7 +2272,7 @@ border-top-left-radius: 12px;
             --radius-xs: 12px;
             --shadow: 0 10px 30px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.01);
             --shadow-md: 0 20px 45px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.02);
-            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
         }
 
         body {
@@ -2340,6 +2340,9 @@ border-top-left-radius: 12px;
             width: 100% !important;
             max-width: 850px !important;
             margin: 0 auto 8px !important;
+            position: relative;
+            z-index: 40;
+            overflow: visible !important;
         }
 
         .pi-search-header-row {
@@ -2355,12 +2358,14 @@ border-top-left-radius: 12px;
             align-items: center !important;
             gap: 16px !important;
             width: 100% !important;
+            overflow: visible !important;
         }
 
         .pi-search-inputs-wrapper {
             display: flex !important;
             flex: 1 !important;
             gap: 12px !important;
+            overflow: visible !important;
         }
 
         .pi-search-card .pi-toggle-container {
@@ -2439,6 +2444,7 @@ border-top-left-radius: 12px;
         .pi-input-wrapper {
             flex: 1;
             display: flex;
+            position: relative;
             align-items: center;
             gap: 10px;
             padding: 12px 16px;
@@ -2466,6 +2472,68 @@ border-top-left-radius: 12px;
             font-weight: 500 !important;
         }
 
+        .ws-name-suggest {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid rgba(0, 102, 255, 0.12);
+            border-radius: 12px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+            /* Updated on 2026-06-14 11:32:25 +05:30: Keep suggestions above all dashboard cards. */
+            z-index: 999999;
+            padding: 6px;
+            display: none;
+        }
+
+        .ws-name-suggest.open {
+            display: block;
+        }
+
+        .ws-name-suggest-item {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 0.92rem;
+            font-weight: 600;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .ws-name-suggest-item:hover,
+        .ws-name-suggest-item.active {
+            background: rgba(0, 102, 255, 0.08);
+            color: var(--blue);
+        }
+
+        /* Updated on 2026-06-14 14:02:20 +05:30: Team autocomplete items now include small mapped logos. */
+        .ws-team-suggest-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ws-team-suggest-logo {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1px;
+            flex-shrink: 0;
+        }
+        .ws-team-suggest-text {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: inherit;
+        }
+
         /* Submit Button */
         .pi-submit-btn {
             display: flex;
@@ -2473,7 +2541,7 @@ border-top-left-radius: 12px;
             justify-content: center;
             gap: 8px;
             padding: 12px 20px;
-            background: var(--blue-purple-gradient) !important;
+            background: var(--perfect-blue-gradient) !important;
             color: #ffffff !important;
             border: none !important;
             border-radius: 12px;
@@ -2851,7 +2919,100 @@ border-top-left-radius: 12px;
             border: 1px solid rgba(255,255,255,0.4) !important;
             gap: 100px !important;
         }
-    </style>
+            /* Updated on 2026-06-14 13:40:00 +05:30: hero heading changed to centered text layout (no glass card container). */
+        .hero-card {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            padding: 0 !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 16px !important;
+        }
+        .hero-card > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero-sub {
+            margin-left: auto !important;
+            margin-right: auto !important;
+            text-align: center !important;
+        }
+        /* Updated on 2026-06-14 14:18:58 +05:30: keep AI Powered badge centered under hero copy. */
+        .ai-badge {
+            margin-top: 12px;
+            align-self: center;
+        }
+        /* Updated on 2026-06-14 14:31:42 +05:30: match navbar sizing/weight/spacing exactly with index.html across non-dashboard pages. */
+        .navbar-wrapper {
+            position: absolute !important;
+            top: 28px !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 100 !important;
+        }
+        .navbar {
+            display: inline-flex !important;
+            align-items: center !important;
+            background: rgba(255,255,255,0.6) !important;
+            backdrop-filter: saturate(180%) blur(24px) !important;
+            -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+            padding: 10px 10px 10px 32px !important;
+            border-radius: 60px !important;
+            box-shadow:
+                0 12px 32px rgba(0,0,0,0.04),
+                inset 0 0 0 1px rgba(255,255,255,0.6),
+                inset 0 1px 1px rgba(255,255,255,0.9) !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+            gap: 100px !important;
+            position: relative !important;
+            overflow: visible !important;
+            z-index: 310 !important;
+        }
+        .brand { font-size: 19px !important; font-weight: 700 !important; letter-spacing: -0.6px !important; color: var(--text-main) !important; }
+        .nav-links { display: flex !important; gap: 44px !important; align-items: center !important; }
+        .nav-links a {
+            text-decoration: none !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: var(--text-muted) !important;
+            transition: color 0.2s !important;
+            letter-spacing: -0.1px !important;
+        }
+        .nav-links a:hover { color: var(--text-main) !important; }
+        .dropdown { position: relative !important; display: inline-block !important; height: 100% !important; z-index: 320 !important; }
+        .dropdown > a {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            height: 100% !important;
+            padding: 8px 0 !important;
+        }
+        .dropdown-content { z-index: 9999 !important; }
+        .btn-register {
+            padding: 12px 24px !important;
+            border-radius: 40px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            letter-spacing: -0.1px !important;
+        }
+        .btn-register svg { width: 18px !important; height: 18px !important; }
+        /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
+        .hero-section {
+            background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
+            border: 1px solid rgba(255,255,255,0.8) !important;
+            box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
+        }</style>
 </head>
 
 <body>
@@ -2870,6 +3031,7 @@ border-top-left-radius: 12px;
                     <a href="/">Home</a>
                     <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
                     <a href="{{ url_for('history') }}">History</a>
+                    <a href="{{ url_for('predict_winner_page') }}">Predict Winner</a>
                     <div class="dropdown">
                         <a href="#">
                             Index
@@ -2952,11 +3114,15 @@ border-top-left-radius: 12px;
                     <div class="pi-search-inputs-wrapper">
                         <div class="pi-input-wrapper">
                             <i data-lucide="user-search" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
-                            <input type="text" id="player_name" class="pi-input-field" placeholder="Batter name">
+                            <input type="text" id="player_name" class="pi-input-field" placeholder="Batter name" autocomplete="off">
+                            <!-- Updated on 2026-06-14 11:28:02 +05:30: Custom dropdown panel replacing native datalist for better styling/placement. -->
+                            <div id="player_name_suggest" class="ws-name-suggest"></div>
                         </div>
                         <div id="team_name_wrap" class="pi-input-wrapper" style="display: none;">
                             <i data-lucide="shield-check" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;"></i>
-                            <input type="text" id="team_name" class="pi-input-field" placeholder="e.g. Mumbai Indians">
+                            <input type="text" id="team_name" class="pi-input-field" placeholder="e.g. Mumbai Indians" autocomplete="off">
+                            <!-- Updated on 2026-06-14 11:37:49 +05:30: Team input custom dropdown to match player autocomplete style. -->
+                            <div id="team_name_suggest" class="ws-name-suggest"></div>
                         </div>
                     </div>
 
@@ -3180,11 +3346,167 @@ border-top-left-radius: 12px;
         </div>
     </div>
 
+    <!-- Updated on 2026-06-14 11:20:59 +05:30: Shared full-name list include for autocomplete + exact-match checks. -->
+    <script src="/static/full_names_data.js"></script>
     <script>
         lucide.createIcons();
         let playerSummaryController = null;
         let playerSummaryLastPayload = null;
         const SUMMARY_STREAM_TIMEOUT_MS = 45000;
+        const MAX_NAME_SUGGESTIONS = 8;
+        // Updated on 2026-06-14 13:46:10 +05:30: align team suggestions to the same 10-team list used in Top Scorer.
+        const IPL_TEAM_NAMES = [
+            "Chennai Super Kings",
+            "Delhi Capitals",
+            "Gujarat Titans",
+            "Kolkata Knight Riders",
+            "Lucknow Super Giants",
+            "Mumbai Indians",
+            "Kings XI Punjab",
+            "Rajasthan Royals",
+            "Royal Challengers Bangalore",
+            "Sunrisers Hyderabad"
+        ];
+        const fullNameList = Array.isArray(window.WS_FULL_NAMES) ? window.WS_FULL_NAMES : [];
+        const normalizedFullNameSet = new Set(fullNameList.map((name) => String(name).trim().toLowerCase()).filter(Boolean));
+        const normalizedTeamNameSet = new Set(IPL_TEAM_NAMES.map((name) => String(name).trim().toLowerCase()));
+        const TEAM_LOGO_MAP = {
+            "Chennai Super Kings": "/static/images/csk.png",
+            "Delhi Capitals": "/static/images/dc.png",
+            "Gujarat Titans": "/static/images/gt.png",
+            "Kolkata Knight Riders": "/static/images/kkr.png",
+            "Lucknow Super Giants": "/static/images/lsg.png",
+            "Mumbai Indians": "/static/images/mi.png",
+            "Kings XI Punjab": "/static/images/pbks.png",
+            "Rajasthan Royals": "/static/images/rr.png",
+            "Royal Challengers Bangalore": "/static/images/rcb.png",
+            "Sunrisers Hyderabad": "/static/images/srh.png"
+        };
+        const dedupedFullNameList = (() => {
+            const seen = new Set();
+            return fullNameList
+                .map((name) => String(name).trim())
+                .filter((name) => {
+                    if (!name) return false;
+                    const key = name.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+        })();
+
+        function isKnownPlayerName(name) {
+            return normalizedFullNameSet.has(String(name).trim().toLowerCase());
+        }
+
+        function isKnownTeamName(name) {
+            return normalizedTeamNameSet.has(String(name).trim().toLowerCase());
+        }
+
+        function attachAutocompleteFromList(inputId, panelId, sourceList, options = {}) {
+            const inputEl = document.getElementById(inputId);
+            const panelEl = document.getElementById(panelId);
+            if (!inputEl || !panelEl) return;
+            const container = inputEl.closest(".pi-input-wrapper");
+            const withLogos = Boolean(options.withLogos);
+            const cleanedList = sourceList
+                .map((name) => String(name).trim())
+                .filter(Boolean);
+            let activeIndex = -1;
+            let currentItems = [];
+
+            function closePanel() {
+                panelEl.classList.remove("open");
+                panelEl.innerHTML = "";
+                activeIndex = -1;
+                currentItems = [];
+            }
+
+            function chooseName(name) {
+                inputEl.value = name;
+                closePanel();
+            }
+
+            function renderSuggestions() {
+                const query = inputEl.value.trim().toLowerCase();
+                if (!query) {
+                    closePanel();
+                    return;
+                }
+                currentItems = cleanedList
+                    .filter((name) => name.toLowerCase().includes(query))
+                    .slice(0, MAX_NAME_SUGGESTIONS);
+                if (currentItems.length === 0) {
+                    closePanel();
+                    return;
+                }
+                panelEl.innerHTML = currentItems.map((name, idx) => {
+                    const safeName = name.replace(/"/g, "&quot;");
+                    const activeClass = idx === activeIndex ? " active" : "";
+                    if (!withLogos) {
+                        return `<button type="button" class="ws-name-suggest-item${activeClass}" data-name="${safeName}">${name}</button>`;
+                    }
+                    const logoSrc = TEAM_LOGO_MAP[name] || "/static/images/team.png";
+                    return `<button type="button" class="ws-name-suggest-item ws-team-suggest-item${activeClass}" data-name="${safeName}">
+                        <img class="ws-team-suggest-logo" src="${logoSrc}" alt="${safeName}" onerror="this.src='/static/images/team.png'">
+                        <span class="ws-team-suggest-text">${name}</span>
+                    </button>`;
+                }).join("");
+                panelEl.classList.add("open");
+            }
+
+            panelEl.addEventListener("click", (event) => {
+                const item = event.target.closest(".ws-name-suggest-item");
+                if (!item) return;
+                chooseName(item.dataset.name || item.textContent || "");
+            });
+
+            inputEl.addEventListener("focus", renderSuggestions);
+            inputEl.addEventListener("input", () => {
+                activeIndex = -1;
+                renderSuggestions();
+            });
+            inputEl.addEventListener("keydown", (event) => {
+                if (!panelEl.classList.contains("open") || currentItems.length === 0) return;
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    activeIndex = (activeIndex + 1) % currentItems.length;
+                    renderSuggestions();
+                    return;
+                }
+                if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    activeIndex = activeIndex <= 0 ? currentItems.length - 1 : activeIndex - 1;
+                    renderSuggestions();
+                    return;
+                }
+                if (event.key === "Enter" && activeIndex >= 0) {
+                    event.preventDefault();
+                    chooseName(currentItems[activeIndex]);
+                    return;
+                }
+                if (event.key === "Escape") {
+                    closePanel();
+                }
+            });
+
+            document.addEventListener("click", (event) => {
+                if (container && !container.contains(event.target)) {
+                    closePanel();
+                }
+            });
+        }
+
+        function attachNameAutocomplete(inputId, panelId) {
+            attachAutocompleteFromList(inputId, panelId, dedupedFullNameList);
+        }
+
+        function attachTeamAutocomplete(inputId, panelId) {
+            attachAutocompleteFromList(inputId, panelId, IPL_TEAM_NAMES, { withLogos: true });
+        }
+
+        attachNameAutocomplete("player_name", "player_name_suggest");
+        attachTeamAutocomplete("team_name", "team_name_suggest");
 
         function renderSummaryRetry(outputEl, message, onRetry) {
             outputEl.innerHTML = "";
@@ -3275,6 +3597,14 @@ border-top-left-radius: 12px;
 
             if (!player_name) {
                 alert("Please enter a batter name.");
+                return;
+            }
+            if (!isKnownPlayerName(player_name)) {
+                alert("Please select a valid batter name from the suggestions.");
+                return;
+            }
+            if (team_name && !isKnownTeamName(team_name)) {
+                alert("Please select a valid team name from the suggestions.");
                 return;
             }
 
@@ -3503,3 +3833,12 @@ border-top-left-radius: 12px;
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
