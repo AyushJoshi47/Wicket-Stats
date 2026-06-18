@@ -1,1760 +1,1775 @@
-<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IPL Match History | WicketStats</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        :root {
-            --text-main: #1A1D20;
-            --text-muted: #6B7280;
-            --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif;
-            --font-ticket: 'Playfair Display', Georgia, serif;
-            --heading-size: clamp(3rem, 6vw, 5.25rem);
-            --white-grey-main: #ffffff;
-            --white-grey-muted: rgba(255, 255, 255, 0.65);
-            --white-grey-accent: #7eb6ff;
-            --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
-            --perfect-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
-            --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: var(--font-display);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        body {
-            background-color: #ffffff;
-            color: var(--text-main);
-            padding: 12px;
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .container {
-            max-width: 1240px;
-            margin: 0 auto;
-            padding: 24px 20px;
-            width: 100%;
-        }
-
-        /* ===== HERO SECTION ===== */
-        .hero-section {
-            position: relative;
-            border-radius: 24px;
-            overflow: hidden;
-            background-color: transparent;
-            margin: 0 0 32px;
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
-        }
-
-        .bg-elements {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            overflow: hidden;
-            pointer-events: none;
-            background: linear-gradient(135deg, #7FA5FA 0%, #9EB5FA 60%, #C3B4FC 100%);
-        }
-
-        .orb-1, .orb-2, .orb-3 {
-            position: absolute;
-            border-radius: 50%;
-        }
-
-        .orb-1 {
-            top: -20%; left: -10%;
-            width: 60vw; height: 60vw;
-            background: radial-gradient(ellipse at center,
-                rgba(255,255,255,0.9) 0%,
-                rgba(216,235,255,0.6) 25%,
-                rgba(200,224,248,0.3) 55%,
-                transparent 75%);
-            filter: blur(60px);
-        }
-
-        .orb-2 {
-            top: 30%; right: -20%;
-            width: 70vw; height: 70vw;
-            background: radial-gradient(ellipse at center,
-                rgba(232,246,255,0.75) 0%,
-                rgba(184,216,240,0.45) 30%,
-                rgba(160,198,234,0.2) 60%,
-                transparent 75%);
-            filter: blur(80px);
-        }
-
-        .orb-3 {
-            bottom: -30%; left: 20%;
-            width: 80vw; height: 80vw;
-            background: radial-gradient(ellipse at 50% 0%,
-                rgba(255,255,255,1) 0%,
-                rgba(220,238,255,0.7) 20%,
-                rgba(176,210,238,0.35) 50%,
-                transparent 70%);
-            filter: blur(90px);
-        }
-
-        /* ===== NAVBAR ===== */
-        .navbar-wrapper {
-            position: absolute;
-            top: 28px; left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            z-index: 100;
-        }
-
-        .navbar {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255,255,255,0.6);
-            backdrop-filter: saturate(180%) blur(24px);
-            -webkit-backdrop-filter: saturate(180%) blur(24px);
-            padding: 10px 10px 10px 32px;
-            border-radius: 60px;
-            box-shadow:
-                0 12px 32px rgba(0,0,0,0.04),
-                inset 0 0 0 1px rgba(255,255,255,0.6),
-                inset 0 1px 1px rgba(255,255,255,0.9);
-            border: 1px solid rgba(255,255,255,0.4);
-            gap: 100px;
-        }
-
-        .brand {
-            font-weight: 700;
-            font-size: 19px;
-            text-decoration: none;
-            letter-spacing: -0.6px;
-            color: var(--text-main);
-        }
-
-        .nav-links { display: flex; gap: 44px; align-items: center; }
-
-        .nav-links a {
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-muted);
-            transition: color 0.2s;
-            letter-spacing: -0.1px;
-        }
-        .nav-links a:hover { color: var(--text-main); }
-        .nav-links a.active { color: var(--text-main); font-weight: 600; }
-
-        .dropdown { position: relative; display: inline-block; height: 100%; }
-        .dropdown > a {
-            display: flex; align-items: center; gap: 4px;
-            height: 100%; padding: 8px 0;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%; left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(255,255,255,0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            min-width: 180px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.08);
-            border-radius: 16px;
-            padding: 8px 0;
-            z-index: 10;
-            border: 1px solid rgba(0,0,0,0.04);
-            margin-top: 8px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .dropdown-content::before {
-            content: '';
-            position: absolute;
-            top: -8px; left: 0; right: 0;
-            height: 8px;
-            background: transparent;
-        }
-        .dropdown:hover .dropdown-content {
-            display: block;
-            animation: fadeIn 0.2s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -10px); }
-            to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-
-        .dropdown-content a {
-            padding: 12px 24px;
-            text-decoration: none;
-            display: block;
-            font-size: 14px;
-            transition: background 0.2s, color 0.2s;
-            color: var(--text-muted) !important;
-        }
-        .dropdown-content a:hover { background-color: rgba(0,0,0,0.03); color: var(--text-main) !important; }
-
-        .btn-register {
-            background: var(--text-main);
-            color: white !important;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex; align-items: center; gap: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            letter-spacing: -0.1px;
-        }
-        .btn-register * { color: white !important; }
-        .btn-register:hover { background: #000; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
-        .btn-register svg { width: 18px; height: 18px; }
-
-        /* ─── HERO ─── */
-        .hero {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 180px 20px 60px;
-            text-align: center;
-            background: transparent;
-            width: 100%;
-        }
-        .hero-inner {
-            max-width: 1000px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        .hero-label {
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            color: #0066FF;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-        .hero-title {
-            font-size: var(--heading-size);
-            font-weight: 600;
-            color: var(--text-main);
-            line-height: 1.05;
-            letter-spacing: -2.5px;
-            margin-bottom: 22px;
-            max-width: 980px;
-            text-align: center;
-        }
-        .hero-sub {
-            font-size: clamp(1.15rem, 1.4vw, 1.45rem);
-            color: var(--text-muted);
-            max-width: 720px;
-            line-height: 1.45;
-            font-weight: 400;
-            letter-spacing: -0.2px;
-            text-align: center;
-        }
-        .ai-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            border-radius: 99px;
-            background: white;
-            border: 1px solid rgba(0,0,0,0.06);
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-main);
-            white-space: nowrap;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        }
-        .ai-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-            flex-shrink: 0;
-            display: inline-block;
-            animation: pulse-dot 2s infinite;
-        }
-
-        @keyframes pulse-dot {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
-
-        /* ===== SECTIONS & CARDS ===== */
-        .section-title {
-            margin: 48px 0 24px;
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.04em;
-            color: #1D1D1F;
-        }
-
-        .status {
-            margin: 24px 0;
-            color: #86868B;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        /* ===== REDESIGNED SEASON GRID ===== */
-        .season-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 32px;
-        }
-
-        .season-card {
-            background: #FAF9F6;
-            border: 2px solid #E5C158;
-            border-radius: 20px;
-            padding: 28px 24px;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            color: #1D1D1F;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 220px;
-            position: relative;
-            overflow: visible;
-            box-shadow: 0 10px 30px rgba(229, 193, 88, 0.05);
-        }
-        .season-card::before, .season-card::after {
-            content: '';
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border-radius: 50%;
-            top: 60%;
-            transform: translateY(-50%);
-            z-index: 5;
-            border: 1px solid rgba(229, 193, 88, 0.25);
-        }
-        .season-card::before {
-            left: -13px;
-        }
-        .season-card::after {
-            right: -13px;
-        }
-
-        .ticket-perforation-h {
-            position: absolute;
-            left: 12px;
-            right: 12px;
-            top: 60%;
-            border-top: 2px dashed rgba(229, 193, 88, 0.35);
-            z-index: 4;
-            pointer-events: none;
-        }
-
-        .season-card:hover {
-            transform: scale(1.03) rotate(-1.5deg);
-            background: #FAF9F6;
-            box-shadow: 0 15px 35px rgba(229, 193, 88, 0.18);
-            border-color: #D4AF37;
-        }
-        .season-card.active {
-            background: #FAF9F6;
-            border-color: #D4AF37;
-            box-shadow: 0 8px 24px rgba(229, 193, 88, 0.15);
-            transform: scale(1.01) rotate(1.5deg);
-        }
-
-        .season-year-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-            width: 100%;
-        }
-
-        .season-year {
-            font-family: var(--font-ticket);
-            font-size: 3.2rem;
-            font-weight: 800;
-            letter-spacing: -0.05em;
-            color: #1D1D1F;
-            line-height: 1;
-            text-align: center;
-        }
-
-        .season-matches-text {
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: #86868B;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            margin-top: 6px;
-            text-align: center;
-        }
-
-        .season-champion-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 16px;
-            text-align: center;
-            width: 100%;
-        }
-
-        .champion-circle-logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 4px;
-            object-fit: contain;
-            flex-shrink: 0;
-        }
-
-        .champion-details {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 0;
-            width: 100%;
-        }
-
-        .champion-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #86868B;
-            margin-bottom: 2px;
-        }
-
-        .champion-team-name {
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #1D1D1F;
-            font-family: var(--font-ticket);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-        }
-
-        /* ===== REDESIGNED MATCH LADDER LIST ===== */
-        .match-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-top: 24px;
-            width: 100%;
-        }
-
-        .match-card {
-            background: #FAF9F6;
-            border: 2px solid #E5C158;
-            border-radius: 20px;
-            padding: 20px 28px;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            color: #1D1D1F;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            gap: 24px;
-            position: relative;
-            overflow: visible;
-            box-shadow: 0 10px 30px rgba(229, 193, 88, 0.05);
-        }
-        .match-card::before, .match-card::after {
-            content: '';
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border-radius: 50%;
-            left: 22%;
-            z-index: 5;
-            border: 1px solid rgba(229, 193, 88, 0.25);
-        }
-        .match-card::before {
-            top: -13px;
-        }
-        .match-card::after {
-            bottom: -13px;
-        }
-
-        .ticket-perforation-v {
-            position: absolute;
-            top: 12px;
-            bottom: 12px;
-            left: 22%;
-            border-left: 2px dashed rgba(229, 193, 88, 0.35);
-            z-index: 4;
-            pointer-events: none;
-        }
-
-        .match-card:hover {
-            transform: scale(1.01) rotate(0.3deg);
-            background: #FAF9F6;
-            box-shadow: 0 15px 35px rgba(229, 193, 88, 0.15);
-            border-color: #D4AF37;
-        }
-        .match-card.active {
-            background: #FAF9F6;
-            border-color: #D4AF37;
-            box-shadow: 0 8px 24px rgba(229, 193, 88, 0.15);
-            transform: scale(1.005) rotate(-0.3deg);
-        }
-
-        .match-meta-left {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            flex-shrink: 0;
-            width: 20%;
-            text-align: center;
-            padding-right: 12px;
-        }
-
-        .match-id-badge {
-            background: rgba(229, 193, 88, 0.15);
-            color: #7A6221;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            width: fit-content;
-            font-family: monospace;
-        }
-
-        .match-date-text {
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #86868B;
-            font-family: monospace;
-        }
-
-        .ticket-barcode {
-            height: 28px;
-            width: 100%;
-            background: repeating-linear-gradient(
-                90deg,
-                #1D1D1F,
-                #1D1D1F 2px,
-                transparent 2px,
-                transparent 5px,
-                #1D1D1F 5px,
-                #1D1D1F 8px,
-                transparent 8px,
-                transparent 10px,
-                #1D1D1F 10px,
-                #1D1D1F 11px,
-                transparent 11px,
-                transparent 14px
-            );
-            opacity: 0.75;
-            margin-top: 8px;
-        }
-
-        .match-scoreboard-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            flex-grow: 1;
-            min-width: 0;
-            padding-left: 24px;
-        }
-
-        .scoreboard-team-left {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 12px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .scoreboard-team-right {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .team-logo-sm {
-            width: 36px;
-            height: 36px;
-            object-fit: contain;
-            border-radius: 50%;
-            background: transparent;
-            padding: 0;
-            border: none;
-            flex-shrink: 0;
-        }
-
-        .team-name {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1D1D1F;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .scoreboard-team-left .team-name {
-            text-align: right;
-        }
-        .scoreboard-team-right .team-name {
-            text-align: left;
-        }
-
-        .scoreboard-score-left {
-            width: 80px;
-            text-align: right;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #86868B;
-            flex-shrink: 0;
-            white-space: nowrap;
-            font-family: monospace;
-        }
-
-        .scoreboard-score-right {
-            width: 80px;
-            text-align: left;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #86868B;
-            flex-shrink: 0;
-            white-space: nowrap;
-            font-family: monospace;
-        }
-
-        .scoreboard-vs {
-            font-size: 0.72rem;
-            font-weight: 800;
-            color: #86868B;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 3px 6px;
-            background: rgba(229, 193, 88, 0.15);
-            border-radius: 4px;
-            flex-shrink: 0;
-            border: 1px solid rgba(229, 193, 88, 0.25);
-        }
-
-        .scoreboard-team-left.is-winner .team-name {
-            font-weight: 800;
-            color: #1D1D1F;
-        }
-        .scoreboard-team-left.is-winner + .scoreboard-score-left {
-            color: #34C759;
-            font-weight: 800;
-        }
-
-        .scoreboard-team-right.is-winner .team-name {
-            font-weight: 800;
-            color: #1D1D1F;
-        }
-        .scoreboard-team-right.is-winner .scoreboard-score-right {
-            color: #34C759;
-            font-weight: 800;
-        }
-
-        .match-result-right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-            flex-shrink: 0;
-            width: 220px;
-            text-align: right;
-            min-width: 0;
-            border-left: 1px dashed rgba(229, 193, 88, 0.3);
-            padding-left: 16px;
-        }
-
-        .outcome-value {
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: #1D1D1F;
-            font-family: var(--font-ticket);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
-
-        .venue-text {
-            font-size: 0.78rem;
-            font-weight: 500;
-            color: #86868B;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
-
-        @media (max-width: 900px) {
-            .match-card {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 24px;
-                gap: 16px;
-            }
-            .match-card::before, .match-card::after {
-                display: none;
-            }
-            .ticket-perforation-v {
-                display: none;
-            }
-            .match-meta-left {
-                width: 100%;
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-                padding-right: 0;
-            }
-            .ticket-barcode {
-                display: none;
-            }
-            .match-scoreboard-center {
-                justify-content: space-between;
-                width: 100%;
-                gap: 12px;
-                padding-left: 0;
-            }
-            .scoreboard-team {
-                width: 42%;
-            }
-            .match-result-right {
-                width: 100%;
-                align-items: flex-start;
-                text-align: left;
-                border-left: none;
-                border-top: 1px dashed rgba(229, 193, 88, 0.3);
-                padding-left: 0;
-                padding-top: 12px;
-            }
-        }
-
-        .actions {
-            margin: 24px 0;
-            display: flex;
-            gap: 16px;
-            justify-content: flex-start;
-        }
-
-        .btn {
-            background: #1D1D1F;
-            color: #ffffff;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .btn:hover {
-            background: #000000;
-            transform: scale(1.02);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-        }
-
-        .hidden { display: none !important; }
-
-        /* ===== SCORECARD WRAP ===== */
-        .scorecard-wrap {
-            margin-top: 32px;
-            background: #ffffff;
-            border-radius: 32px;
-            padding: 32px;
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.02);
-        }
-
-        .scorecard-top {
-            display: flex;
-            justify-content: flex-end;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .scorecard-head {
-            font-size: 1.6rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: #1D1D1F;
-            margin-bottom: 32px;
-        }
-
-        .innings-block {
-            background: #F8F9FA;
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 32px;
-        }
-
-        .innings-title {
-            margin: 0 0 20px;
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #1D1D1F;
-            letter-spacing: -0.02em;
-        }
-
-        .sub-title {
-            margin: 24px 0 12px;
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: #86868B;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .table-wrap { overflow-x: auto; margin: 12px 0; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
-            color: #1D1D1F;
-        }
-        th, td {
-            border: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-            padding: 12px 16px;
-            text-align: left;
-        }
-        th {
-            background: transparent;
-            color: #86868B;
-            font-weight: 700;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding-bottom: 16px;
-        }
-
-        .tiny {
-            color: #86868B;
-            font-size: 0.85rem;
-            line-height: 1.6;
-            margin: 10px 0;
-            font-weight: 500;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-        }
-
-        .detail-card {
-            background: #F8F9FA;
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            border-radius: 20px;
-            padding: 24px;
-        }
-        .detail-label {
-            color: #86868B;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 6px;
-        }
-        .detail-value {
-            color: #1D1D1F;
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.4;
-        }
-
-        /* ===== FOOTER ===== */
-        .footer-wrapper {
-            padding-top: 60px;
-            width: 100%;
-            background-color: #ffffff;
-            margin-top: 8rem;
-        }
-
-        .wicket-footer {
-            background: linear-gradient(135deg, #C3B4FC 0%, #9EB5FA 40%, #7FA5FA 100%);
-            color: var(--text-main);
-            padding: 220px 80px 60px;
-            display: flex;
-            flex-direction: column;
-            gap: 150px;
-            width: 100%;
-            margin: 0;
-            border-radius: 24px;
-            border: none;
-            overflow: hidden;
-            box-shadow: 0 30px 60px rgba(100, 140, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
-        }
-
-        .footer-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 60px;
-            width: 100%;
-        }
-
-        .footer-left {
-            flex: 1;
-            min-width: 280px;
-        }
-
-        .footer-left h2 {
-            font-size: clamp(2.5rem, 4vw, 4rem);
-            font-weight: 800;
-            line-height: 1.1;
-            color: var(--text-main);
-            letter-spacing: -0.03em;
-        }
-
-        .footer-left h2 span.footer-typewriter {
-            background: var(--perfect-blue-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-style: italic;
-        }
-
-        .blinking-cursor {
-            font-weight: 300 !important;
-            font-style: normal !important;
-            color: #AE95FF;
-            animation: blink 1s step-end infinite;
-            -webkit-text-fill-color: initial !important;
-        }
-
-        @keyframes blink {
-            from, to { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        .footer-links-grid {
-            display: flex;
-            gap: 80px;
-            flex-wrap: wrap;
-        }
-
-        .footer-column {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            min-width: 160px;
-        }
-
-        .footer-column h3 {
-            font-size: 0.85rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #111111;
-            margin-bottom: 8px;
-        }
-
-        .footer-column a {
-            color: rgba(17, 17, 17, 0.85) !important;
-            text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: color 0.2s ease, transform 0.2s ease;
-            width: fit-content;
-        }
-
-        .footer-column a:hover {
-            color: #000000 !important;
-            transform: translateX(3px);
-        }
-
-        .footer-bottom {
-            width: calc(100% + 160px);
-            margin-left: -80px;
-            margin-right: -80px;
-            margin-bottom: -60px;
-            text-align: center;
-            overflow: hidden;
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
-        }
-
-        .giant-brand-text {
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            width: 100%;
-        }
-
-        .giant-brand-text svg {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .giant-brand-text text {
-            font-family: var(--font-display);
-            font-weight: 700;
-        }
-
-        @media (max-width: 1024px) {
-            .footer-wrapper {
-                padding-top: 40px;
-            }
-            .wicket-footer {
-                padding: 170px 40px 40px;
-                gap: 110px;
-                -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
-                mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
-            }
-            .footer-links-grid {
-                gap: 40px;
-            }
-            .footer-bottom {
-                width: calc(100% + 80px);
-                margin-left: -40px;
-                margin-right: -40px;
-                margin-bottom: -40px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .footer-wrapper {
-                padding-top: 20px;
-            }
-            .wicket-footer {
-                width: 100%;
-                margin: 0;
-                padding: 120px 24px 30px;
-                gap: 80px;
-                border-radius: 24px;
-                -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
-                mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
-            }
-            .footer-top {
-                flex-direction: column;
-                gap: 40px;
-            }
-            .footer-left {
-                width: 100%;
-            }
-            .footer-links-grid {
-                width: 100%;
-                justify-content: space-between;
-                gap: 20px;
-            }
-            .footer-bottom {
-                margin-left: -24px;
-                margin-right: -24px;
-                margin-bottom: -30px;
-            }
-        }
-        /* History Simplified UI (Apple-like) */
-        .history-hint {
-            margin: 10px 0 22px;
-            padding: 14px 18px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.75);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            color: #1D1D1F;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-        }
-
-        .season-grid {
-            gap: 24px !important;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
-        }
-
-        .season-card {
-            background: #ffffff !important;
-            border: 1px solid rgba(0, 0, 0, 0.08) !important;
-            border-radius: 22px !important;
-            padding: 26px 24px !important;
-            min-height: 210px !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
-            overflow: hidden !important;
-        }
-        .season-card:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09) !important;
-            border-color: rgba(0, 0, 0, 0.14) !important;
-        }
-        .season-card.active {
-            transform: none !important;
-            border-color: rgba(0, 102, 255, 0.45) !important;
-            box-shadow: 0 10px 26px rgba(0, 102, 255, 0.14) !important;
-        }
-        .season-card::before,
-        .season-card::after,
-        .ticket-perforation-h {
-            display: none !important;
-            content: none !important;
-        }
-
-        .season-year-row {
-            align-items: flex-start !important;
-            margin-bottom: 22px !important;
-        }
-        .season-year {
-            font-family: var(--font-display) !important;
-            font-size: 2.1rem !important;
-            font-weight: 700 !important;
-            letter-spacing: -0.02em !important;
-            text-align: left !important;
-        }
-        .season-matches-text {
-            font-size: 0.92rem !important;
-            font-weight: 700 !important;
-            letter-spacing: 0.03em !important;
-            text-transform: uppercase !important;
-            margin-top: 8px !important;
-            text-align: left !important;
-        }
-
-        .season-champion-row {
-            flex-direction: row !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
-            gap: 10px !important;
-            margin-top: 0 !important;
-            text-align: left !important;
-        }
-        .champion-circle-logo {
-            width: 38px !important;
-            height: 38px !important;
-        }
-        .champion-details {
-            align-items: flex-start !important;
-        }
-        .champion-label {
-            font-size: 0.76rem !important;
-        }
-        .champion-team-name {
-            font-family: var(--font-display) !important;
-            font-size: 1.08rem !important;
-            font-weight: 700 !important;
-        }
-
-        .match-list {
-            gap: 20px !important;
-        }
-        .match-card {
-            background: #ffffff !important;
-            border: 1px solid rgba(0, 0, 0, 0.08) !important;
-            border-radius: 22px !important;
-            padding: 26px 28px !important;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06) !important;
-            gap: 22px !important;
-            overflow: hidden !important;
-        }
-        .match-card:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
-            border-color: rgba(0, 0, 0, 0.14) !important;
-        }
-        .match-card.active {
-            border-color: rgba(0, 102, 255, 0.45) !important;
-            box-shadow: 0 10px 24px rgba(0, 102, 255, 0.13) !important;
-            transform: none !important;
-        }
-        .match-card::before,
-        .match-card::after,
-        .ticket-perforation-v,
-        .ticket-barcode {
-            display: none !important;
-            content: none !important;
-        }
-
-        .match-meta-left {
-            width: auto !important;
-            align-items: flex-start !important;
-            text-align: left !important;
-            padding-right: 0 !important;
-            gap: 8px !important;
-        }
-        .match-id-badge {
-            background: #F5F5F7 !important;
-            color: #6B7280 !important;
-            border: 1px solid rgba(0, 0, 0, 0.06) !important;
-            font-size: 0.9rem !important;
-            padding: 7px 13px !important;
-        }
-        .match-date-text {
-            font-size: 0.98rem !important;
-            font-weight: 600 !important;
-        }
-        .match-scoreboard-center {
-            padding-left: 0 !important;
-            gap: 18px !important;
-        }
-        .team-logo-sm {
-            width: 46px !important;
-            height: 46px !important;
-        }
-        .team-name {
-            font-size: 1.12rem !important;
-            font-weight: 700 !important;
-        }
-        .scoreboard-score-left,
-        .scoreboard-score-right {
-            width: auto !important;
-            font-size: 1.28rem !important;
-            font-weight: 700 !important;
-        }
-        .scoreboard-vs {
-            background: #F5F5F7 !important;
-            border: 1px solid rgba(0, 0, 0, 0.06) !important;
-            color: #6B7280 !important;
-            font-size: 0.86rem !important;
-            padding: 5px 10px !important;
-        }
-        .scoreboard-score-left.is-winner,
-        .scoreboard-score-right.is-winner {
-            color: #1D1D1F !important;
-            font-weight: 700 !important;
-        }
-        .match-result-right {
-            border-left: none !important;
-            padding-left: 0 !important;
-            width: 300px !important;
-            gap: 6px !important;
-        }
-        .outcome-value {
-            font-size: 1.08rem !important;
-            font-weight: 750 !important;
-        }
-        .venue-text {
-            font-size: 0.94rem !important;
-        }
-
-        #matchesTitle.section-title {
-            font-size: 2.2rem !important;
-        }
-        #status.status {
-            font-size: 1.03rem !important;
-            font-weight: 600 !important;
-        }
-
-        @media (max-width: 900px) {
-            .season-grid {
-                grid-template-columns: 1fr !important;
-            }
-            .match-card {
-                padding: 20px !important;
-                gap: 16px !important;
-            }
-            .team-name {
-                font-size: 1rem !important;
-            }
-            .scoreboard-score-left,
-            .scoreboard-score-right {
-                font-size: 1.1rem !important;
-            }
-            .match-result-right {
-                width: 100% !important;
-            }
-        }
-
-        /* Scorecard Upgrade (match Batter/Bowler table richness) */
-        .scorecard-wrap {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
-            border: 1px solid rgba(93, 137, 214, 0.18) !important;
-            border-radius: 28px !important;
-            box-shadow: 0 18px 40px rgba(59, 130, 246, 0.09), 0 8px 18px rgba(0, 0, 0, 0.04) !important;
-        }
-        .scorecard-head {
-            font-size: 1.85rem !important;
-            letter-spacing: -0.04em !important;
-            margin-bottom: 26px !important;
-            line-height: 1.2 !important;
-        }
-        .innings-block {
-            background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(244,249,255,0.95) 100%) !important;
-            border: 1px solid rgba(93, 137, 214, 0.2) !important;
-            border-radius: 22px !important;
-            box-shadow: 0 12px 26px rgba(59, 130, 246, 0.08) !important;
-            padding: 24px !important;
-            margin-bottom: 24px !important;
-        }
-        .innings-title {
-            font-size: 1.35rem !important;
-            margin-bottom: 14px !important;
-        }
-        .sub-title {
-            margin: 18px 0 10px !important;
-            color: #2563eb !important;
-            font-size: 0.78rem !important;
-            font-weight: 800 !important;
-            letter-spacing: 0.11em !important;
-        }
-        .table-wrap {
-            margin: 10px 0 14px !important;
-            border-radius: 16px !important;
-            border: 1px solid hsl(214 60% 88%) !important;
-            overflow: auto !important;
-            background: #ffffff !important;
-        }
-        .scorecard-wrap table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            font-size: 0.95rem !important;
-            color: #111827 !important;
-        }
-        .scorecard-wrap th {
-            background: hsl(214 82% 92%) !important;
-            color: hsl(220 45% 22%) !important;
-            font-weight: 700 !important;
-            font-size: 0.76rem !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
-            border-bottom: 1px solid hsl(214 60% 84%) !important;
-            padding: 13px 14px !important;
-            text-align: center !important;
-        }
-        .scorecard-wrap th:first-child,
-        .scorecard-wrap td:first-child {
-            text-align: left !important;
-        }
-        .scorecard-wrap td {
-            padding: 12px 14px !important;
-            border-bottom: 1px solid hsl(214 45% 92%) !important;
-            font-weight: 500 !important;
-            text-align: center !important;
-            white-space: nowrap !important;
-        }
-        .scorecard-wrap tbody tr:nth-child(even) td {
-            background: hsl(213 90% 98%) !important;
-        }
-        .scorecard-wrap tbody tr:hover td {
-            background: hsl(213 95% 96%) !important;
-        }
-        .scorecard-wrap tbody tr:last-child td {
-            border-bottom: none !important;
-        }
-        .tiny {
-            background: hsl(214 82% 94%) !important;
-            border: 1px solid hsl(214 60% 86%) !important;
-            border-radius: 10px !important;
-            padding: 10px 12px !important;
-            margin: 10px 0 !important;
-            color: hsl(220 30% 28%) !important;
-            font-size: 0.89rem !important;
-        }
-        .scorecard-wrap .section-title {
-            margin: 10px 0 18px !important;
-            font-size: 1.55rem !important;
-            letter-spacing: -0.03em !important;
-        }
-        .details-grid {
-            gap: 16px !important;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) !important;
-        }
-        .detail-card {
-            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%) !important;
-            border: 1px solid hsl(214 55% 86%) !important;
-            border-radius: 16px !important;
-            padding: 16px 18px !important;
-            box-shadow: 0 8px 18px rgba(59, 130, 246, 0.08) !important;
-        }
-        .detail-label {
-            color: hsl(217 85% 45%) !important;
-            font-size: 0.72rem !important;
-            letter-spacing: 0.09em !important;
-            margin-bottom: 4px !important;
-        }
-        .detail-value {
-            font-size: 0.98rem !important;
-            line-height: 1.35 !important;
-            color: #111827 !important;
-        }
-
-        @media (max-width: 900px) {
-            .scorecard-wrap {
-                padding: 18px !important;
-            }
-            .scorecard-head {
-                font-size: 1.42rem !important;
-            }
-            .innings-block {
-                padding: 16px !important;
-            }
-            .scorecard-wrap th,
-            .scorecard-wrap td {
-                padding: 10px 10px !important;
-                font-size: 0.84rem !important;
-            }
-            .detail-value {
-                font-size: 0.92rem !important;
-            }
-        }
-        /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
-        .hero-section {
-            background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
-            border: 1px solid rgba(255,255,255,0.8) !important;
-            box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
-        }
-        /* Updated on 2026-06-14 14:22:00 +05:30: history heading switched to centered text layout without hero card shell. */
-        .hero-card {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-            padding: 0 !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            align-items: center !important;
-            text-align: center !important;
-            gap: 16px !important;
-        }
-        .hero-card > div {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .hero-sub {
-            margin-left: auto !important;
-            margin-right: auto !important;
-            text-align: center !important;
-        }
-        /* Updated on 2026-06-14 14:18:58 +05:30: ensure AI Powered badge sits below hero text and stays centered. */
-        .ai-badge {
-            margin-top: 12px;
-            align-self: center;
-        }
-        /* Updated on 2026-06-14 14:31:42 +05:30: match navbar sizing/weight/spacing exactly with index.html across non-dashboard pages. */
-        .navbar-wrapper {
-            position: absolute !important;
-            top: 28px !important;
-            left: 0 !important;
-            width: 100% !important;
-            display: flex !important;
-            justify-content: center !important;
-            z-index: 100 !important;
-        }
-        .navbar {
-            display: inline-flex !important;
-            align-items: center !important;
-            background: rgba(255,255,255,0.6) !important;
-            backdrop-filter: saturate(180%) blur(24px) !important;
-            -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
-            padding: 10px 10px 10px 32px !important;
-            border-radius: 60px !important;
-            box-shadow:
-                0 12px 32px rgba(0,0,0,0.04),
-                inset 0 0 0 1px rgba(255,255,255,0.6),
-                inset 0 1px 1px rgba(255,255,255,0.9) !important;
-            border: 1px solid rgba(255,255,255,0.4) !important;
-            gap: 100px !important;
-            position: relative !important;
-            overflow: visible !important;
-            z-index: 310 !important;
-        }
-        .brand { font-size: 19px !important; font-weight: 700 !important; letter-spacing: -0.6px !important; color: var(--text-main) !important; }
-        .nav-links { display: flex !important; gap: 44px !important; align-items: center !important; }
-        .nav-links a {
-            text-decoration: none !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: var(--text-muted) !important;
-            transition: color 0.2s !important;
-            letter-spacing: -0.1px !important;
-        }
-        .nav-links a:hover { color: var(--text-main) !important; }
-        .nav-links a.active { color: var(--text-main) !important; font-weight: 500 !important; }
-        .dropdown { position: relative !important; display: inline-block !important; height: 100% !important; z-index: 320 !important; }
-        .dropdown > a {
-            display: flex !important;
-            align-items: center !important;
-            gap: 4px !important;
-            height: 100% !important;
-            padding: 8px 0 !important;
-        }
-        .dropdown-content { z-index: 9999 !important; }
-        .btn-register {
-            padding: 12px 24px !important;
-            border-radius: 40px !important;
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 8px !important;
-            letter-spacing: -0.1px !important;
-        }
-        .btn-register svg { width: 18px !important; height: 18px !important; }
-        }</style>
-</head>
-<body>
+      :root {
+          --text-main: #1A1D20;
+          --text-muted: #6B7280;
+          --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif;
+          --font-ticket: 'Playfair Display', Georgia, serif;
+          --heading-size: clamp(3rem, 6vw, 5.25rem);
+          --white-grey-main: #ffffff;
+          --white-grey-muted: rgba(255, 255, 255, 0.65);
+          --white-grey-accent: #7eb6ff;
+          --blue-purple-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%);
+          --perfect-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
+          --text-blue-gradient: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 33%, #FFA3B9 66%, #FFD17A 100%);
+      }
+
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: var(--font-display);
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+          background-color: #ffffff;
+          color: var(--text-main);
+          padding: 12px;
+          overflow-x: hidden;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+      }
+
+      .container {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 24px 20px;
+          width: 100%;
+      }
+
+      /* ===== HERO SECTION ===== */
+      .hero-section {
+          position: relative;
+          border-radius: 24px;
+          overflow: hidden;
+          background-color: transparent;
+          margin: 0 0 32px;
+          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0) 100%);
+      }
+
+      .bg-elements {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          overflow: hidden;
+          pointer-events: none;
+          background: linear-gradient(135deg, #7FA5FA 0%, #9EB5FA 60%, #C3B4FC 100%);
+      }
+
+      .orb-1, .orb-2, .orb-3 {
+          position: absolute;
+          border-radius: 50%;
+      }
+
+      .orb-1 {
+          top: -20%; left: -10%;
+          width: 60vw; height: 60vw;
+          background: radial-gradient(ellipse at center,
+              rgba(255,255,255,0.9) 0%,
+              rgba(216,235,255,0.6) 25%,
+              rgba(200,224,248,0.3) 55%,
+              transparent 75%);
+          filter: blur(60px);
+      }
+
+      .orb-2 {
+          top: 30%; right: -20%;
+          width: 70vw; height: 70vw;
+          background: radial-gradient(ellipse at center,
+              rgba(232,246,255,0.75) 0%,
+              rgba(184,216,240,0.45) 30%,
+              rgba(160,198,234,0.2) 60%,
+              transparent 75%);
+          filter: blur(80px);
+      }
+
+      .orb-3 {
+          bottom: -30%; left: 20%;
+          width: 80vw; height: 80vw;
+          background: radial-gradient(ellipse at 50% 0%,
+              rgba(255,255,255,1) 0%,
+              rgba(220,238,255,0.7) 20%,
+              rgba(176,210,238,0.35) 50%,
+              transparent 70%);
+          filter: blur(90px);
+      }
+
+      /* ===== NAVBAR ===== */
+      .navbar-wrapper {
+          position: absolute;
+          top: 28px; left: 0;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          z-index: 100;
+      }
+
+      .navbar {
+          display: inline-flex;
+          align-items: center;
+          background: rgba(255,255,255,0.6);
+          backdrop-filter: saturate(180%) blur(24px);
+          -webkit-backdrop-filter: saturate(180%) blur(24px);
+          padding: 10px 10px 10px 32px;
+          border-radius: 60px;
+          box-shadow:
+              0 12px 32px rgba(0,0,0,0.04),
+              inset 0 0 0 1px rgba(255,255,255,0.6),
+              inset 0 1px 1px rgba(255,255,255,0.9);
+          border: 1px solid rgba(255,255,255,0.4);
+          gap: 100px;
+      }
+
+      .brand {
+          font-weight: 700;
+          font-size: 19px;
+          text-decoration: none;
+          letter-spacing: -0.6px;
+          color: var(--text-main);
+      }
+
+      .nav-links { display: flex; gap: 44px; align-items: center; }
+
+      .nav-links a {
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-muted);
+          transition: color 0.2s;
+          letter-spacing: -0.1px;
+      }
+      .nav-links a:hover { color: var(--text-main); }
+      .nav-links a.active { color: var(--text-main); font-weight: 600; }
+
+      .dropdown { position: relative; display: inline-block; height: 100%; }
+      .dropdown > a {
+          display: flex; align-items: center; gap: 4px;
+          height: 100%; padding: 8px 0;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-muted);
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          top: 100%; left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(255,255,255,0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          min-width: 180px;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+          border-radius: 16px;
+          padding: 8px 0;
+          z-index: 10;
+          border: 1px solid rgba(0,0,0,0.04);
+          margin-top: 8px;
+          opacity: 0;
+          transition: opacity 0.2s;
+      }
+      .dropdown-content::before {
+          content: '';
+          position: absolute;
+          top: -8px; left: 0; right: 0;
+          height: 8px;
+          background: transparent;
+      }
+      .dropdown:hover .dropdown-content {
+          display: block;
+          animation: fadeIn 0.2s ease-out forwards;
+      }
+
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translate(-50%, -10px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      .dropdown-content a {
+          padding: 12px 24px;
+          text-decoration: none;
+          display: block;
+          font-size: 14px;
+          transition: background 0.2s, color 0.2s;
+          color: var(--text-muted) !important;
+      }
+      .dropdown-content a:hover { background-color: rgba(0,0,0,0.03); color: var(--text-main) !important; }
+
+      .btn-register {
+          background: var(--text-main);
+          color: white !important;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 40px;
+          font-size: 14px;
+          font-weight: 600;
+          display: flex; align-items: center; gap: 8px;
+          cursor: pointer;
+          transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+          text-decoration: none;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          letter-spacing: -0.1px;
+      }
+      .btn-register * { color: white !important; }
+      .btn-register:hover { background: #000; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+      .btn-register svg { width: 18px; height: 18px; }
+
+      /* â”€â”€â”€ HERO â”€â”€â”€ */
+      .hero {
+          position: relative;
+          z-index: 10;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 180px 20px 60px;
+          text-align: center;
+          background: transparent;
+          width: 100%;
+      }
+      .hero-inner {
+          max-width: 1000px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 0 20px;
+      }
+      .hero-label {
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+          color: #0066FF;
+          margin-bottom: 16px;
+          text-align: center;
+      }
+      .hero-title {
+          font-size: var(--heading-size);
+          font-weight: 600;
+          color: var(--text-main);
+          line-height: 1.05;
+          letter-spacing: -2.5px;
+          margin-bottom: 22px;
+          max-width: 980px;
+          text-align: center;
+      }
+      .hero-sub {
+          font-size: clamp(1.15rem, 1.4vw, 1.45rem);
+          color: var(--text-muted);
+          max-width: 720px;
+          line-height: 1.45;
+          font-weight: 400;
+          letter-spacing: -0.2px;
+          text-align: center;
+      }
+
+      /* ===== SECTIONS & CARDS ===== */
+      .section-title {
+          margin: 48px 0 24px;
+          font-size: 2rem;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          color: #1D1D1F;
+      }
+
+      .status {
+          margin: 24px 0;
+          color: #86868B;
+          font-size: 0.95rem;
+          font-weight: 500;
+      }
+
+      /* ===== REDESIGNED SEASON GRID ===== */
+      .season-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 32px;
+      }
+
+      .season-card {
+          background: #FAF9F6;
+          border: 2px solid #E5C158;
+          border-radius: 20px;
+          padding: 28px 24px;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          color: #1D1D1F;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: 220px;
+          position: relative;
+          overflow: visible;
+          box-shadow: 0 10px 30px rgba(229, 193, 88, 0.05);
+      }
+      .season-card::before, .season-card::after {
+          content: '';
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          background: #ffffff;
+          border-radius: 50%;
+          top: 60%;
+          transform: translateY(-50%);
+          z-index: 5;
+          border: 1px solid rgba(229, 193, 88, 0.25);
+      }
+      .season-card::before {
+          left: -13px;
+      }
+      .season-card::after {
+          right: -13px;
+      }
+
+      .ticket-perforation-h {
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          top: 60%;
+          border-top: 2px dashed rgba(229, 193, 88, 0.35);
+          z-index: 4;
+          pointer-events: none;
+      }
+
+      .season-card:hover {
+          transform: scale(1.03) rotate(-1.5deg);
+          background: #FAF9F6;
+          box-shadow: 0 15px 35px rgba(229, 193, 88, 0.18);
+          border-color: #D4AF37;
+      }
+      .season-card.active {
+          background: #FAF9F6;
+          border-color: #D4AF37;
+          box-shadow: 0 8px 24px rgba(229, 193, 88, 0.15);
+          transform: scale(1.01) rotate(1.5deg);
+      }
+
+      .season-year-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+          width: 100%;
+      }
+
+      .season-year {
+          font-family: var(--font-ticket);
+          font-size: 3.2rem;
+          font-weight: 800;
+          letter-spacing: -0.05em;
+          color: #1D1D1F;
+          line-height: 1;
+          text-align: center;
+      }
+
+      .season-matches-text {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #86868B;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          margin-top: 6px;
+          text-align: center;
+      }
+
+      .season-champion-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 16px;
+          text-align: center;
+          width: 100%;
+      }
+
+      .champion-circle-logo {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          padding: 4px;
+          object-fit: contain;
+          flex-shrink: 0;
+      }
+
+      .champion-details {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-width: 0;
+          width: 100%;
+      }
+
+      .champion-label {
+          font-size: 0.65rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #86868B;
+          margin-bottom: 2px;
+      }
+
+      .champion-team-name {
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: #1D1D1F;
+          font-family: var(--font-ticket);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 100%;
+      }
+
+      /* ===== REDESIGNED MATCH LADDER LIST ===== */
+      .match-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-top: 24px;
+          width: 100%;
+      }
+
+      .match-card {
+          background: #FAF9F6;
+          border: 2px solid #E5C158;
+          border-radius: 20px;
+          padding: 20px 28px;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          color: #1D1D1F;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 24px;
+          position: relative;
+          overflow: visible;
+          box-shadow: 0 10px 30px rgba(229, 193, 88, 0.05);
+      }
+      .match-card::before, .match-card::after {
+          content: '';
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          background: #ffffff;
+          border-radius: 50%;
+          left: 22%;
+          z-index: 5;
+          border: 1px solid rgba(229, 193, 88, 0.25);
+      }
+      .match-card::before {
+          top: -13px;
+      }
+      .match-card::after {
+          bottom: -13px;
+      }
+
+      .ticket-perforation-v {
+          position: absolute;
+          top: 12px;
+          bottom: 12px;
+          left: 22%;
+          border-left: 2px dashed rgba(229, 193, 88, 0.35);
+          z-index: 4;
+          pointer-events: none;
+      }
+
+      .match-card:hover {
+          transform: scale(1.01) rotate(0.3deg);
+          background: #FAF9F6;
+          box-shadow: 0 15px 35px rgba(229, 193, 88, 0.15);
+          border-color: #D4AF37;
+      }
+      .match-card.active {
+          background: #FAF9F6;
+          border-color: #D4AF37;
+          box-shadow: 0 8px 24px rgba(229, 193, 88, 0.15);
+          transform: scale(1.005) rotate(-0.3deg);
+      }
+
+      .match-meta-left {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          flex-shrink: 0;
+          width: 20%;
+          text-align: center;
+          padding-right: 12px;
+      }
+
+      .match-id-badge {
+          background: rgba(229, 193, 88, 0.15);
+          color: #7A6221;
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          width: fit-content;
+          font-family: monospace;
+      }
+
+      .match-date-text {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #86868B;
+          font-family: monospace;
+      }
+
+      .ticket-barcode {
+          height: 28px;
+          width: 100%;
+          background: repeating-linear-gradient(
+              90deg,
+              #1D1D1F,
+              #1D1D1F 2px,
+              transparent 2px,
+              transparent 5px,
+              #1D1D1F 5px,
+              #1D1D1F 8px,
+              transparent 8px,
+              transparent 10px,
+              #1D1D1F 10px,
+              #1D1D1F 11px,
+              transparent 11px,
+              transparent 14px
+          );
+          opacity: 0.75;
+          margin-top: 8px;
+      }
+
+      .match-scoreboard-center {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          flex-grow: 1;
+          min-width: 0;
+          padding-left: 24px;
+      }
+
+      .scoreboard-team-left {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          flex: 1;
+          min-width: 0;
+      }
+
+      .scoreboard-team-right {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 12px;
+          flex: 1;
+          min-width: 0;
+      }
+
+      .team-logo-sm {
+          width: 36px;
+          height: 36px;
+          object-fit: contain;
+          border-radius: 50%;
+          background: transparent;
+          padding: 0;
+          border: none;
+          flex-shrink: 0;
+      }
+
+      .team-name {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1D1D1F;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+      .scoreboard-team-left .team-name {
+          text-align: right;
+      }
+      .scoreboard-team-right .team-name {
+          text-align: left;
+      }
+
+      .scoreboard-score-left {
+          width: 80px;
+          text-align: right;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #86868B;
+          flex-shrink: 0;
+          white-space: nowrap;
+          font-family: monospace;
+      }
+
+      .scoreboard-score-right {
+          width: 80px;
+          text-align: left;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #86868B;
+          flex-shrink: 0;
+          white-space: nowrap;
+          font-family: monospace;
+      }
+
+      .scoreboard-vs {
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #86868B;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          padding: 3px 6px;
+          background: rgba(229, 193, 88, 0.15);
+          border-radius: 4px;
+          flex-shrink: 0;
+          border: 1px solid rgba(229, 193, 88, 0.25);
+      }
+
+      .scoreboard-team-left.is-winner .team-name {
+          font-weight: 800;
+          color: #1D1D1F;
+      }
+      .scoreboard-team-left.is-winner + .scoreboard-score-left {
+          color: #34C759;
+          font-weight: 800;
+      }
+
+      .scoreboard-team-right.is-winner .team-name {
+          font-weight: 800;
+          color: #1D1D1F;
+      }
+      .scoreboard-team-right.is-winner .scoreboard-score-right {
+          color: #34C759;
+          font-weight: 800;
+      }
+
+      .match-result-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+          width: 220px;
+          text-align: right;
+          min-width: 0;
+          border-left: 1px dashed rgba(229, 193, 88, 0.3);
+          padding-left: 16px;
+      }
+
+      .outcome-value {
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: #1D1D1F;
+          font-family: var(--font-ticket);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+      }
+
+      .venue-text {
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: #86868B;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+      }
+
+      @media (max-width: 900px) {
+          .match-card {
+              flex-direction: column;
+              align-items: stretch;
+              padding: 24px;
+              gap: 16px;
+          }
+          .match-card::before, .match-card::after {
+              display: none;
+          }
+          .ticket-perforation-v {
+              display: none;
+          }
+          .match-meta-left {
+              width: 100%;
+              flex-direction: row;
+              justify-content: space-between;
+              align-items: center;
+              padding-right: 0;
+          }
+          .ticket-barcode {
+              display: none;
+          }
+          .match-scoreboard-center {
+              justify-content: space-between;
+              width: 100%;
+              gap: 12px;
+              padding-left: 0;
+          }
+          .scoreboard-team {
+              width: 42%;
+          }
+          .match-result-right {
+              width: 100%;
+              align-items: flex-start;
+              text-align: left;
+              border-left: none;
+              border-top: 1px dashed rgba(229, 193, 88, 0.3);
+              padding-left: 0;
+              padding-top: 12px;
+          }
+      }
+
+      .actions {
+          margin: 24px 0;
+          display: flex;
+          gap: 16px;
+          justify-content: flex-start;
+      }
+
+      .btn {
+          background: #1D1D1F;
+          color: #ffffff;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 30px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          text-decoration: none;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+      .btn:hover {
+          background: #000000;
+          transform: scale(1.02);
+          box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      }
+
+      .hidden { display: none !important; }
+
+      /* ===== SCORECARD WRAP ===== */
+      .scorecard-wrap {
+          margin-top: 32px;
+          background: #ffffff;
+          border-radius: 32px;
+          padding: 32px;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.02);
+      }
+
+      .scorecard-top {
+          display: flex;
+          justify-content: flex-end;
+          gap: 16px;
+          margin-bottom: 24px;
+      }
+
+      .scorecard-head {
+          font-size: 1.6rem;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #1D1D1F;
+          margin-bottom: 32px;
+      }
+
+      .innings-block {
+          background: #F8F9FA;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+          border-radius: 24px;
+          padding: 32px;
+          margin-bottom: 32px;
+      }
+
+      .innings-title {
+          margin: 0 0 20px;
+          font-size: 1.3rem;
+          font-weight: 800;
+          color: #1D1D1F;
+          letter-spacing: -0.02em;
+      }
+
+      .sub-title {
+          margin: 24px 0 12px;
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: #86868B;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+      }
+
+      .table-wrap { overflow-x: auto; margin: 12px 0; }
+
+      table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.95rem;
+          color: #1D1D1F;
+      }
+      th, td {
+          border: none;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+          padding: 12px 16px;
+          text-align: left;
+      }
+      th {
+          background: transparent;
+          color: #86868B;
+          font-weight: 700;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding-bottom: 16px;
+      }
+
+      .tiny {
+          color: #86868B;
+          font-size: 0.85rem;
+          line-height: 1.6;
+          margin: 10px 0;
+          font-weight: 500;
+      }
+
+      .details-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 24px;
+      }
+
+      .detail-card {
+          background: #F8F9FA;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+          border-radius: 20px;
+          padding: 24px;
+      }
+      .detail-label {
+          color: #86868B;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 6px;
+      }
+      .detail-value {
+          color: #1D1D1F;
+          font-size: 1rem;
+          font-weight: 700;
+          line-height: 1.4;
+      }
+
+      /* ===== FOOTER ===== */
+      .footer-wrapper {
+          padding-top: 60px;
+          width: 100%;
+          background-color: #ffffff;
+          margin-top: 8rem;
+      }
+
+      .wicket-footer {
+          background: linear-gradient(135deg, #C3B4FC 0%, #9EB5FA 40%, #7FA5FA 100%);
+          color: var(--text-main);
+          padding: 220px 80px 60px;
+          display: flex;
+          flex-direction: column;
+          gap: 150px;
+          width: 100%;
+          margin: 0;
+          border-radius: 24px;
+          border: none;
+          overflow: hidden;
+          box-shadow: 0 30px 60px rgba(100, 140, 180, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 30px, rgba(0,0,0,0.5) 80px, rgba(0,0,0,0.85) 140px, rgba(0,0,0,1) 200px, rgba(0,0,0,1) calc(100% - 120px), rgba(0,0,0,0.85) calc(100% - 80px), rgba(0,0,0,0.5) calc(100% - 40px), rgba(0,0,0,0) 100%);
+      }
+
+      .footer-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          gap: 60px;
+          width: 100%;
+      }
+
+      .footer-left {
+          flex: 1;
+          min-width: 280px;
+      }
+
+      .footer-left h2 {
+          font-size: clamp(2.5rem, 4vw, 4rem);
+          font-weight: 800;
+          line-height: 1.1;
+          color: var(--text-main);
+          letter-spacing: -0.03em;
+      }
+
+      .footer-left h2 span.footer-typewriter {
+          background: var(--perfect-blue-gradient);
+          -webkit-background-clip: text;
+        background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-style: italic;
+      }
+
+      .blinking-cursor {
+          font-weight: 300 !important;
+          font-style: normal !important;
+          color: #AE95FF;
+          animation: blink 1s step-end infinite;
+          -webkit-text-fill-color: initial !important;
+      }
+
+      @keyframes blink {
+          from, to { opacity: 1; }
+          50% { opacity: 0; }
+      }
+
+      .footer-links-grid {
+          display: flex;
+          gap: 80px;
+          flex-wrap: wrap;
+      }
+
+      .footer-column {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          min-width: 160px;
+      }
+
+      .footer-column h3 {
+          font-size: 0.85rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #111111;
+          margin-bottom: 8px;
+      }
+
+      .footer-column a {
+          color: rgba(17, 17, 17, 0.85) !important;
+          text-decoration: none;
+          font-size: 0.95rem;
+          font-weight: 600;
+          transition: color 0.2s ease, transform 0.2s ease;
+          width: fit-content;
+      }
+
+      .footer-column a:hover {
+          color: #000000 !important;
+          transform: translateX(3px);
+      }
+
+      .footer-bottom {
+          width: calc(100% + 160px);
+          margin-left: -80px;
+          margin-right: -80px;
+          margin-bottom: -60px;
+          text-align: center;
+          overflow: hidden;
+          border-bottom-left-radius: 24px;
+          border-bottom-right-radius: 24px;
+      }
+
+      .giant-brand-text {
+          margin: 0;
+          padding: 0;
+          user-select: none;
+          width: 100%;
+      }
+
+      .giant-brand-text svg {
+          width: 100%;
+          height: auto;
+          display: block;
+      }
+
+      .giant-brand-text text {
+          font-family: var(--font-display);
+          font-weight: 700;
+      }
+
+      @media (max-width: 1024px) {
+          .footer-wrapper {
+              padding-top: 40px;
+          }
+          .wicket-footer {
+              padding: 170px 40px 40px;
+              gap: 110px;
+              -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
+              mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 150px, rgba(0,0,0,1) 100%);
+          }
+          .footer-links-grid {
+              gap: 40px;
+          }
+          .footer-bottom {
+              width: calc(100% + 80px);
+              margin-left: -40px;
+              margin-right: -40px;
+              margin-bottom: -40px;
+          }
+      }
+
+      @media (max-width: 768px) {
+          .footer-wrapper {
+              padding-top: 20px;
+          }
+          .wicket-footer {
+              width: 100%;
+              margin: 0;
+              padding: 120px 24px 30px;
+              gap: 80px;
+              border-radius: 24px;
+              -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
+              mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100px, rgba(0,0,0,1) 100%);
+          }
+          .footer-top {
+              flex-direction: column;
+              gap: 40px;
+          }
+          .footer-left {
+              width: 100%;
+          }
+          .footer-links-grid {
+              width: 100%;
+              justify-content: space-between;
+              gap: 20px;
+          }
+          .footer-bottom {
+              margin-left: -24px;
+              margin-right: -24px;
+              margin-bottom: -30px;
+          }
+      }
+      /* History Simplified UI (Apple-like) */
+      .history-hint {
+          margin: 10px 0 22px;
+          padding: 14px 18px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.75);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          color: #1D1D1F;
+          font-size: 1rem;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .season-grid {
+          gap: 24px !important;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+      }
+
+      .season-card {
+          background: #ffffff !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 22px !important;
+          padding: 26px 24px !important;
+          min-height: 210px !important;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+          overflow: hidden !important;
+      }
+      .season-card:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09) !important;
+          border-color: rgba(0, 0, 0, 0.14) !important;
+      }
+      .season-card.active {
+          transform: none !important;
+          border-color: rgba(0, 102, 255, 0.45) !important;
+          box-shadow: 0 10px 26px rgba(0, 102, 255, 0.14) !important;
+      }
+      .season-card::before,
+      .season-card::after,
+      .ticket-perforation-h {
+          display: none !important;
+          content: none !important;
+      }
+
+      .season-year-row {
+          align-items: flex-start !important;
+          margin-bottom: 22px !important;
+      }
+      .season-year {
+          font-family: var(--font-display) !important;
+          font-size: 2.1rem !important;
+          font-weight: 700 !important;
+          letter-spacing: -0.02em !important;
+          text-align: left !important;
+      }
+      .season-matches-text {
+          font-size: 0.92rem !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.03em !important;
+          text-transform: uppercase !important;
+          margin-top: 8px !important;
+          text-align: left !important;
+      }
+
+      .season-champion-row {
+          flex-direction: row !important;
+          justify-content: flex-start !important;
+          align-items: center !important;
+          gap: 10px !important;
+          margin-top: 0 !important;
+          text-align: left !important;
+      }
+      .champion-circle-logo {
+          width: 38px !important;
+          height: 38px !important;
+      }
+      .champion-details {
+          align-items: flex-start !important;
+      }
+      .champion-label {
+          font-size: 0.76rem !important;
+      }
+      .champion-team-name {
+          font-family: var(--font-display) !important;
+          font-size: 1.08rem !important;
+          font-weight: 700 !important;
+      }
+
+      .match-list {
+          gap: 20px !important;
+      }
+      .match-card {
+          background: #ffffff !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 22px !important;
+          padding: 26px 28px !important;
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06) !important;
+          gap: 22px !important;
+          overflow: hidden !important;
+      }
+      .match-card:hover {
+          transform: translateY(-1px) !important;
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+          border-color: rgba(0, 0, 0, 0.14) !important;
+      }
+      .match-card.active {
+          border-color: rgba(0, 102, 255, 0.45) !important;
+          box-shadow: 0 10px 24px rgba(0, 102, 255, 0.13) !important;
+          transform: none !important;
+      }
+      .match-card::before,
+      .match-card::after,
+      .ticket-perforation-v,
+      .ticket-barcode {
+          display: none !important;
+          content: none !important;
+      }
+
+      .match-meta-left {
+          width: auto !important;
+          align-items: flex-start !important;
+          text-align: left !important;
+          padding-right: 0 !important;
+          gap: 8px !important;
+      }
+      .match-id-badge {
+          background: #F5F5F7 !important;
+          color: #6B7280 !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          font-size: 0.9rem !important;
+          padding: 7px 13px !important;
+      }
+      .match-date-text {
+          font-size: 0.98rem !important;
+          font-weight: 600 !important;
+      }
+      .match-scoreboard-center {
+          padding-left: 0 !important;
+          gap: 18px !important;
+      }
+      .team-logo-sm {
+          width: 46px !important;
+          height: 46px !important;
+      }
+      .team-name {
+          font-size: 1.12rem !important;
+          font-weight: 700 !important;
+      }
+      .scoreboard-score-left,
+      .scoreboard-score-right {
+          width: auto !important;
+          font-size: 1.28rem !important;
+          font-weight: 700 !important;
+      }
+      .scoreboard-vs {
+          background: #F5F5F7 !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          color: #6B7280 !important;
+          font-size: 0.86rem !important;
+          padding: 5px 10px !important;
+      }
+      .scoreboard-score-left.is-winner,
+      .scoreboard-score-right.is-winner {
+          color: #1D1D1F !important;
+          font-weight: 700 !important;
+      }
+      .match-result-right {
+          border-left: none !important;
+          padding-left: 0 !important;
+          width: 300px !important;
+          gap: 6px !important;
+      }
+      .outcome-value {
+          font-size: 1.08rem !important;
+          font-weight: 750 !important;
+      }
+      .venue-text {
+          font-size: 0.94rem !important;
+      }
+
+      #matchesTitle.section-title {
+          font-size: 2.2rem !important;
+      }
+      #status.status {
+          font-size: 1.03rem !important;
+          font-weight: 600 !important;
+      }
+
+      @media (max-width: 900px) {
+          .season-grid {
+              grid-template-columns: 1fr !important;
+          }
+          .match-card {
+              padding: 20px !important;
+              gap: 16px !important;
+          }
+          .team-name {
+              font-size: 1rem !important;
+          }
+          .scoreboard-score-left,
+          .scoreboard-score-right {
+              font-size: 1.1rem !important;
+          }
+          .match-result-right {
+              width: 100% !important;
+          }
+      }
+
+      /* Scorecard Upgrade (match Batter/Bowler table richness) */
+      .scorecard-wrap {
+          background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+          border: 1px solid rgba(93, 137, 214, 0.18) !important;
+          border-radius: 28px !important;
+          box-shadow: 0 18px 40px rgba(59, 130, 246, 0.09), 0 8px 18px rgba(0, 0, 0, 0.04) !important;
+      }
+      .scorecard-head {
+          font-size: 1.85rem !important;
+          letter-spacing: -0.04em !important;
+          margin-bottom: 26px !important;
+          line-height: 1.2 !important;
+      }
+      .innings-block {
+          background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(244,249,255,0.95) 100%) !important;
+          border: 1px solid rgba(93, 137, 214, 0.2) !important;
+          border-radius: 22px !important;
+          box-shadow: 0 12px 26px rgba(59, 130, 246, 0.08) !important;
+          padding: 24px !important;
+          margin-bottom: 24px !important;
+      }
+      .innings-title {
+          font-size: 1.35rem !important;
+          margin-bottom: 14px !important;
+      }
+      .sub-title {
+          margin: 18px 0 10px !important;
+          color: #2563eb !important;
+          font-size: 0.78rem !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.11em !important;
+      }
+      .table-wrap {
+          margin: 10px 0 14px !important;
+          border-radius: 16px !important;
+          border: 1px solid hsl(214 60% 88%) !important;
+          overflow: auto !important;
+          background: #ffffff !important;
+      }
+      .scorecard-wrap table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-size: 0.95rem !important;
+          color: #111827 !important;
+      }
+      .scorecard-wrap th {
+          background: hsl(214 82% 92%) !important;
+          color: hsl(220 45% 22%) !important;
+          font-weight: 700 !important;
+          font-size: 0.76rem !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.08em !important;
+          border-bottom: 1px solid hsl(214 60% 84%) !important;
+          padding: 13px 14px !important;
+          text-align: center !important;
+      }
+      .scorecard-wrap th:first-child,
+      .scorecard-wrap td:first-child {
+          text-align: left !important;
+      }
+      .scorecard-wrap td {
+          padding: 12px 14px !important;
+          border-bottom: 1px solid hsl(214 45% 92%) !important;
+          font-weight: 500 !important;
+          text-align: center !important;
+          white-space: nowrap !important;
+      }
+      .scorecard-wrap tbody tr:nth-child(even) td {
+          background: hsl(213 90% 98%) !important;
+      }
+      .scorecard-wrap tbody tr:hover td {
+          background: hsl(213 95% 96%) !important;
+      }
+      .scorecard-wrap tbody tr:last-child td {
+          border-bottom: none !important;
+      }
+      .tiny {
+          background: hsl(214 82% 94%) !important;
+          border: 1px solid hsl(214 60% 86%) !important;
+          border-radius: 10px !important;
+          padding: 10px 12px !important;
+          margin: 10px 0 !important;
+          color: hsl(220 30% 28%) !important;
+          font-size: 0.89rem !important;
+      }
+      .scorecard-wrap .section-title {
+          margin: 10px 0 18px !important;
+          font-size: 1.55rem !important;
+          letter-spacing: -0.03em !important;
+      }
+      .details-grid {
+          gap: 16px !important;
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) !important;
+      }
+      .detail-card {
+          background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%) !important;
+          border: 1px solid hsl(214 55% 86%) !important;
+          border-radius: 16px !important;
+          padding: 16px 18px !important;
+          box-shadow: 0 8px 18px rgba(59, 130, 246, 0.08) !important;
+      }
+      .detail-label {
+          color: hsl(217 85% 45%) !important;
+          font-size: 0.72rem !important;
+          letter-spacing: 0.09em !important;
+          margin-bottom: 4px !important;
+      }
+      .detail-value {
+          font-size: 0.98rem !important;
+          line-height: 1.35 !important;
+          color: #111827 !important;
+      }
+
+      @media (max-width: 900px) {
+          .scorecard-wrap {
+              padding: 18px !important;
+          }
+          .scorecard-head {
+              font-size: 1.42rem !important;
+          }
+          .innings-block {
+              padding: 16px !important;
+          }
+          .scorecard-wrap th,
+          .scorecard-wrap td {
+              padding: 10px 10px !important;
+              font-size: 0.84rem !important;
+          }
+          .detail-value {
+              font-size: 0.92rem !important;
+          }
+      }
+      /* Updated on 2026-06-14 14:18:00 +05:30: unify header card color style with Predict Winner page. */
+      .hero-section {
+          background: linear-gradient(135deg, #f6fbff 0%, #edf6ff 40%, #f6f9ff 100%) !important;
+          border: 1px solid rgba(255,255,255,0.8) !important;
+          box-shadow: 0 20px 40px rgba(140, 169, 200, 0.12) !important;
+      }
+      /* Updated on 2026-06-14 14:22:00 +05:30: history heading switched to centered text layout without hero card shell. */
+      .hero-card {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          padding: 0 !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: center !important;
+          text-align: center !important;
+          gap: 16px !important;
+      }
+      .hero-card > div {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+      }
+      .hero-sub {
+          margin-left: auto !important;
+          margin-right: auto !important;
+          text-align: center !important;
+      }
+      /* Updated on 2026-06-14 14:31:42 +05:30: match navbar sizing/weight/spacing exactly with index.html across non-dashboard pages. */
+      .navbar-wrapper {
+          position: absolute !important;
+          top: 28px !important;
+          left: 0 !important;
+          width: 100% !important;
+          display: flex !important;
+          justify-content: center !important;
+          z-index: 100 !important;
+      }
+      .navbar {
+          display: inline-flex !important;
+          align-items: center !important;
+          background: rgba(255,255,255,0.6) !important;
+          backdrop-filter: saturate(180%) blur(24px) !important;
+          -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+          padding: 10px 10px 10px 32px !important;
+          border-radius: 60px !important;
+          box-shadow:
+              0 12px 32px rgba(0,0,0,0.04),
+              inset 0 0 0 1px rgba(255,255,255,0.6),
+              inset 0 1px 1px rgba(255,255,255,0.9) !important;
+          border: 1px solid rgba(255,255,255,0.4) !important;
+          gap: 100px !important;
+          position: relative !important;
+          overflow: visible !important;
+          z-index: 310 !important;
+      }
+      .brand { font-size: 19px !important; font-weight: 700 !important; letter-spacing: -0.6px !important; color: var(--text-main) !important; }
+      .nav-links { display: flex !important; gap: 44px !important; align-items: center !important; }
+      .nav-links a {
+          text-decoration: none !important;
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          color: var(--text-muted) !important;
+          transition: color 0.2s !important;
+          letter-spacing: -0.1px !important;
+      }
+      .nav-links a:hover { color: var(--text-main) !important; }
+      .nav-links a.active { color: var(--text-main) !important; font-weight: 500 !important; }
+      .dropdown { position: relative !important; display: inline-block !important; height: 100% !important; z-index: 320 !important; }
+      .dropdown > a {
+          display: flex !important;
+          align-items: center !important;
+          gap: 4px !important;
+          height: 100% !important;
+          padding: 8px 0 !important;
+      }
+      .dropdown-content { z-index: 9999 !important; }
+      .btn-register {
+          padding: 12px 24px !important;
+          border-radius: 40px !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          letter-spacing: -0.1px !important;
+      }
+      .btn-register svg { width: 18px !important; height: 18px !important; }
+      }
+    </style>
+  </head>
+  <body>
     <div class="hero-section">
-        <div class="bg-elements">
-            <div class="orb-1"></div>
-            <div class="orb-2"></div>
-            <div class="orb-3"></div>
-        </div>
+      <div class="bg-elements">
+        <div class="orb-1"></div>
+        <div class="orb-2"></div>
+        <div class="orb-3"></div>
+      </div>
 
-        <div class="navbar-wrapper">
-            <nav class="navbar">
-                <a href="/" class="brand">WicketStats</a>
+      <div class="navbar-wrapper">
+        <nav class="navbar">
+          <a href="/" class="brand">WicketStats</a>
 
-                <div class="nav-links">
-                    <a href="/">Home</a>
-                    <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
-                    <a href="{{ url_for('history') }}" class="active">History</a>
-                    <a href="{{ url_for('predict_winner_page') }}">Predict Winner</a>
-                    <div class="dropdown">
-                        <a href="#">
-                            Index
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="m6 9 6 6 6-6" />
-                            </svg>
-                        </a>
-                        <div class="dropdown-content">
-                            <a href="{{ url_for('bowlerindex') }}">Bowler index</a>
-                            <a href="{{ url_for('player_index1') }}">Batsmen index</a>
-                            <a href="{{ url_for('team_graph') }}">Team index</a>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('player_comparison') }}">Compare</a>
-                </div>
-
-                {% if session.get('user_id') or logged_in %}
-                <a href="/dashboard" class="btn-register" id="registerLink">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                    </svg>
-                    Dashboard
-                </a>
-                {% else %}
-                <a href="#" class="btn-register" id="registerLink">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
-                    </svg>
-                    Register
-                </a>
-                {% endif %}
-            </nav>
-        </div>
-
-        <!-- HERO -->
-        <div class="hero">
-            <div class="hero-inner">
-                <div class="hero-card">
-                    <div>
-                        <div class="hero-label">IPL History</div>
-                        <div class="hero-title">Match History</div>
-                        <div class="hero-sub">Choose a season card, then click any match card to open full analytics scorecard.</div>
-                    </div>
-                    <!-- Updated on 2026-06-14 14:18:58 +05:30: added AI Powered badge in History hero. -->
-                    <div class="ai-badge">
-                        <span class="ai-dot"></span>
-                        <i data-lucide="cpu" style="width:13px;height:13px;"></i>
-                        AI Powered
-                    </div>
-                </div>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="{{ url_for('top_scorer_page') }}">Top Scorer</a>
+            <a href="{{ url_for('history') }}" class="active">History</a>
+            <a href="{{ url_for('predict_winner_page') }}">Predict Winner</a>
+            <div class="dropdown">
+              <a href="#">
+                Index
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </a>
+              <div class="dropdown-content">
+                <a href="{{ url_for('bowlerindex') }}">Bowler index</a>
+                <a href="{{ url_for('player_index1') }}">Batsmen index</a>
+                <a href="{{ url_for('team_graph') }}">Team index</a>
+              </div>
             </div>
+            <a href="{{ url_for('player_comparison') }}">Compare</a>
+          </div>
+
+          {% if session.get('user_id') or logged_in %}
+          <a href="/dashboard" class="btn-register" id="registerLink">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+              />
+            </svg>
+            Dashboard
+          </a>
+          {% else %}
+          <a href="#" class="btn-register" id="registerLink">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"
+              />
+            </svg>
+            Register
+          </a>
+          {% endif %}
+        </nav>
+      </div>
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-inner">
+          <div class="hero-card">
+            <div>
+              <div class="hero-label">IPL History</div>
+              <div class="hero-title">Match History</div>
+              <div class="hero-sub">
+                Choose a season card, then click any match card to open full
+                analytics scorecard.
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <div class="container">
-        <section id="seasonSection">
-            <h2 class="section-title">Seasons</h2>
-            <div class="history-hint">Click any season card to open matches.</div>
-            <section id="seasonGrid" class="season-grid"></section>
-        </section>
+      <section id="seasonSection">
+        <h2 class="section-title">Seasons</h2>
+        <div class="history-hint">Click any season card to open matches.</div>
+        <section id="seasonGrid" class="season-grid"></section>
+      </section>
 
-        <div class="actions hidden" id="matchActions">
-            <button class="btn" id="backToSeasonsBtn">Back to Seasons</button>
+      <div class="actions hidden" id="matchActions">
+        <button class="btn" id="backToSeasonsBtn">Back to Seasons</button>
+      </div>
+      <h2 class="section-title hidden" id="matchesTitle">Matches</h2>
+      <div id="status" class="status">Loading seasons...</div>
+      <section id="matchList" class="match-list"></section>
+
+      <section id="scorecardWrap" class="scorecard-wrap" style="display: none">
+        <div class="scorecard-top">
+          <button class="btn" id="backToMatchesBtn">Back to Matches</button>
+          <button class="btn" id="backToSeasonsBtn2">Back to Seasons</button>
         </div>
-        <h2 class="section-title hidden" id="matchesTitle">Matches</h2>
-        <div id="status" class="status">Loading seasons...</div>
-        <section id="matchList" class="match-list"></section>
-
-        <section id="scorecardWrap" class="scorecard-wrap" style="display:none;">
-            <div class="scorecard-top">
-                <button class="btn" id="backToMatchesBtn">Back to Matches</button>
-                <button class="btn" id="backToSeasonsBtn2">Back to Seasons</button>
-            </div>
-            <div id="scorecardHead" class="scorecard-head"></div>
-            <div id="scorecardBody"></div>
-        </section>
+        <div id="scorecardHead" class="scorecard-head"></div>
+        <div id="scorecardBody"></div>
+      </section>
     </div>
 
     <div class="footer-wrapper">
-        <!-- SECTION 06: Premium Footer -->
-        <footer class="wicket-footer">
-            <div class="footer-top">
-                <div class="footer-left">
-                    <h2>Ready to<br><span id="typewriter" class="footer-typewriter">decode?</span><span class="blinking-cursor">|</span></h2>
-                </div>
-                <div class="footer-links-grid">
-                    <div class="footer-column">
-                        <h3>Platform</h3>
-                        <a href="#">Match Predictor</a>
-                        <a href="{{ url_for('player_index1') }}">Player Index</a>
-                        <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
-                        <a href="{{ url_for('team_graph') }}">Team Graphs</a>
-                        <a href="{{ url_for('player_comparison') }}">Comparison Engine</a>
-                    </div>
-                    <div class="footer-column">
-                        <h3>Intelligence</h3>
-                        <a href="#">Custom Matchups</a>
-                        <a href="#">Fantasy XI</a>
-                        <a href="#">What If Engine</a>
-                        <a href="#">WicketStats AI</a>
-                        <a href="{{ url_for('top_scorer_page') }}">Top Scorers</a>
-                    </div>
-                    <div class="footer-column">
-                        <h3>Account</h3>
-                        <a href="#">Sign Up</a>
-                        <a href="#">Login</a>
-                        <a href="/dashboard">Dashboard</a>
-                        <a href="#">Match History</a>
-                    </div>
-                </div>
+      <!-- SECTION 06: Premium Footer -->
+      <footer class="wicket-footer">
+        <div class="footer-top">
+          <div class="footer-left">
+            <h2>
+              Ready to<br /><span id="typewriter" class="footer-typewriter"
+                >decode?</span
+              ><span class="blinking-cursor">|</span>
+            </h2>
+          </div>
+          <div class="footer-links-grid">
+            <div class="footer-column">
+              <h3>Platform</h3>
+              <a href="#">Match Predictor</a>
+              <a href="{{ url_for('player_index1') }}">Player Index</a>
+              <a href="{{ url_for('bowlerindex') }}">Bowler Index</a>
+              <a href="{{ url_for('team_graph') }}">Team Graphs</a>
+              <a href="{{ url_for('player_comparison') }}">Comparison Engine</a>
             </div>
-            <div class="footer-bottom">
-                <h1 class="giant-brand-text">
-                    <svg viewBox="0 0 1000 140" width="100%" style="display: block; overflow: visible;">
-                        <text x="0" y="135" font-size="175" font-weight="700" textLength="1000" lengthAdjust="spacing" fill="#ffffff">WicketStats</text>
-                    </svg>
-                </h1>
+            <div class="footer-column">
+              <h3>Intelligence</h3>
+              <a href="#">Custom Matchups</a>
+              <a href="#">Fantasy XI</a>
+              <a href="#">What If Engine</a>
+              <a href="#">WicketStats AI</a>
+              <a href="{{ url_for('top_scorer_page') }}">Top Scorers</a>
             </div>
-        </footer>
+            <div class="footer-column">
+              <h3>Account</h3>
+              <a href="#">Sign Up</a>
+              <a href="#">Login</a>
+              <a href="/dashboard">Dashboard</a>
+              <a href="#">Match History</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <h1 class="giant-brand-text">
+            <svg
+              viewBox="0 0 1000 140"
+              width="100%"
+              style="display: block; overflow: visible"
+            >
+              <text
+                x="0"
+                y="135"
+                font-size="175"
+                font-weight="700"
+                textLength="1000"
+                lengthAdjust="spacing"
+                fill="#ffffff"
+              >
+                WicketStats
+              </text>
+            </svg>
+          </h1>
+        </div>
+      </footer>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="{{ url_for('static', filename='auth_shared.js') }}"></script>
     <script>
-        const seasonGrid = document.getElementById("seasonGrid");
-        const matchList = document.getElementById("matchList");
-        const statusEl = document.getElementById("status");
-        const matchesTitle = document.getElementById("matchesTitle");
-        const seasonSection = document.getElementById("seasonSection");
-        const matchActions = document.getElementById("matchActions");
-        const backToSeasonsBtn = document.getElementById("backToSeasonsBtn");
-        const backToMatchesBtn = document.getElementById("backToMatchesBtn");
-        const backToSeasonsBtn2 = document.getElementById("backToSeasonsBtn2");
-        const scorecardWrap = document.getElementById("scorecardWrap");
-        const scorecardHead = document.getElementById("scorecardHead");
-        const scorecardBody = document.getElementById("scorecardBody");
-        let currentSeason = null;
+      const seasonGrid = document.getElementById("seasonGrid");
+      const matchList = document.getElementById("matchList");
+      const statusEl = document.getElementById("status");
+      const matchesTitle = document.getElementById("matchesTitle");
+      const seasonSection = document.getElementById("seasonSection");
+      const matchActions = document.getElementById("matchActions");
+      const backToSeasonsBtn = document.getElementById("backToSeasonsBtn");
+      const backToMatchesBtn = document.getElementById("backToMatchesBtn");
+      const backToSeasonsBtn2 = document.getElementById("backToSeasonsBtn2");
+      const scorecardWrap = document.getElementById("scorecardWrap");
+      const scorecardHead = document.getElementById("scorecardHead");
+      const scorecardBody = document.getElementById("scorecardBody");
+      let currentSeason = null;
 
-        const teamLogos = {
-            "Chennai Super Kings": "/static/images/csk.png",
-            "Delhi Capitals": "/static/images/dc.png",
-            "Delhi Daredevils": "/static/images/dc.png",
-            "Gujarat Titans": "/static/images/gt.png",
-            "Kolkata Knight Riders": "/static/images/kkr.png",
-            "Lucknow Super Giants": "/static/images/lsg.png",
-            "Mumbai Indians": "/static/images/mi.png",
-            "Kings XI Punjab": "/static/images/pbks.png",
-            "Punjab Kings": "/static/images/pbks.png",
-            "Rajasthan Royals": "/static/images/rr.png",
-            "Royal Challengers Bangalore": "/static/images/rcb.png",
-            "Royal Challengers Bengaluru": "/static/images/rcb.png",
-            "Sunrisers Hyderabad": "/static/images/srh.png",
-            "Deccan Chargers": "/static/images/trophy.png"
-        };
+      const teamLogos = {
+        "Chennai Super Kings": "/static/images/csk.png",
+        "Delhi Capitals": "/static/images/dc.png",
+        "Delhi Daredevils": "/static/images/dc.png",
+        "Gujarat Titans": "/static/images/gt.png",
+        "Kolkata Knight Riders": "/static/images/kkr.png",
+        "Lucknow Super Giants": "/static/images/lsg.png",
+        "Mumbai Indians": "/static/images/mi.png",
+        "Kings XI Punjab": "/static/images/pbks.png",
+        "Punjab Kings": "/static/images/pbks.png",
+        "Rajasthan Royals": "/static/images/rr.png",
+        "Royal Challengers Bangalore": "/static/images/rcb.png",
+        "Royal Challengers Bengaluru": "/static/images/rcb.png",
+        "Sunrisers Hyderabad": "/static/images/srh.png",
+        "Deccan Chargers": "/static/images/trophy.png",
+      };
 
-        const teamColors = {
-            "Chennai Super Kings": "#FBC02D",
-            "Delhi Capitals": "#1976D2",
-            "Delhi Daredevils": "#1976D2",
-            "Gujarat Titans": "#183059",
-            "Kolkata Knight Riders": "#4A148C",
-            "Lucknow Super Giants": "#00E5FF",
-            "Mumbai Indians": "#0D47A1",
-            "Kings XI Punjab": "#E53935",
-            "Punjab Kings": "#E53935",
-            "Rajasthan Royals": "#EC407A",
-            "Royal Challengers Bangalore": "#D32F2F",
-            "Royal Challengers Bengaluru": "#D32F2F",
-            "Sunrisers Hyderabad": "#FF5722",
-            "Deccan Chargers": "#4A90E2"
-        };
+      const teamColors = {
+        "Chennai Super Kings": "#FBC02D",
+        "Delhi Capitals": "#1976D2",
+        "Delhi Daredevils": "#1976D2",
+        "Gujarat Titans": "#183059",
+        "Kolkata Knight Riders": "#4A148C",
+        "Lucknow Super Giants": "#00E5FF",
+        "Mumbai Indians": "#0D47A1",
+        "Kings XI Punjab": "#E53935",
+        "Punjab Kings": "#E53935",
+        "Rajasthan Royals": "#EC407A",
+        "Royal Challengers Bangalore": "#D32F2F",
+        "Royal Challengers Bengaluru": "#D32F2F",
+        "Sunrisers Hyderabad": "#FF5722",
+        "Deccan Chargers": "#4A90E2",
+      };
 
-        function getTeamLogo(team) {
-            const normalized = normalizeTeamName(team);
-            return teamLogos[normalized] || "/static/images/trophy.png";
-        }
+      function getTeamLogo(team) {
+        const normalized = normalizeTeamName(team);
+        return teamLogos[normalized] || "/static/images/trophy.png";
+      }
 
-        function getTeamColor(team) {
-            const normalized = normalizeTeamName(team);
-            return teamColors[normalized] || "#6B7280";
-        }
+      function getTeamColor(team) {
+        const normalized = normalizeTeamName(team);
+        return teamColors[normalized] || "#6B7280";
+      }
 
-        function normalizeTeamName(name) {
-            if (name === null || name === undefined) return "";
-            const s = String(name);
-            if (s === "Royal Challengers Bengaluru") return "Royal Challengers Bangalore";
-            return s;
-        }
+      function normalizeTeamName(name) {
+        if (name === null || name === undefined) return "";
+        const s = String(name);
+        if (s === "Royal Challengers Bengaluru")
+          return "Royal Challengers Bangalore";
+        return s;
+      }
 
-        function escapeHtml(value) {
-            if (value === null || value === undefined) return "";
-            return String(value)
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll("\"", "&quot;")
-                .replaceAll("'", "&#039;");
-        }
+      function escapeHtml(value) {
+        if (value === null || value === undefined) return "";
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
 
-        function formatScore(innings) {
-            if (!innings) return "N/A";
-            return `${innings.runs}/${innings.wickets}`;
-        }
+      function formatScore(innings) {
+        if (!innings) return "N/A";
+        return `${innings.runs}/${innings.wickets}`;
+      }
 
-        function renderSeasons(seasons) {
-            seasonGrid.innerHTML = seasons.map(season => {
-                const winner = normalizeTeamName(season.season_winner || "N/A");
-                const logo = getTeamLogo(winner);
-                return `
+      function renderSeasons(seasons) {
+        seasonGrid.innerHTML = seasons
+          .map((season) => {
+            const winner = normalizeTeamName(season.season_winner || "N/A");
+            const logo = getTeamLogo(winner);
+            return `
                     <article class="season-card" data-season="${escapeHtml(season.season)}">
                         <div class="season-year-row">
                             <span class="season-year">${escapeHtml(season.season)}</span>
@@ -1770,34 +1785,48 @@
                         </div>
                     </article>
                 `;
-            }).join("");
+          })
+          .join("");
 
-            seasonGrid.querySelectorAll(".season-card").forEach(card => {
-                card.addEventListener("click", () => loadSeasonMatches(card.getAttribute("data-season")));
-            });
-        }
+        seasonGrid.querySelectorAll(".season-card").forEach((card) => {
+          card.addEventListener("click", () =>
+            loadSeasonMatches(card.getAttribute("data-season")),
+          );
+        });
+      }
 
-        function renderMatches(matches, season) {
-            matchList.innerHTML = matches.map(match => {
-                const first = match.team1 || (match.innings_scores && match.innings_scores[0]) || null;
-                const second = match.team2 || (match.innings_scores && match.innings_scores[1]) || null;
-                const winner = normalizeTeamName(match.winner || "N/A");
-                const firstLogo = getTeamLogo(first ? first.team : "");
-                const secondLogo = getTeamLogo(second ? second.team : "");
-                
-                let outcomeText = "";
-                if (match.result) {
-                    const resLower = match.result.toLowerCase();
-                    if (resLower.includes("won by") || resLower.includes("win") || resLower.includes("no result")) {
-                        outcomeText = match.result;
-                    } else {
-                        outcomeText = `Won by ${match.result}`;
-                    }
-                } else {
-                    outcomeText = `${winner} won`;
-                }
+      function renderMatches(matches, season) {
+        matchList.innerHTML = matches
+          .map((match) => {
+            const first =
+              match.team1 ||
+              (match.innings_scores && match.innings_scores[0]) ||
+              null;
+            const second =
+              match.team2 ||
+              (match.innings_scores && match.innings_scores[1]) ||
+              null;
+            const winner = normalizeTeamName(match.winner || "N/A");
+            const firstLogo = getTeamLogo(first ? first.team : "");
+            const secondLogo = getTeamLogo(second ? second.team : "");
 
-                return `
+            let outcomeText = "";
+            if (match.result) {
+              const resLower = match.result.toLowerCase();
+              if (
+                resLower.includes("won by") ||
+                resLower.includes("win") ||
+                resLower.includes("no result")
+              ) {
+                outcomeText = match.result;
+              } else {
+                outcomeText = `Won by ${match.result}`;
+              }
+            } else {
+              outcomeText = `${winner} won`;
+            }
+
+            return `
                     <article class="match-card" data-match-id="${escapeHtml(match.match_id)}">
                         <div class="match-meta-left">
                             <span class="match-id-badge">ID: ${escapeHtml(match.match_id)}</span>
@@ -1806,44 +1835,49 @@
                         </div>
                         <div class="ticket-perforation-v"></div>
                         <div class="match-scoreboard-center">
-                            <div class="scoreboard-team-left ${first && first.team === winner ? 'is-winner' : ''}">
-                                <span class="team-name" title="${escapeHtml(normalizeTeamName(first ? first.team : 'Team 1'))}">${escapeHtml(normalizeTeamName(first ? first.team : "Team 1"))}</span>
+                            <div class="scoreboard-team-left ${first && first.team === winner ? "is-winner" : ""}">
+                                <span class="team-name" title="${escapeHtml(normalizeTeamName(first ? first.team : "Team 1"))}">${escapeHtml(normalizeTeamName(first ? first.team : "Team 1"))}</span>
                                 <img src="${firstLogo}" class="team-logo-sm" onerror="this.style.display='none'">
                             </div>
-                            <div class="scoreboard-score-left ${first && first.team === winner ? 'is-winner' : ''}">
+                            <div class="scoreboard-score-left ${first && first.team === winner ? "is-winner" : ""}">
                                 ${escapeHtml(formatScore(first))}
                             </div>
                             <div class="scoreboard-vs">vs</div>
-                            <div class="scoreboard-score-right ${second && second.team === winner ? 'is-winner' : ''}">
+                            <div class="scoreboard-score-right ${second && second.team === winner ? "is-winner" : ""}">
                                 ${escapeHtml(formatScore(second))}
                             </div>
-                            <div class="scoreboard-team-right ${second && second.team === winner ? 'is-winner' : ''}">
+                            <div class="scoreboard-team-right ${second && second.team === winner ? "is-winner" : ""}">
                                 <img src="${secondLogo}" class="team-logo-sm" onerror="this.style.display='none'">
-                                <span class="team-name" title="${escapeHtml(normalizeTeamName(second ? second.team : 'Team 2'))}">${escapeHtml(normalizeTeamName(second ? second.team : "Team 2"))}</span>
+                                <span class="team-name" title="${escapeHtml(normalizeTeamName(second ? second.team : "Team 2"))}">${escapeHtml(normalizeTeamName(second ? second.team : "Team 2"))}</span>
                             </div>
                         </div>
                         <div class="match-result-right">
                             <span class="outcome-value" title="${escapeHtml(outcomeText)}">${escapeHtml(outcomeText)}</span>
-                            <span class="venue-text" title="${escapeHtml(match.venue || '')}">${escapeHtml(match.venue || "N/A")}</span>
+                            <span class="venue-text" title="${escapeHtml(match.venue || "")}">${escapeHtml(match.venue || "N/A")}</span>
                         </div>
                     </article>
                 `;
-            }).join("");
+          })
+          .join("");
 
-            matchList.querySelectorAll(".match-card").forEach(card => {
-                card.addEventListener("click", () => {
-                    matchList.querySelectorAll(".match-card").forEach(c => c.classList.remove("active"));
-                    card.classList.add("active");
-                    loadMatchScorecard(card.getAttribute("data-match-id"));
-                });
-            });
+        matchList.querySelectorAll(".match-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            matchList
+              .querySelectorAll(".match-card")
+              .forEach((c) => c.classList.remove("active"));
+            card.classList.add("active");
+            loadMatchScorecard(card.getAttribute("data-match-id"));
+          });
+        });
 
-            matchesTitle.textContent = `Matches - Season ${season}`;
-            statusEl.textContent = `${matches.length} matches loaded`;
-        }
+        matchesTitle.textContent = `Matches - Season ${season}`;
+        statusEl.textContent = `${matches.length} matches loaded`;
+      }
 
-        function battingTableRows(rows) {
-            return rows.map(row => `
+      function battingTableRows(rows) {
+        return rows
+          .map(
+            (row) => `
                 <tr>
                     <td>${escapeHtml(row.batter)}</td>
                     <td>${escapeHtml(row.dismissal)}</td>
@@ -1854,11 +1888,15 @@
                     <td>${escapeHtml(row["6s"])}</td>
                     <td>${escapeHtml(Number(row.sr).toFixed(2))}</td>
                 </tr>
-            `).join("");
-        }
+            `,
+          )
+          .join("");
+      }
 
-        function bowlingTableRows(rows) {
-            return rows.map(row => `
+      function bowlingTableRows(rows) {
+        return rows
+          .map(
+            (row) => `
                 <tr>
                     <td>${escapeHtml(row.bowler)}</td>
                     <td>${escapeHtml(row.o)}</td>
@@ -1870,14 +1908,18 @@
                     <td>${escapeHtml(row.wd)}</td>
                     <td>${escapeHtml(row.nb)}</td>
                 </tr>
-            `).join("");
-        }
+            `,
+          )
+          .join("");
+      }
 
-        function renderScorecard(data) {
-            scorecardWrap.style.display = "block";
-            scorecardHead.textContent = `Match ID ${data.match_id} | Winner: ${normalizeTeamName(data.winner || "N/A")} ${data.result ? `(${data.result})` : ""}`;
+      function renderScorecard(data) {
+        scorecardWrap.style.display = "block";
+        scorecardHead.textContent = `Match ID ${data.match_id} | Winner: ${normalizeTeamName(data.winner || "N/A")} ${data.result ? `(${data.result})` : ""}`;
 
-            const inningsHtml = (data.innings || []).map(inn => `
+        const inningsHtml = (data.innings || [])
+          .map(
+            (inn) => `
                 <article class="innings-block">
                     <h3 class="innings-title">${escapeHtml(inn.header)}</h3>
                     <div class="sub-title">Batting</div>
@@ -1906,164 +1948,189 @@
                         </table>
                     </div>
                 </article>
-            `).join("");
+            `,
+          )
+          .join("");
 
-            const details = data.match_details || {};
-            const detailRows = [
-                ["Ground", details.ground],
-                ["Toss", details.toss],
-                ["Series", details.series],
-                ["Season", details.season],
-                ["Result", details.result],
-                ["Player Of The Match", details.player_of_the_match],
-                ["Series Result", details.series_result],
-                ["Match Days", details.match_days],
-                ["Stage", details.stage],
-                ["Umpires", details.umpires],
-                ["Result Type", details.result_type],
-                ["Method", details.method]
-            ];
-            const detailsHtml = detailRows.map(([label, value]) => `
+        const details = data.match_details || {};
+        const detailRows = [
+          ["Ground", details.ground],
+          ["Toss", details.toss],
+          ["Series", details.series],
+          ["Season", details.season],
+          ["Result", details.result],
+          ["Player Of The Match", details.player_of_the_match],
+          ["Series Result", details.series_result],
+          ["Match Days", details.match_days],
+          ["Stage", details.stage],
+          ["Umpires", details.umpires],
+          ["Result Type", details.result_type],
+          ["Method", details.method],
+        ];
+        const detailsHtml = detailRows
+          .map(
+            ([label, value]) => `
                 <div class="detail-card">
                     <div class="detail-label">${escapeHtml(label)}</div>
                     <div class="detail-value">${escapeHtml(value || "N/A")}</div>
                 </div>
-            `).join("");
+            `,
+          )
+          .join("");
 
-            scorecardBody.innerHTML = `${inningsHtml}<h3 class="section-title">Match Details</h3><div class="details-grid">${detailsHtml}</div>`;
-            scorecardWrap.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        scorecardBody.innerHTML = `${inningsHtml}<h3 class="section-title">Match Details</h3><div class="details-grid">${detailsHtml}</div>`;
+        scorecardWrap.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
 
-        async function loadSeasonMatches(season) {
-            currentSeason = season;
-            seasonGrid.querySelectorAll(".season-card").forEach(card => {
-                card.classList.toggle("active", card.getAttribute("data-season") === season);
-            });
-            seasonSection.classList.add("hidden");
-            matchActions.classList.remove("hidden");
-            matchesTitle.classList.remove("hidden");
-            statusEl.textContent = `Loading season ${season}...`;
-            matchList.innerHTML = "";
-            scorecardWrap.style.display = "none";
-            matchList.classList.remove("hidden");
-
-            try {
-                const res = await fetch(`/api/history/matches?season=${encodeURIComponent(season)}`);
-                const data = await res.json();
-                if (!res.ok || data.status !== "success") throw new Error(data.message || "Failed to load matches");
-                renderMatches(data.matches || [], season);
-            } catch (err) {
-                statusEl.textContent = err.message;
-            }
-        }
-
-        async function loadMatchScorecard(matchId) {
-            statusEl.textContent = `Loading scorecard for match ${matchId}...`;
-            try {
-                const res = await fetch(`/api/history/match-scorecard?match_id=${encodeURIComponent(matchId)}`);
-                const data = await res.json();
-                if (!res.ok || data.status !== "success") throw new Error(data.message || "Failed to load scorecard");
-                matchList.classList.add("hidden");
-                matchActions.classList.add("hidden");
-                renderScorecard(data);
-                statusEl.textContent = "Scorecard loaded";
-            } catch (err) {
-                statusEl.textContent = err.message;
-            }
-        }
-
-        async function init() {
-            try {
-                const res = await fetch("/api/history/seasons");
-                const data = await res.json();
-                if (!res.ok || data.status !== "success") throw new Error(data.message || "Failed to load seasons");
-                const seasons = data.seasons || [];
-                if (!seasons.length) {
-                    statusEl.textContent = "No seasons found.";
-                    return;
-                }
-                renderSeasons(seasons);
-                statusEl.textContent = "Click any season card to open matches.";
-            } catch (err) {
-                statusEl.textContent = err.message;
-            }
-        }
-        backToSeasonsBtn.addEventListener("click", () => {
-            seasonSection.classList.remove("hidden");
-            matchActions.classList.add("hidden");
-            matchesTitle.classList.add("hidden");
-            matchList.innerHTML = "";
-            matchList.classList.remove("hidden");
-            scorecardWrap.style.display = "none";
-            statusEl.textContent = "Click any season card to open matches.";
-            matchList.querySelectorAll(".match-card").forEach(c => c.classList.remove("active"));
+      async function loadSeasonMatches(season) {
+        currentSeason = season;
+        seasonGrid.querySelectorAll(".season-card").forEach((card) => {
+          card.classList.toggle(
+            "active",
+            card.getAttribute("data-season") === season,
+          );
         });
-        backToMatchesBtn.addEventListener("click", () => {
-            scorecardWrap.style.display = "none";
-            matchList.classList.remove("hidden");
-            matchActions.classList.remove("hidden");
-            matchesTitle.classList.remove("hidden");
-            statusEl.textContent = currentSeason ? `Matches loaded for season ${currentSeason}` : "Matches loaded";
-        });
-        backToSeasonsBtn2.addEventListener("click", () => {
-            scorecardWrap.style.display = "none";
-            seasonSection.classList.remove("hidden");
-            matchActions.classList.add("hidden");
-            matchesTitle.classList.add("hidden");
-            matchList.classList.remove("hidden");
-            matchList.innerHTML = "";
-            statusEl.textContent = "Click any season card to open matches.";
-        });
-        init();
+        seasonSection.classList.add("hidden");
+        matchActions.classList.remove("hidden");
+        matchesTitle.classList.remove("hidden");
+        statusEl.textContent = `Loading season ${season}...`;
+        matchList.innerHTML = "";
+        scorecardWrap.style.display = "none";
+        matchList.classList.remove("hidden");
 
-        // Typewriter effect for footer
-        const phrases = ["stop guessing?", "start analyzing?", "make predictions?", "win your leagues?", "own the game?"];
-        let phraseIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        const typewriterElement = document.getElementById('typewriter');
-        
-        function type() {
-            if (!typewriterElement) return;
-            
-            const currentPhrase = phrases[phraseIndex];
-            
-            if (isDeleting) {
-                typewriterElement.textContent = currentPhrase.substring(0, charIndex - 1);
-                charIndex--;
-            } else {
-                typewriterElement.textContent = currentPhrase.substring(0, charIndex + 1);
-                charIndex++;
-            }
-            
-            let typeSpeed = 100;
-            
-            if (isDeleting) {
-                typeSpeed /= 2;
-            }
-            
-            if (!isDeleting && charIndex === currentPhrase.length) {
-                typeSpeed = 2000;
-                isDeleting = true;
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                phraseIndex = (phraseIndex + 1) % phrases.length;
-                typeSpeed = 500;
-            }
-            
-            setTimeout(type, typeSpeed);
+        try {
+          const res = await fetch(
+            `/api/history/matches?season=${encodeURIComponent(season)}`,
+          );
+          const data = await res.json();
+          if (!res.ok || data.status !== "success")
+            throw new Error(data.message || "Failed to load matches");
+          renderMatches(data.matches || [], season);
+        } catch (err) {
+          statusEl.textContent = err.message;
         }
-        
-        if (typewriterElement) {
-            type();
+      }
+
+      async function loadMatchScorecard(matchId) {
+        statusEl.textContent = `Loading scorecard for match ${matchId}...`;
+        try {
+          const res = await fetch(
+            `/api/history/match-scorecard?match_id=${encodeURIComponent(matchId)}`,
+          );
+          const data = await res.json();
+          if (!res.ok || data.status !== "success")
+            throw new Error(data.message || "Failed to load scorecard");
+          matchList.classList.add("hidden");
+          matchActions.classList.add("hidden");
+          renderScorecard(data);
+          statusEl.textContent = "Scorecard loaded";
+        } catch (err) {
+          statusEl.textContent = err.message;
         }
+      }
+
+      async function init() {
+        try {
+          const res = await fetch("/api/history/seasons");
+          const data = await res.json();
+          if (!res.ok || data.status !== "success")
+            throw new Error(data.message || "Failed to load seasons");
+          const seasons = data.seasons || [];
+          if (!seasons.length) {
+            statusEl.textContent = "No seasons found.";
+            return;
+          }
+          renderSeasons(seasons);
+          statusEl.textContent = "Click any season card to open matches.";
+        } catch (err) {
+          statusEl.textContent = err.message;
+        }
+      }
+      backToSeasonsBtn.addEventListener("click", () => {
+        seasonSection.classList.remove("hidden");
+        matchActions.classList.add("hidden");
+        matchesTitle.classList.add("hidden");
+        matchList.innerHTML = "";
+        matchList.classList.remove("hidden");
+        scorecardWrap.style.display = "none";
+        statusEl.textContent = "Click any season card to open matches.";
+        matchList
+          .querySelectorAll(".match-card")
+          .forEach((c) => c.classList.remove("active"));
+      });
+      backToMatchesBtn.addEventListener("click", () => {
+        scorecardWrap.style.display = "none";
+        matchList.classList.remove("hidden");
+        matchActions.classList.remove("hidden");
+        matchesTitle.classList.remove("hidden");
+        statusEl.textContent = currentSeason
+          ? `Matches loaded for season ${currentSeason}`
+          : "Matches loaded";
+      });
+      backToSeasonsBtn2.addEventListener("click", () => {
+        scorecardWrap.style.display = "none";
+        seasonSection.classList.remove("hidden");
+        matchActions.classList.add("hidden");
+        matchesTitle.classList.add("hidden");
+        matchList.classList.remove("hidden");
+        matchList.innerHTML = "";
+        statusEl.textContent = "Click any season card to open matches.";
+      });
+      init();
+
+      // Typewriter effect for footer
+      const phrases = [
+        "stop guessing?",
+        "start analyzing?",
+        "make predictions?",
+        "win your leagues?",
+        "own the game?",
+      ];
+      let phraseIndex = 0;
+      let charIndex = 0;
+      let isDeleting = false;
+      const typewriterElement = document.getElementById("typewriter");
+
+      function type() {
+        if (!typewriterElement) return;
+
+        const currentPhrase = phrases[phraseIndex];
+
+        if (isDeleting) {
+          typewriterElement.textContent = currentPhrase.substring(
+            0,
+            charIndex - 1,
+          );
+          charIndex--;
+        } else {
+          typewriterElement.textContent = currentPhrase.substring(
+            0,
+            charIndex + 1,
+          );
+          charIndex++;
+        }
+
+        let typeSpeed = 100;
+
+        if (isDeleting) {
+          typeSpeed /= 2;
+        }
+
+        if (!isDeleting && charIndex === currentPhrase.length) {
+          typeSpeed = 2000;
+          isDeleting = true;
+        } else if (isDeleting && charIndex === 0) {
+          isDeleting = false;
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          typeSpeed = 500;
+        }
+
+        setTimeout(type, typeSpeed);
+      }
+
+      if (typewriterElement) {
+        type();
+      }
     </script>
-</body>
+  </body>
 </html>
-
-
-
-
-
-
-

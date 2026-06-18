@@ -1,30 +1,31 @@
-from flask import Flask, render_template, request, jsonify, session, Response, stream_with_context
-import pandas as pd
-import matplotlib
-matplotlib.use('Agg')  # must be before any other matplotlib import
-import matplotlib.pyplot as plt
-import sqlite3
-from flask import redirect, url_for
-from functools import wraps
-import smtplib
-import random
-import os
-from email.mime.text import MIMEText
-from dotenv import load_dotenv
 import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
-import json
 import hashlib
 import hmac
-import rag_engine
-import numpy as np
-import polars as pl
-import systemprompts
-import urllib.request
-import urllib.parse
-import image_mapping
-import razorpay
+import json
+import os
+import random
 import re
+import smtplib
+import sqlite3
+import urllib.parse
+import urllib.request
+import uuid
+from email.mime.text import MIMEText
+from functools import wraps
+import image_mapping
+import matplotlib
+import numpy as np
+import pandas as pd
+import polars as pl
+import rag_engine
+import razorpay
+import systemprompts
+from dotenv import load_dotenv
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
+
+matplotlib.use('Agg')  # must be before any other matplotlib import
+import matplotlib.pyplot as plt
 
 
 
@@ -54,6 +55,18 @@ def json_safe(value):
         pass
     return value
 
+
+def get_user_scope():
+    user_id = session.get('user_id')
+    if user_id:
+        return f"user:{user_id}"
+    anon_scope = session.get('anon_scope_id')
+    if not anon_scope:
+        anon_scope = uuid.uuid4().hex
+        session['anon_scope_id'] = anon_scope
+    return f"anon:{anon_scope}"
+
+# ----------------------------- DATA LOADING / GLOBAL DATAFRAMES -----------------------------
 pl.Config.set_float_precision(2)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.precision', 3)
@@ -104,6 +117,7 @@ SECRET_KEY = app.secret_key
 EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
+# ----------------------------- PLAN / BILLING CONFIG -----------------------------
 PLAN_QUOTA = {
     'Basic': 5000,
     'Plus': 7000,
@@ -127,6 +141,7 @@ PLAN_PRICES = {
 }
 
 
+# ----------------------------- PAYMENT + OTP HELPERS -----------------------------
 def get_razorpay_creds():
     key_id = (os.getenv('RAZOR_PAY_KEY') or os.getenv('RAZORPAY_KEY_ID') or '').strip()
     key_secret = (os.getenv('RAZOR_PAY_SECRET') or os.getenv('RAZORPAY_KEY_SECRET') or '').strip()
@@ -161,6 +176,75 @@ def validate_latest_email_otp(cursor, email, user_otp):
         return False, 'OTP expired'
 
     return True, None
+
+OTP_EXPIRY_SECONDS = 5 * 60
+
+def get_otp_remaining_seconds(created_at):
+    try:
+        otp_time = datetime.datetime.fromisoformat(created_at)
+    except Exception:
+        return 0
+    elapsed = (datetime.datetime.utcnow() - otp_time).total_seconds()
+    remaining = OTP_EXPIRY_SECONDS - int(elapsed)
+    return max(0, remaining)
+
+def get_latest_otp_status(cursor, email):
+    row = cursor.execute(
+        "SELECT otp, created_at FROM otp_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+        (email,)
+    ).fetchone()
+    if not row:
+        return False, 0
+    _, created_at = row
+    remaining = get_otp_remaining_seconds(created_at)
+    return remaining > 0, remaining
+
+def create_and_store_email_otp(cursor, email):
+    otp = f"{random.randint(100000, 999999)}"
+    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+    cursor.execute(
+        "INSERT INTO otp_codes (email, otp) VALUES (?, ?)",
+        (email, otp)
+    )
+    return otp
+
+def send_otp_mail(email, otp):
+    msg = MIMEText(f"Your OTP is: {otp}")
+    msg['Subject'] = 'OTP Verification'
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = email
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
+def is_email_verified_for_signup(email):
+    verified_email = (session.get('otp_verified_email') or '').strip().lower()
+    return bool(verified_email) and verified_email == (email or '').strip().lower()
+
+def _name_key(name):
+    return re.sub(r'[^a-z0-9]+', '', str(name or '').strip().lower())
+
+def resolve_player_headshot_id(player_name):
+    # Single source of truth: image_mapping.batter_map().
+    full_map = image_mapping.batter_map()
+
+    if player_name in full_map:
+        return full_map[player_name]
+
+    target = _name_key(player_name)
+    if not target:
+        return None
+
+    for k, v in full_map.items():
+        if _name_key(k) == target:
+            return v
+    return None
+
+def resolve_player_image_url(player_name):
+    headshot_id = resolve_player_headshot_id(player_name)
+    if str(headshot_id).isdigit():
+        return f"https://documents.iplt20.com/ipl/IPLHeadshot2026/{headshot_id}.png"
+    return "https://documents.iplt20.com/ipl/assets/images/Default-Men.png"
 
 def normalize_plan(plan_value):
     plan_raw = (plan_value or '').strip().lower()
@@ -406,6 +490,8 @@ def require_tokens(estimated_cost=100):
         return wrapper
     return decorator
 
+
+# ----------------------------- DATABASE BOOTSTRAP -----------------------------
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -551,6 +637,9 @@ df_new['season'] = (
     .replace({'2007/08': '2008', '2009/10': '2010', '2020/21': '2020'})
     .astype(str)
 )
+# Dedicated 2024-2025 slice for Top Scorer predictor.
+# Keep separate from df_new, which is reused later for broader historical merges.
+df_recent_2425 = df_new.copy()
 
 
 # ===== Normalize team names here =====
@@ -955,6 +1044,7 @@ def _build_innings_scorecard(innings_df, target_runs=None):
     }
 
 
+# ----------------------------- PAGE ROUTES (TEMPLATES) -----------------------------
 @app.route('/')
 def index():
     teams = df['batting_team'].unique().tolist()
@@ -1024,6 +1114,7 @@ def history():
     logged_in = 'user_id' in session
     return render_template('history.html', logged_in=logged_in)
 
+# ----------------------------- HISTORY APIs -----------------------------
 @app.route('/api/history/seasons', methods=['GET'])
 def history_seasons():
     seasons = [
@@ -1239,10 +1330,9 @@ def history_match_scorecard():
         'innings': innings_payload,
         'match_details': details
     })
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index'))
+
+
+# ----------------------------- MATCHUP / PREDICTION HELPERS -----------------------------
 def get_h2h_match(team1, team2):
       h2h = df[
         ((df['batting_team'] == team1) & (df['bowling_team'] == team2)) |
@@ -1250,10 +1340,10 @@ def get_h2h_match(team1, team2):
     ]
       return h2h
 def get_h2h_matches(team1, team2):
-    h2h = df_new[
+    h2h = df_recent_2425[
         (
-            ((df_new['batting_team'] == team1) & (df_new['bowling_team'] == team2)) |
-            ((df_new['batting_team'] == team2) & (df_new['bowling_team'] == team1))
+            ((df_recent_2425['batting_team'] == team1) & (df_recent_2425['bowling_team'] == team2)) |
+            ((df_recent_2425['batting_team'] == team2) & (df_recent_2425['bowling_team'] == team1))
         )
     ]
     return h2h
@@ -1440,22 +1530,6 @@ def predict():
         "confidence_gap":         confidence,
     })
 
-def shorten_name(name: str) -> str:
-    """'Virat Kohli' → 'V Kohli', 'MS Dhoni' → 'MS Dhoni'."""
-    parts = name.split()
-    if len(parts) == 1:
-        return name
-    first = parts[0]
-    if len(parts) >= 3:
-        last = " ".join(parts[1:])
-        return f"{first[0]} {last}"
-    last = parts[-1]
-    return f"{first[0]} {last}"
- 
-
-df_new['batter'] = df_new['batter'].apply(shorten_name)
-df_2026['striker'] = df_2026['striker'].apply(shorten_name)
-
 
 @app.route('/top_scorer', methods=['POST'])
 def top_scorer():
@@ -1466,7 +1540,7 @@ def top_scorer():
 
  
     # ── 2024/25 data ──────────────────────────────────────────────────────────
-    h2h_2025 = get_h2h_matches(team1, team2)   # uses df_new (2024+2025 only)
+    h2h_2025 = get_h2h_matches(team1, team2)   # uses df_recent_2425 (2024+2025 only)
  
     batter_scores =  h2h_2025.groupby(["match_id", "date", "batter", "batting_team"], as_index=False).agg(
             runs_total=('runs_total', 'sum'),
@@ -1624,14 +1698,7 @@ def top_scorer():
         avg_per_match = total_runs / max(1, total_matches)
  
         
-        num = image_mapping.batter_map_short().get(batter)
-        if num:
-            if str(num).isdigit():
-                image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2026/{num}.png"
-            else:
-                image_url = None
-        else:
-            image_url = None
+        image_url = resolve_player_image_url(batter)
 
         top_scorer_details.append({
             "batter":           batter,
@@ -1845,8 +1912,10 @@ def batter_index(batter, team, role, include_summary=True):
                 """
     batting = ""
     if include_summary:
-        rag_engine.team_store(batting_data)
-        batting = rag_engine.ask_team(question)
+        user_scope = get_user_scope()
+        namespace = f"batter:{batter.strip().lower()}:{(team or 'all').strip().lower()}"
+        rag_engine.team_store(batting_data, user_scope=user_scope, namespace=namespace)
+        batting = rag_engine.ask_team(question, user_scope=user_scope, namespace=namespace)
 
     if role == 'batter':
         return batting_data
@@ -1929,12 +1998,13 @@ def _build_team_summary_chunks(team_name, season_rows):
     return chunks
 
 
-def _stream_team_summary(question, chunks):
+def _stream_team_summary(question, chunks, namespace):
     if not chunks:
         yield "No data available for summary."
         return
-    rag_engine.team_store(chunks)
-    for token in rag_engine.ask_team_stream(question):
+    user_scope = get_user_scope()
+    rag_engine.team_store(chunks, user_scope=user_scope, namespace=namespace)
+    for token in rag_engine.ask_team_stream(question, user_scope=user_scope, namespace=namespace):
         if token:
             yield token
 
@@ -1949,12 +2019,7 @@ def player_index():
     # Base URL: https://documents.iplt20.com{ID}.png
 
 
-    batter_id = image_mapping.batter_map().get(batter)
-    image_url = None
-    if batter_id:
-        image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id}.png"
-    else:   
-        image_url = f"https://documents.iplt20.com/ipl/assets/images/{batter_id}.png"
+    image_url = resolve_player_image_url(batter)
     role = ""
 
     bat_index = batter_index(batter, team, role, include_summary=False)
@@ -1994,39 +2059,31 @@ def player_index_summary_stream():
                over all the season's while also summarise what the batter's strength's and short-cummings are, with proper evaluation on how he can can improve.
                 """
     chunks = _build_batter_summary_chunks(batter, rows)
+    namespace = f"player_summary:{batter.strip().lower()}:{(team or 'all').strip().lower()}"
 
     return Response(
-        stream_with_context(_stream_team_summary(question, chunks)),
+        stream_with_context(_stream_team_summary(question, chunks, namespace)),
         mimetype='text/plain'
     )
 
+# ----------------------------- AUTH / ACCOUNT ROUTES -----------------------------
 @app.route('/send-otp', methods=['POST'])
 def send_otp():
-    email = request.form.get('email')
+    email = (request.form.get('email') or '').strip().lower()
     if not email:
         return jsonify({'message': 'Email required'}), 400
-
-    otp = f"{random.randint(100000, 999999)}"
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    cursor.execute(
-        "INSERT INTO otp_codes (email, otp) VALUES (?, ?)",
-        (email, otp)
-    )
+    session.pop('otp_verified_email', None)
+    otp = create_and_store_email_otp(cursor, email)
     conn.commit()
     conn.close()
-    msg = MIMEText(f"Your OTP is: {otp}")
-    msg['Subject'] = 'OTP Verification'
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = email
 
     try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-        return jsonify({'message': 'OTP sent successfully'})
+        send_otp_mail(email, otp)
+        return jsonify({'message': 'OTP sent successfully', 'expires_in': OTP_EXPIRY_SECONDS})
     except Exception:
         return jsonify({'message': 'Failed to send OTP'}), 500
 
@@ -2055,7 +2112,110 @@ def verify_otp():
     if not is_valid:
         return jsonify({'status': 'error', 'message': error_message}), 400
 
+    # OTP verification is the primary email-verification step in signup flow.
+    session['otp_verified_email'] = email.strip().lower()
     return jsonify({'status': 'success', 'message': 'OTP verified successfully'})
+
+@app.route('/otp-status', methods=['GET'])
+def otp_status():
+    email = (request.args.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'status': 'error', 'message': 'Email required'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    is_active, remaining = get_latest_otp_status(cursor, email)
+    conn.close()
+
+    return jsonify({
+        'status': 'success',
+        'has_active_otp': is_active,
+        'remaining_seconds': remaining
+    })
+
+@app.route('/forgot-password/send-otp', methods=['POST'])
+def forgot_password_send_otp():
+    email = (request.form.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'status': 'error', 'message': 'Email required'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'No account found for this email'}), 404
+
+    session.pop('forgot_password_verified_email', None)
+    otp = create_and_store_email_otp(cursor, email)
+    conn.commit()
+    conn.close()
+
+    try:
+        send_otp_mail(email, otp)
+        return jsonify({'status': 'success', 'message': 'OTP sent successfully', 'expires_in': OTP_EXPIRY_SECONDS})
+    except Exception:
+        return jsonify({'status': 'error', 'message': 'Failed to send OTP'}), 500
+
+@app.route('/forgot-password/verify-otp', methods=['POST'])
+def forgot_password_verify_otp():
+    email = (
+        request.form.get('email')
+        or (request.get_json(silent=True) or {}).get('email')
+        or ''
+    ).strip().lower()
+    user_otp = (
+        request.form.get('otp')
+        or (request.get_json(silent=True) or {}).get('otp')
+        or ''
+    ).strip()
+
+    if not email or not user_otp:
+        return jsonify({'status': 'error', 'message': 'Email and OTP are required'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'No account found for this email'}), 404
+
+    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
+    conn.close()
+    if not is_valid:
+        return jsonify({'status': 'error', 'message': error_message}), 400
+
+    session['forgot_password_verified_email'] = email
+    return jsonify({'status': 'success', 'message': 'OTP verified successfully'})
+
+@app.route('/forgot-password/reset', methods=['POST'])
+def forgot_password_reset():
+    email = (request.form.get('email') or '').strip().lower()
+    new_password = (request.form.get('new_password') or '').strip()
+    confirm_password = (request.form.get('confirm_password') or '').strip()
+
+    if not all([email, new_password, confirm_password]):
+        return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+    if new_password != confirm_password:
+        return jsonify({'status': 'error', 'message': 'Passwords do not match'}), 400
+    if session.get('forgot_password_verified_email') != email:
+        return jsonify({'status': 'error', 'message': 'Please verify OTP first'}), 400
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'No account found for this email'}), 404
+
+    hashed_password = generate_password_hash(new_password)
+    cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_password, email))
+    cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+    conn.commit()
+    conn.close()
+
+    session.pop('forgot_password_verified_email', None)
+    return jsonify({'status': 'success', 'message': 'Password changed successfully'})
 
 
 @app.route('/register/create-order', methods=['POST'])
@@ -2064,14 +2224,15 @@ def create_register_order():
     name = str(data.get('name', '')).strip()
     email = str(data.get('email', '')).strip()
     password = str(data.get('password', '')).strip()
-    user_otp = str(data.get('otp', '')).strip()
     plan = normalize_plan(str(data.get('plan', '')).strip())
     allowed_plans = {'Basic', 'Plus', 'Premium'}
 
-    if not all([name, email, password, user_otp]):
+    if not all([name, email, password]):
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
     if plan not in allowed_plans:
         return jsonify({'status': 'error', 'message': 'Invalid plan selected'}), 400
+    if not is_email_verified_for_signup(email):
+        return jsonify({'status': 'error', 'message': 'Please verify your email OTP first'}), 400
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -2081,10 +2242,7 @@ def create_register_order():
         conn.close()
         return jsonify({'status': 'error', 'message': 'Email already registered'}), 400
 
-    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
     conn.close()
-    if not is_valid:
-        return jsonify({'status': 'error', 'message': error_message}), 400
 
     amount = PLAN_PRICES.get(plan, 0)
     if amount <= 0:
@@ -2127,21 +2285,19 @@ def register():
     email = request.form.get('email')
     plan = normalize_plan(request.form.get('plan'))
     password = request.form.get('password')
-    user_otp = request.form.get('otp')
     razorpay_order_id = request.form.get('razorpay_order_id', '').strip()
     razorpay_payment_id = request.form.get('razorpay_payment_id', '').strip()
     razorpay_signature = request.form.get('razorpay_signature', '').strip()
 
-    if not all([name, email, password, user_otp]):
+    if not all([name, email, password]):
         return jsonify({'message': 'All fields required'}), 400
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    is_valid, error_message = validate_latest_email_otp(cursor, email, user_otp)
-    if not is_valid:
+    if not is_email_verified_for_signup(email):
         conn.close()
-        return jsonify({'message': error_message}), 400
+        return jsonify({'message': 'Please verify your email OTP first'}), 400
 
     cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
     if cursor.fetchone():
@@ -2179,9 +2335,41 @@ def register():
     cursor.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
     conn.commit()
     conn.close()
+    session.pop('otp_verified_email', None)
 # Flask
     return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
 
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        'SELECT id, name, email, plan, password FROM users WHERE email = ?',
+        (email,)
+    ).fetchone()
+
+    if user and check_password_hash(user[4], password):
+        session['user_id'] = user[0]
+        session['email'] = user[2]
+        ensure_token_quota_row(conn, cursor, user[0], user[3])
+        conn.close()
+        return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
+
+    conn.close()
+    return jsonify({'status': 'error', 'message': 'Invalid email or password'}), 401
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+# ----------------------------- DASHBOARD + ACCOUNT STATUS -----------------------------
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -2202,6 +2390,13 @@ def dashboard():
         user = (user[0], user[1], normalize_plan(user[2]), user[3])
 
     return render_template('dashboard.html', user=user)
+
+@app.route('/api/auth-status', methods=['GET'])
+def auth_status():
+    return jsonify({
+        'status': 'success',
+        'logged_in': 'user_id' in session
+    })
 
 @app.route('/api/token-status', methods=['GET'])
 def token_status():
@@ -2336,6 +2531,7 @@ def fantasy_session(thread_id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Unable to load fantasy session: {str(e)}'}), 500
 
+# ----------------------------- PLAN UPGRADE / BILLING ROUTES -----------------------------
 @app.route('/dashboard/upgrade-plan/create-order', methods=['POST'])
 def create_razorpay_order():
     if 'user_id' not in session:
@@ -2484,29 +2680,6 @@ def verify_razorpay_payment():
         'tokens_remaining': status['tokens_remaining'],
         'next_refill': status['next_refill']
     })
-
-@app.route('/login', methods=['POST'])
-def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
-    user = cursor.execute(
-        'SELECT id, name, email, plan, password FROM users WHERE email = ?',
-        (email,)
-    ).fetchone()
-
-    if user and check_password_hash(user[4], password):
-        session['user_id'] = user[0]
-        session['email'] = user[2]
-        ensure_token_quota_row(conn, cursor, user[0], user[3])
-        conn.close()
-        return jsonify({'status': 'success', 'redirect': url_for('dashboard')})
-
-    conn.close()
-    return "Invalid email or password", 401
 
 def get_batting_stats(df, players):
     df_bat = df[df['batter'].isin(players)].copy()
@@ -2832,6 +3005,7 @@ def customteam():
         return jsonify({"error": "Could not build both teams. Check player names."}), 400
 
 
+# ----------------------------- LLM CHAT ROUTES -----------------------------
 @app.route('/llm_chat', methods=['POST'])
 def llm_chat():
     user_id = session.get('user_id')
@@ -3155,6 +3329,7 @@ def comp_player(player):
         return convert(d)
     return deep_convert(stats)
 
+# ----------------------------- FEATURE ROUTES: COMPARISON / FANTASY / WHAT-IF -----------------------------
 @app.route('/comparison', methods=['POST'])
 def player_compare():
     data = request.json
@@ -3163,22 +3338,8 @@ def player_compare():
     user1 = comp_player(p1)
     user2 = comp_player(p2)
 
-    batter_map_dict = image_mapping.batter_map()
-
-    batter_id1 = batter_map_dict.get(p1)
-    batter_id2 = batter_map_dict.get(p2)
-
-    image_url1 = (
-        f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id1}.png"
-        if batter_id1
-        else "https://documents.iplt20.com/ipl/assets/images/default.png"
-    )
-
-    image_url2 = (
-        f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id2}.png"
-        if batter_id2
-        else "https://documents.iplt20.com/ipl/assets/images/default.png"
-    )
+    image_url1 = resolve_player_image_url(p1)
+    image_url2 = resolve_player_image_url(p2)
 
 
     index = ['Total Matches Played', 'Batting Innings', 'Total Runs', 'Total Balls Faced', 'Highest Score', 'Batting Average', 'Strike Rate', 'Centuries(100)', 'Half-centuries(50)', 'Fours', 'Sixes', 'Bowling Innings', 'Runs Conceded', 'Balls Bowled', 'Total Overs', 'Wickets', 'Bowling Economy', 'Bowling Average', 'Bowling Strike Rate', '4 Wicket Haul', '5 Wicket Haul', 'Catches', 'Stumpings', 'Runout']    
@@ -3406,7 +3567,8 @@ def fantasy_matchup():
             'text': text_content.strip()
         })
 
-    to_embedding = rag_engine.store_fantasy(dream_team, team1, team2)
+    user_scope = get_user_scope()
+    to_embedding = rag_engine.store_fantasy(dream_team, team1, team2, user_scope=user_scope)
     return to_embedding
 
 @app.route('/fantasy-chat', methods=['POST'])
@@ -3416,6 +3578,7 @@ def fantasy_chat():
     firstteam = data.get('firstteam')
     secondteam = data.get('secondteam')
     user_id = session.get('user_id')
+    user_scope = get_user_scope()
     thread_id = data.get('threadId') or data.get('threadIde') or f"fantasy-{np.random.randint(100000, 999999)}"
     question = f"Create me a XI Player Fantasy MatchUp with the top Players for {firstteam} vs {secondteam}"
     system_prompt = systemprompts.systemPrompts.fantasy_xi_prompt
@@ -3427,6 +3590,7 @@ def fantasy_chat():
         system_prompt,
         firstteam,
         secondteam,
+        user_scope,
         max_output_tokens=get_plan_output_limit(status['plan']),
         plan_policy=fantasy_plan_policy(status['plan'])
     )
@@ -3667,12 +3831,14 @@ def give_query():
     thread_id = data.get('thread_id') or f"whatif-thread-{np.random.randint(100000, 999999)}"
     pipeline = f"whatif_{thread_id}"
     user_id = session.get('user_id')
+    user_scope = get_user_scope()
     status = get_token_status_for_user(user_id)
     answer, tokens_used = rag_engine.whatif_llm(
         query,
         user_id,
         thread_id,
         pipeline,
+        user_scope,
         max_output_tokens=get_plan_output_limit(status['plan']),
         plan_policy=whatif_plan_policy(status['plan'])
     )
@@ -3830,8 +3996,10 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
                over all the season's while also summarise what the bowlers's strength's and short-cummings are, with proper evaluation on how he can can improve.
                 """
     if include_summary:
-        rag_engine.team_store(bowler_data)
-        bowler_data = rag_engine.ask_team(question)
+        user_scope = get_user_scope()
+        namespace = f"bowler:{bowl.strip().lower()}:{(bowl_team or 'all').strip().lower()}"
+        rag_engine.team_store(bowler_data, user_scope=user_scope, namespace=namespace)
+        bowler_data = rag_engine.ask_team(question, user_scope=user_scope, namespace=namespace)
     else:
         bowler_data = ""
     
@@ -3845,19 +4013,15 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
         'bowler_data': bowler_data
     })
 
+# ----------------------------- FEATURE ROUTES: BOWLER / TEAMGRAPH -----------------------------
 @app.route('/bowler_index', methods=['POST'])
 def bowler_index():
     data = request.get_json()
     bowl_team = data.get('bowl_team')
     bowl = data.get('bowl_player')
-    batter_id = image_mapping.batter_map().get(bowl)
     role = ""
     pipeline = ""
-    image_url = None
-    if batter_id:
-        image_url = f"https://documents.iplt20.com/ipl/IPLHeadshot2025/{batter_id}.png"
-    else:
-        image_url = "https://documents.iplt20.com/ipl/assets/images/default.png"
+    image_url = resolve_player_image_url(bowl)
 
     bowler_stats = bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=False)
 
@@ -3893,9 +4057,10 @@ def bowler_index_summary_stream():
                over all the season's while also summarise what the bowlers's strength's and short-cummings are, with proper evaluation on how he can can improve.
                 """
     chunks = _build_bowler_summary_chunks(bowl, rows)
+    namespace = f"bowler_summary:{bowl.strip().lower()}:{(bowl_team or 'all').strip().lower()}"
 
     return Response(
-        stream_with_context(_stream_team_summary(question, chunks)),
+        stream_with_context(_stream_team_summary(question, chunks, namespace)),
         mimetype='text/plain'
     )
 
@@ -4090,9 +4255,10 @@ def teamgraph_summary_stream():
                over all the season's while also summarise what the team's strength's and short-cummings are, with proper evaluation on how they can improve.
                 """
     chunks = _build_team_summary_chunks(team, rows)
+    namespace = f"team_summary:{team.strip().lower()}"
 
     return Response(
-        stream_with_context(_stream_team_summary(question, chunks)),
+        stream_with_context(_stream_team_summary(question, chunks, namespace)),
         mimetype='text/plain'
     )
 
@@ -4162,3 +4328,4 @@ def whatif_weather(date):
 
 if __name__ == '__main__':
     app.run(debug=True)
+

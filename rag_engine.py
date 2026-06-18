@@ -1,33 +1,37 @@
-from groq import Groq
 import chromadb
-from sentence_transformers import SentenceTransformer
-from dotenv import load_dotenv
-from openai import OpenAI
-import os 
-import sqlite3
 import a
-import systemprompts
 import json
+import os
+import sqlite3
+
+from dotenv import load_dotenv
+from groq import Groq
+from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+
+import systemprompts
+from whatifmapping import whatif_mapping
 
 load_dotenv()
 
-#api and vector DB
+# API and vector DB clients
 or_client = OpenAI(
     api_key=os.getenv('OPEN_ROUTER'),
-    base_url="https://openrouter.ai/api/v1"
+    base_url='https://openrouter.ai/api/v1'
 )
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-chromadb_client = chromadb.PersistentClient(path="./vector_db")
+chromadb_client = chromadb.PersistentClient(path='./vector_db')
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
-#collections
+# Collections
 chroma_collection_matchup = chromadb_client.get_or_create_collection('custom_matchup_llm')
 chroma_collection_fantasy = chromadb_client.get_or_create_collection('fantasyXI_llm')
 chroma_collection_whatif = chromadb_client.get_or_create_collection('what_if_llm')
 chroma_collection_teamgraph = chromadb_client.get_or_create_collection('team_llm')
 
+
 def init_db():
-    conn   = sqlite3.connect('database.db')
+    conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_data (
@@ -46,129 +50,43 @@ def init_db():
 
 init_db()
 
-def whatif_mapping():
-    return {
-            "2025": {   
-                "1st": { "id": 1473438, "batting": "Kolkata Knight Riders", "bowling": "Royal Challengers Bangalore" },
-                "2nd": { "id": 1473439, "batting": "Sunrisers Hyderabad", "bowling": "Rajasthan Royals" },
-                "3rd": { "id": 1473440, "batting": "Mumbai Indians", "bowling": "Chennai Super Kings" },
-                "4th": { "id": 1473441, "batting": "Lucknow Super Giants", "bowling": "Delhi Capitals" },
-                "5th": { "id": 1473442, "batting": "Kings XI Punjab", "bowling": "Gujarat Titans" },
-                "6th": { "id": 1473443, "batting": "Rajasthan Royals", "bowling": "Kolkata Knight Riders" },
-                "7th": { "id": 1473444, "batting": "Sunrisers Hyderabad", "bowling": "Lucknow Super Giants" },
-                "8th": { "id": 1473445, "batting": "Royal Challengers Bangalore", "bowling": "Chennai Super Kings" },
-                "9th": { "id": 1473446, "batting": "Gujarat Titans", "bowling": "Mumbai Indians" },
-                "10th": { "id": 1473447, "batting": "Sunrisers Hyderabad", "bowling": "Delhi Capitals" },
-                "11th": { "id": 1473448, "batting": "Rajasthan Royals", "bowling": "Chennai Super Kings" },
-                "12th": { "id": 1473449, "batting": "Kolkata Knight Riders", "bowling": "Mumbai Indians" },
-                "13th": { "id": 1473450, "batting": "Lucknow Super Giants", "bowling": "Kings XI Punjab" },
-                "14th": { "id": 1473451, "batting": "Royal Challengers Bangalore", "bowling": "Gujarat Titans" },
-                "15th": { "id": 1473452, "batting": "Kolkata Knight Riders", "bowling": "Sunrisers Hyderabad" },
-                "16th": { "id": 1473453, "batting": "Lucknow Super Giants", "bowling": "Mumbai Indians" },
-                "17th": { "id": 1473454, "batting": "Delhi Capitals", "bowling": "Chennai Super Kings" },
-                "18th": { "id": 1473455, "batting": "Rajasthan Royals", "bowling": "Kings XI Punjab" },
-                "19th": { "id": 1473457, "batting": "Sunrisers Hyderabad", "bowling": "Gujarat Titans" },
-                "20th": { "id": 1473458, "batting": "Royal Challengers Bangalore", "bowling": "Mumbai Indians" },
-                "21st": { "id": 1473456, "batting": "Lucknow Super Giants", "bowling": "Kolkata Knight Riders" },
-                "22nd": { "id": 1473459, "batting": "Kings XI Punjab", "bowling": "Chennai Super Kings" },
-                "23rd": { "id": 1473460, "batting": "Gujarat Titans", "bowling": "Rajasthan Royals" },
-                "24th": { "id": 1473461, "batting": "Royal Challengers Bangalore", "bowling": "Delhi Capitals" },
-                "25th": { "id": 1473462, "batting": "Chennai Super Kings", "bowling": "Kolkata Knight Riders" },
-                "26th": { "id": 1473463, "batting": "Gujarat Titans", "bowling": "Lucknow Super Giants" },
-                "27th": { "id": 1473464, "batting": "Kings XI Punjab", "bowling": "Sunrisers Hyderabad" },
-                "28th": { "id": 1473465, "batting": "Rajasthan Royals", "bowling": "Royal Challengers Bangalore" },
-                "29th": { "id": 1473466, "batting": "Mumbai Indians", "bowling": "Delhi Capitals" },
-                "30th": { "id": 1473467, "batting": "Lucknow Super Giants", "bowling": "Chennai Super Kings" },
-                "31st": { "id": 1473468, "batting": "Kings XI Punjab", "bowling": "Kolkata Knight Riders" },
-                "32nd": { "id": 1473469, "batting": "Delhi Capitals", "bowling": "Rajasthan Royals" },
-                "33rd": { "id": 1473470, "batting": "Sunrisers Hyderabad", "bowling": "Mumbai Indians" },
-                "34th": { "id": 1473471, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" },
-                "35th": { "id": 1473472, "batting": "Delhi Capitals", "bowling": "Gujarat Titans" },
-                "36th": { "id": 1473473, "batting": "Lucknow Super Giants", "bowling": "Rajasthan Royals" },
-                "37th": { "id": 1473474, "batting": "Kings XI Punjab", "bowling": "Royal Challengers Bangalore" },
-                "38th": { "id": 1473475, "batting": "Chennai Super Kings", "bowling": "Mumbai Indians" },
-                "39th": { "id": 1473476, "batting": "Gujarat Titans", "bowling": "Kolkata Knight Riders" },
-                "40th": { "id": 1473477, "batting": "Lucknow Super Giants", "bowling": "Delhi Capitals" },
-                "41st": { "id": 1473478, "batting": "Sunrisers Hyderabad", "bowling": "Mumbai Indians" },
-                "42nd": { "id": 1473479, "batting": "Royal Challengers Bangalore", "bowling": "Rajasthan Royals" },
-                "43rd": { "id": 1473480, "batting": "Chennai Super Kings", "bowling": "Sunrisers Hyderabad" },
-                "44th": { "id": 1473481, "batting": "Kings XI Punjab", "bowling": "Kolkata Knight Riders" },
-                "45th": { "id": 1473482, "batting": "Mumbai Indians", "bowling": "Lucknow Super Giants" },
-                "46th": { "id": 1473483, "batting": "Delhi Capitals", "bowling": "Royal Challengers Bangalore" },
-                "47th": { "id": 1473484, "batting": "Gujarat Titans", "bowling": "Rajasthan Royals" },
-                "48th": { "id": 1473485, "batting": "Kolkata Knight Riders", "bowling": "Delhi Capitals" },
-                "49th": { "id": 1473486, "batting": "Chennai Super Kings", "bowling": "Kings XI Punjab" },
-                "50th": { "id": 1473487, "batting": "Mumbai Indians", "bowling": "Rajasthan Royals" },
-                "51st": { "id": 1473488, "batting": "Gujarat Titans", "bowling": "Sunrisers Hyderabad" },
-                "52nd": { "id": 1473489, "batting": "Royal Challengers Bangalore", "bowling": "Chennai Super Kings" },
-                "53rd": { "id": 1473490, "batting": "Kolkata Knight Riders", "bowling": "Rajasthan Royals" },
-                "54th": { "id": 1473491, "batting": "Kings XI Punjab", "bowling": "Lucknow Super Giants" },
-                "55th": { "id": 1473492, "batting": "Delhi Capitals", "bowling": "Sunrisers Hyderabad" },
-                "56th": { "id": 1473493, "batting": "Mumbai Indians", "bowling": "Gujarat Titans" },
-                "57th": { "id": 1473494, "batting": "Kolkata Knight Riders", "bowling": "Chennai Super Kings" },
-                "58th": { "id": 1473495, "batting": "Royal Challengers Bangalore", "bowling": "Kolkata Knight Riders" },
-                "59th": { "id": 1473497, "batting": "Kings XI Punjab", "bowling": "Rajasthan Royals" },
-                "60th": { "id": 1473498, "batting": "Delhi Capitals", "bowling": "Gujarat Titans" },
-                "61st": { "id": 1473499, "batting": "Lucknow Super Giants", "bowling": "Sunrisers Hyderabad" },
-                "62nd": { "id": 1473500, "batting": "Chennai Super Kings", "bowling": "Rajasthan Royals" },
-                "63rd": { "id": 1473501, "batting": "Mumbai Indians", "bowling": "Delhi Capitals" },
-                "64th": { "id": 1473502, "batting": "Lucknow Super Giants", "bowling": "Gujarat Titans" },
-                "65th": { "id": 1473503, "batting": "Sunrisers Hyderabad", "bowling": "Royal Challengers Bangalore" },
-                "66th": { "id": 1485779, "batting": "Kings XI Punjab", "bowling": "Delhi Capitals" },
-                "67th": { "id": 1473504, "batting": "Chennai Super Kings", "bowling": "Gujarat Titans" },
-                "68th": { "id": 1473505, "batting": "Sunrisers Hyderabad", "bowling": "Kolkata Knight Riders" },
-                "69th": { "id": 1473506, "batting": "Mumbai Indians", "bowling": "Kings XI Punjab" },
-                "70th": { "id": 1473507, "batting": "Lucknow Super Giants", "bowling": "Royal Challengers Bangalore" },
-                "71st": { "id": 1473508, "batting": "Kings XI Punjab", "bowling": "Royal Challengers Bangalore" },
-                "72nd": { "id": 1473509, "batting": "Mumbai Indians", "bowling": "Gujarat Titans" },
-                "73rd": { "id": 1473510, "batting": "Mumbai Indians", "bowling": "Kings XI Punjab" },
-                "74th": { "id": 1473511, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" },
-                "Qualifier 1": { "id": 1473508, "batting": "Kings XI Punjab", "bowling": "Royal Challengers Bangalore" },
-                "Eliminator": { "id": 1473509, "batting": "Mumbai Indians", "bowling": "Gujarat Titans" },
-                "Qualifier 2": { "id": 1473510, "batting": "Mumbai Indians", "bowling": "Kings XI Punjab" },
-                "Final": { "id": 1473511, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" },
-                "final": { "id": 1473511, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" },
-                "Finals": { "id": 1473511, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" },
-                "finals": { "id": 1473511, "batting": "Royal Challengers Bangalore", "bowling": "Kings XI Punjab" }
-            }
-        }
-    
 
 def store(chunks, user_id):
     if not chunks:
-        return "no data is provided"
-   
+        return 'no data is provided'
+
     user_id_str = str(user_id)
     batch_size = 500
     prepared_batches = []
 
     for i in range(0, len(chunks), batch_size):
-        batch   = chunks[i:i+batch_size]
-        ids     = [str(c['id']) for c in batch]
+        batch = chunks[i:i + batch_size]
+        ids = [str(c['id']) for c in batch]
         documents = [c['text'] for c in batch]
         metadata = [{'user_id': user_id_str, 'pipeline': 'custom'} for _ in batch]
         embeddings = embedder.encode(documents).tolist()
         prepared_batches.append((ids, documents, embeddings, metadata))
 
-    existing = chroma_collection_matchup.get(where= {'user_id': user_id_str})
+    existing = chroma_collection_matchup.get(where={'user_id': user_id_str})
     if existing['ids']:
         chroma_collection_matchup.delete(ids=existing['ids'])
 
     for ids, documents, embeddings, metadata in prepared_batches:
         chroma_collection_matchup.add(
-            ids= ids,
+            ids=ids,
             embeddings=embeddings,
             documents=documents,
             metadatas=metadata
         )
-    return "Custom match-up data embeded success-fully"
+    return 'Custom match-up data embeded success-fully'
 
 
-def store_fantasy(chunks, teamA, teamB):
+def store_fantasy(chunks, teamA, teamB, user_scope):
     if not chunks:
         return "no data is provided"
 
     team_key = "_vs_".join([teamA.strip(), teamB.strip()])
+    user_scope_str = str(user_scope)
     batch_size = 500
     prepared_batches = []
 
@@ -176,11 +94,11 @@ def store_fantasy(chunks, teamA, teamB):
         batch = chunks[i:i + batch_size]
         ids = [str(f['id']) for f in batch]
         documents = [f['text'] for f in batch]
-        metadatas = [{"pipeline": "fantasy", "team_key": team_key} for _ in batch]
+        metadatas = [{"pipeline": "fantasy", "team_key": team_key, "user_scope": user_scope_str} for _ in batch]
         embeddings = embedder.encode(documents).tolist()
         prepared_batches.append((ids, documents, embeddings, metadatas))
 
-    existing = chroma_collection_fantasy.get(where={"team_key": team_key})
+    existing = chroma_collection_fantasy.get(where={"$and": [{"team_key": team_key}, {"user_scope": user_scope_str}]})
     if existing['ids']:
         chroma_collection_fantasy.delete(ids=existing['ids'])
 
@@ -299,13 +217,14 @@ def ask(question, thread, user_id, system_prompt, max_output_tokens=400, plan_po
         plan_policy=plan_policy
     )
 
-def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB, max_output_tokens=400, plan_policy=""):
+def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB, user_scope, max_output_tokens=400, plan_policy=""):
     team_key = "_vs_".join([teamA.strip(), teamB.strip()])
     user_id_str = str(user_id)
+    user_scope_str = str(user_scope)
     content = get_content(
         question= question,
         collection= chroma_collection_fantasy,
-        filter= {'team_key': team_key}
+        filter= {"$and": [{"team_key": team_key}, {"user_scope": user_scope_str}]}
     )
     return get_llm_response(
         question= question,
@@ -508,12 +427,15 @@ MY_TOOLS = [
     }
 ]
 
-def whatif_store(chunks):
+def whatif_store(chunks, user_scope, thread_id):
     if not chunks:
         return "nothing in the what-if"
     batch_size = 500
     prepared_batches = []
-    existing = chroma_collection_whatif.get()
+    user_scope_str = str(user_scope)
+    thread_id_str = str(thread_id)
+    where_filter = {"$and": [{"user_scope": user_scope_str}, {"thread_id": thread_id_str}]}
+    existing = chroma_collection_whatif.get(where=where_filter)
     if existing['ids']:
         chroma_collection_whatif.delete(ids=existing['ids'])
 
@@ -522,14 +444,16 @@ def whatif_store(chunks):
         ids = [str(c['id']) for c in batch]
         documents = [c['text'] for c in batch]
         embeddings = embedder.encode(documents).tolist()
-        prepared_batches.append((ids, documents, embeddings))
+        metadatas = [{"pipeline": "whatif", "user_scope": user_scope_str, "thread_id": thread_id_str} for _ in batch]
+        prepared_batches.append((ids, documents, embeddings, metadatas))
 
     
-    for ids, documents, embeddings in prepared_batches:
+    for ids, documents, embeddings, metadatas in prepared_batches:
         chroma_collection_whatif.add(
             ids=ids,
             embeddings=embeddings,
-            documents=documents
+            documents=documents,
+            metadatas=metadatas
         )
     
     return "what-if data embedded successfully"
@@ -555,7 +479,7 @@ def resolve_match(season, match_id, mapping):
     return None
 
 
-def _fetch_and_store_match(season, first_team, second_team, match_id, delete_player=None):
+def _fetch_and_store_match(season, first_team, second_team, match_id, user_scope, thread_id, delete_player=None):
 
     raw_match_docs = a.whatif_matchup(
         season=season,
@@ -564,9 +488,9 @@ def _fetch_and_store_match(season, first_team, second_team, match_id, delete_pla
         match_id=match_id,
         delete_player=delete_player
     )
-    return whatif_store(raw_match_docs)
+    return whatif_store(raw_match_docs, user_scope=user_scope, thread_id=thread_id)
 
-def execute_tool(fn_name, fn_args, pipeline):
+def execute_tool(fn_name, fn_args, pipeline, user_scope, thread_id):
  
     if fn_name == "remove_player_from_match":
         season = fn_args.get("season")
@@ -603,6 +527,8 @@ def execute_tool(fn_name, fn_args, pipeline):
             first_team=first_team,
             second_team=second_team,
             match_id=match_id,
+            user_scope=user_scope,
+            thread_id=thread_id,
             delete_player=delete_player
         )
  
@@ -642,6 +568,8 @@ def execute_tool(fn_name, fn_args, pipeline):
                     first_team=batting_team,
                     second_team=bowling_team,
                     match_id=match_id_numeric,
+                    user_scope=user_scope,
+                    thread_id=thread_id,
                     delete_player=None
                 )
                 payload["match_stats_loaded"] = True
@@ -666,17 +594,17 @@ def execute_tool(fn_name, fn_args, pipeline):
         if role == 'bowler':
             teamname = ""
             bowler_data = a.bowler_pipeline(player, teamname, role, pipeline)
-            return whatif_store(bowler_data)
+            return whatif_store(bowler_data, user_scope=user_scope, thread_id=thread_id)
         
         elif role == 'batter':
             team = ""
             batting = a.batter_index(player, team, role)
-            return whatif_store(batting)
+            return whatif_store(batting, user_scope=user_scope, thread_id=thread_id)
     
     if fn_name == "extract_weather_date_query":
         date = fn_args.get("date")
         match_data= a.whatif_weather(date=date)
-        whatif_store(match_data)
+        whatif_store(match_data, user_scope=user_scope, thread_id=thread_id)
         return 'OK DONE'    
 
     return {"error": f"Unknown tool: {fn_name}"}
@@ -686,7 +614,7 @@ def execute_tool(fn_name, fn_args, pipeline):
 
 
 
-def whatif_llm(question, user_id, thread_id, pipeline, max_output_tokens=400, plan_policy=""):
+def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_tokens=400, plan_policy=""):
     pipeline = pipeline
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -737,13 +665,14 @@ def whatif_llm(question, user_id, thread_id, pipeline, max_output_tokens=400, pl
         fn_name   = tool_call.function.name
         fn_args   = json.loads(tool_call.function.arguments)
 
-        result    = execute_tool(fn_name, fn_args, pipeline)
+        result    = execute_tool(fn_name, fn_args, pipeline, user_scope, thread_id)
 
 
         question_query = embedder.encode(question).tolist()
         
         rag_context = chroma_collection_whatif.query(
             query_embeddings=[question_query],
+            where={"$and": [{"user_scope": str(user_scope)}, {"thread_id": str(thread_id)}]},
             n_results=60,
         )
 
@@ -791,10 +720,13 @@ def whatif_llm(question, user_id, thread_id, pipeline, max_output_tokens=400, pl
 
 
 
-def team_store(chunks):
+def team_store(chunks, user_scope, namespace):
     chunk_size = 5
+    user_scope_str = str(user_scope)
+    namespace_str = str(namespace)
 
-    existing = chroma_collection_teamgraph.get()
+    where_filter = {"$and": [{"user_scope": user_scope_str}, {"namespace": namespace_str}]}
+    existing = chroma_collection_teamgraph.get(where=where_filter)
     if existing['ids']:
         chroma_collection_teamgraph.delete(ids=existing['ids'])
 
@@ -804,17 +736,20 @@ def team_store(chunks):
         documents = [str(t['text']) for t in batch]
         embeddings = embedder.encode(documents).tolist()
 
+        metadatas = [{"pipeline": "team_summary", "user_scope": user_scope_str, "namespace": namespace_str} for _ in batch]
         chroma_collection_teamgraph.add(
             ids=ids,
             documents=documents,
-            embeddings=embeddings
+            embeddings=embeddings,
+            metadatas=metadatas
         )
     return 'data embedded successfully'
 
-def get_answer(question):
+def get_answer(question, user_scope, namespace):
     question_embedding = embedder.encode(question).tolist()
     result = chroma_collection_teamgraph.query(
         query_embeddings= [question_embedding],
+        where={"$and": [{"user_scope": str(user_scope)}, {"namespace": str(namespace)}]},
         n_results=10
     )
 
@@ -852,13 +787,13 @@ def get_team(content, question):
     answer = response.choices[0].message.content
     return answer
 
-def ask_team(question):
-    get_result = get_answer(question)
+def ask_team(question, user_scope, namespace):
+    get_result = get_answer(question, user_scope, namespace)
     return get_team(get_result, question)
 
 
-def ask_team_stream(question):
-    content = get_answer(question)
+def ask_team_stream(question, user_scope, namespace):
+    content = get_answer(question, user_scope, namespace)
     messages = [
         {
             'role': 'system',

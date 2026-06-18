@@ -4,6 +4,7 @@ Updated on: 2026-06-14 11:20:59 +05:30
 Refined on: 2026-06-14 11:28:02 +05:30
 Layer fix on: 2026-06-14 11:32:25 +05:30
 Team autocomplete on: 2026-06-14 11:37:49 +05:30
+RAG scope hardening on: 2026-06-16 07:59:20 +05:30
 
 ## Initial change (11:20:59 +05:30)
 
@@ -101,3 +102,57 @@ Applied the same styled autocomplete behavior to team fields in batter and bowle
 ## Notes
 
 - Timestamped update comments were added in each edited HTML file and in the shared JS file.
+
+## RAG scope hardening and vector cleanup (07:59:20 +05:30)
+
+Applied user/session-scoped vector namespaces so retrieval context is personalized per user and thread, then removed legacy unscoped vectors.
+
+1. Scope key added in backend:
+- File: `a.py`
+- Added `get_user_scope()`:
+  - logged-in users -> `user:<user_id>`
+  - anonymous sessions -> `anon:<stable_session_uuid>`
+
+2. Fantasy pipeline scoped:
+- Files: `a.py`, `rag_engine.py`
+- `store_fantasy(...)` now stores metadata with `user_scope`.
+- `ask_fantasy(...)` now retrieves with filter:
+  - `team_key` + `user_scope`
+- Prevents same-team fantasy context from being shared across users.
+
+3. What-if pipeline scoped:
+- Files: `a.py`, `rag_engine.py`
+- `whatif_store(...)` now stores metadata with:
+  - `user_scope`, `thread_id`, `pipeline`
+- `whatif_llm(...)` retrieval now filters by:
+  - `user_scope` + `thread_id`
+- Tool-triggered writes also pass the same scope/thread context.
+- Prevents cross-user and cross-thread mixing in what-if retrieval.
+
+4. Team/player/bowler summary pipeline scoped:
+- Files: `a.py`, `rag_engine.py`
+- `team_store(...)` now stores metadata with:
+  - `user_scope`, `namespace`, `pipeline=team_summary`
+- `ask_team(...)` / `ask_team_stream(...)` now query by:
+  - `user_scope` + `namespace`
+- Namespaces are derived per summary context:
+  - player summary
+  - bowler summary
+  - team summary
+- Prevents global shared summary context.
+
+5. One-time migration/cleanup script added and executed:
+- File: `scripts/cleanup_scoped_vectors.py`
+- Dry-run result before delete:
+  - `fantasyXI_llm`: 29 legacy unscoped docs
+  - `what_if_llm`: 18 legacy unscoped docs
+  - `team_llm`: 14 legacy unscoped docs
+  - total: 61
+- Apply run deleted all 61 legacy docs.
+- Post-check dry-run:
+  - all three collections now `0 invalid legacy docs`.
+
+6. Verification:
+- Ran syntax check:
+  - `python -m py_compile a.py rag_engine.py`
+- Compilation passed successfully.
