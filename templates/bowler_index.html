@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -4699,22 +4699,22 @@
           document.getElementById("val1").innerText =
             data.high_wkt && data.high_wkt.Total_Wickets
               ? data.high_wkt.Total_Wickets
-              : "â€”";
+              : "—";
           document.getElementById("val2").innerText =
             data.best_avg && data.best_avg.Seasonal_Average
               ? data.best_avg.Seasonal_Average.toFixed(2)
-              : "â€”";
+              : "—";
           document.getElementById("val3").innerText =
             data.best_eco && data.best_eco.Seasonal_Economy
               ? data.best_eco.Seasonal_Economy.toFixed(2)
-              : "â€”";
+              : "—";
           document.getElementById("val4").innerText =
             data.best_sr && data.best_sr.Seasonal_Strike_Rate
               ? data.best_sr.Seasonal_Strike_Rate.toFixed(2)
-              : "â€”";
+              : "—";
 
           document.getElementById("bowler_name_display").innerText = player_name
-            ? player_name + " â€” Stats"
+            ? player_name + " — Stats"
             : "Career Overview";
 
           if (data.image_url) {
@@ -4850,7 +4850,7 @@
 
       function fmtNum(value, digits = 2) {
         const n = Number(value);
-        return Number.isFinite(n) ? n.toFixed(digits) : "â€”";
+        return Number.isFinite(n) ? n.toFixed(digits) : "—";
       }
 
       const phrases = [

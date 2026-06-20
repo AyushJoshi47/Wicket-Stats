@@ -1,12 +1,12 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WicketStats Ã¢â‚¬â€ Decode Every Wicket</title>
+    <title>WicketStats — Decode Every Wicket</title>
     <meta
       name="description"
-      content="WicketStats turns raw IPL ball-by-ball records into match predictions, player intelligence, fantasy lineups, and what-if scenarios Ã¢â‚¬â€ powered by AI."
+      content="WicketStats turns raw IPL ball-by-ball records into match predictions, player intelligence, fantasy lineups, and what-if scenarios — powered by AI."
     />
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1566,6 +1566,141 @@
         border-radius: 8px;
         padding: 10px;
       }
+      .upgrade-plans-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .upgrade-plan-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 14px;
+        font-family: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 308px;
+      }
+      .upgrade-plan-card.current {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 2px rgba(126, 182, 255, 0.2);
+      }
+      .upgrade-plan-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .upgrade-plan-name {
+        font-size: 22px;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      .upgrade-plan-label {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b7280;
+      }
+      .upgrade-plan-card.plan-basic .upgrade-plan-name,
+      .upgrade-plan-card.plan-basic .upgrade-plan-label {
+        color: #0ea5a4;
+      }
+      .upgrade-plan-card.plan-plus .upgrade-plan-name,
+      .upgrade-plan-card.plan-plus .upgrade-plan-label {
+        color: #2563eb;
+      }
+      .upgrade-plan-card.plan-premium .upgrade-plan-name,
+      .upgrade-plan-card.plan-premium .upgrade-plan-label {
+        color: #d97706;
+      }
+      .upgrade-plan-pill {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        background: #f9fafb;
+      }
+      .upgrade-plan-pill.current {
+        background: linear-gradient(135deg, #7eb6ff 0%, #93c5fd 100%);
+        border-color: #60a5fa;
+        color: #0f172a;
+      }
+      .upgrade-plan-pill.available {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+        color: #374151;
+      }
+      .upgrade-plan-tokens {
+        font-size: 14px;
+        color: #111827;
+        font-weight: 700;
+      }
+      .upgrade-plan-desc {
+        font-size: 13px;
+        color: #374151;
+        line-height: 1.45;
+        min-height: 78px;
+      }
+      .upgrade-plan-features {
+        margin: 0;
+        padding-left: 18px;
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.45;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-height: 124px;
+      }
+      .upgrade-plan-action {
+        margin-top: auto;
+      }
+      .upgrade-plan-btn {
+        width: 100%;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid #111827;
+        background: #ffffff;
+        color: #111827;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .upgrade-plan-btn:hover {
+        background: #f3f4f6;
+      }
+      .upgrade-plan-btn.current {
+        border-color: #d1d5db;
+        color: #6b7280;
+        cursor: default;
+        background: #f9fafb;
+      }
+      @media (max-width: 900px) {
+        .upgrade-plans-grid {
+          grid-template-columns: 1fr;
+        }
+        .upgrade-plan-desc {
+          min-height: 0;
+        }
+        .upgrade-plan-features {
+          min-height: 0;
+        }
+      }
 
       /* ===== RIGHT NAVIGATION DRAWER ===== */
       .drawer-overlay {
@@ -3111,7 +3246,7 @@
 
     <!-- UPGRADE PLAN MODAL -->
     <div class="modal-overlay-custom" id="upgradePlanModal">
-      <div class="modal-content-custom" style="max-width: 520px">
+      <div class="modal-content-custom" style="max-width: 1200px">
         <div class="modal-header">
           <h2
             style="font-size: 18px; font-weight: 800; color: #1a1d20; margin: 0"
@@ -3124,37 +3259,7 @@
           class="modal-body"
           style="display: flex; flex-direction: column; gap: 14px"
         >
-          <div
-            style="
-              padding: 12px 14px;
-              border-radius: 10px;
-              background: #f8fafc;
-              border: 1px solid #e5e7eb;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            <span
-              style="
-                font-size: 12px;
-                font-weight: 700;
-                color: #64748b;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-              "
-              >Present Plan</span
-            >
-            <span
-              id="upgradeCurrentPlanText"
-              style="font-weight: 800; color: #0ea5e9"
-              >{{ user[2] if user else 'Basic' }}</span
-            >
-          </div>
-          <div
-            id="remainingPlansList"
-            style="display: grid; grid-template-columns: 1fr; gap: 10px"
-          ></div>
+          <div id="remainingPlansList" class="upgrade-plans-grid"></div>
           <button
             onclick="closeUpgradeModal()"
             class="action-btn-wide"
@@ -4063,16 +4168,14 @@
         if (tokenValueEl)
           tokenValueEl.innerText = `${(status.tokens_remaining ?? 0).toLocaleString()} Tokens`;
         if (tokenPlanBadgeEl)
-          tokenPlanBadgeEl.innerText = `${normalizedPlan} â€¢ ${formatNextRefill(status.next_refill)}`;
+          tokenPlanBadgeEl.innerText = `${normalizedPlan} • ${formatNextRefill(status.next_refill)}`;
         if (currentPlanValueEl) currentPlanValueEl.innerText = normalizedPlan;
         if (nextRefillValueEl)
           nextRefillValueEl.innerText = formatNextRefill(
             status.next_refill,
           ).replace("Next refill ", "");
         const planBadge = document.getElementById("currentPlanBadge");
-        const planText = document.getElementById("upgradeCurrentPlanText");
         if (planBadge) planBadge.innerText = normalizedPlan;
-        if (planText) planText.innerText = normalizedPlan;
       }
       async function refreshTokenStatus() {
         try {
@@ -4091,7 +4194,7 @@
         const refillText = formatNextRefill(
           errData?.next_refill || tokenStatusCache?.next_refill,
         );
-        return `<span style='color:#b91c1c;'><b>Token limit reached:</b> ${msg}<br><small style='color:#7f1d1d;'>Remaining: ${remaining} Ã¢â‚¬Â¢ ${refillText}</small></span>`;
+        return `<span style='color:#b91c1c;'><b>Token limit reached:</b> ${msg}<br><small style='color:#7f1d1d;'>Remaining: ${remaining} • ${refillText}</small></span>`;
       }
 
       function getWhatIfThreadId() {
@@ -4272,41 +4375,143 @@
         }
         if (item.activity_type === "whatif_chat") {
           showSection("whatif");
+          const chatHistory = document.getElementById("whatifChatHistory");
           if (item.thread_id) {
             currentWhatIfThreadId = item.thread_id;
             localStorage.setItem("whatif_active_thread", currentWhatIfThreadId);
           }
           const payload = item.payload || {};
-          document.getElementById("query").value = payload.query || "";
+          const queryText = payload.query || "";
+          document.getElementById("query").value = queryText;
+
+          if (!chatHistory) return;
+          chatHistory.innerHTML = "";
+
+          const userBubble = document.createElement("div");
+          userBubble.className = "chat-bubble user-bubble";
+          userBubble.style.cssText =
+            "align-self: flex-end; max-width: 80%; background: linear-gradient(135deg, #7EB6FF 0%, #AE95FF 100%); color: #ffffff; padding: 10px 14px; border-radius: 12px 12px 0px 12px; box-shadow: 0 4px 12px rgba(174, 149, 255, 0.15); font-size: 13px; line-height: 1.5; font-weight: 500;";
+          userBubble.innerText = queryText || "Restored What-If Query";
+          chatHistory.appendChild(userBubble);
+
+          const aiBubble = document.createElement("div");
+          aiBubble.className = "chat-bubble ai-bubble";
+          aiBubble.style.cssText =
+            "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
+          aiBubble.innerHTML = "<span style='color:#8e94a0;'>Loading saved response...</span>";
+          chatHistory.appendChild(aiBubble);
+          chatHistory.scrollTop = chatHistory.scrollHeight;
+
+          if (!item.thread_id) {
+            aiBubble.innerHTML =
+              "<span style='color:#b91c1c;'>No saved thread found for this activity.</span>";
+            return;
+          }
+
+          try {
+            const res = await fetch(
+              `/dashboard/whatif/session/${encodeURIComponent(item.thread_id)}`,
+            );
+            const data = await res.json();
+            if (!res.ok || data.status !== "success") {
+              aiBubble.innerHTML = `<span style='color:#b91c1c;'>${data.message || "Unable to restore this what-if session."}</span>`;
+              return;
+            }
+            const restoredQuestion =
+              (data.payload && data.payload.query) || data.question || queryText;
+            if (restoredQuestion) {
+              userBubble.innerText = restoredQuestion;
+              document.getElementById("query").value = restoredQuestion;
+            }
+            aiBubble.classList.add("ai-chat-bubble");
+            aiBubble.innerHTML = renderMarkdownOrText(
+              data.answer || "No saved response found.",
+            );
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+          } catch (e) {
+            aiBubble.innerHTML =
+              "<span style='color:#b91c1c;'>Failed to load saved what-if response.</span>";
+          }
         }
       }
 
       function renderRemainingPlans() {
         const currentPlan = getCurrentPlan();
-        const currentPlanText = document.getElementById(
-          "upgradeCurrentPlanText",
-        );
         const remainingPlansList =
           document.getElementById("remainingPlansList");
         if (!remainingPlansList) return;
 
-        if (currentPlanText) currentPlanText.innerText = currentPlan;
-        const remaining = ALL_PLANS.filter((plan) => plan !== currentPlan);
+        const PLAN_META = {
+          Basic: {
+            label: "BASIC",
+            tokens: "₹0 • 5,000 Tokens / cycle",
+            desc: "Enjoy regular access with essential insights and lightweight outputs.",
+            features: [
+              "Basic What-If stats and simple chat replies",
+              "Fantasy XI with team and player list output",
+              "Quick custom AI responses with limited depth",
+            ],
+          },
+          Plus: {
+            label: "PLUS",
+            tokens: "₹499 • 7,000 Tokens / cycle",
+            desc: "More tokens and more advanced analysis for regular power users.",
+            features: [
+              "Advanced Fantasy XI generation",
+              "Designated roles with Captain and Vice-Captain picks",
+              "More derived What-If chats with deeper explanation",
+              "More detailed custom AI responses",
+            ],
+          },
+          Premium: {
+            label: "PREMIUM",
+            tokens: "₹999 • 12,000 Tokens / cycle",
+            desc: "Maximum depth and quality for serious tactical and fantasy strategy work.",
+            features: [
+              "3 teams tailored to different styles",
+              "Proper, well-generated, high-depth answers",
+              "Priority-quality What-If and custom engine responses",
+            ],
+          },
+        };
+
         remainingPlansList.innerHTML = "";
 
-        remaining.forEach((plan) => {
+        ALL_PLANS.forEach((plan) => {
+          const isCurrent = plan === currentPlan;
+          const planClass = `plan-${plan.toLowerCase()}`;
+          const meta = PLAN_META[plan] || {
+            label: plan.toUpperCase(),
+            tokens: "",
+            desc: "",
+            features: [],
+          };
           const card = document.createElement("div");
-          card.style.cssText =
-            "display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid #e5e7eb; border-radius:10px; background:#ffffff;";
+          card.className = `upgrade-plan-card ${planClass} ${isCurrent ? "current" : ""}`;
+          const featureItems = (meta.features || [])
+            .map((item) => `<li>${item}</li>`)
+            .join("");
           card.innerHTML = `
-                    <div style="display:flex; flex-direction:column; gap:3px;">
-                        <span style="font-size:12px; color:#64748b; font-weight:600;">Available Plan</span>
-                        <span style="font-size:15px; color:#111827; font-weight:800;">${plan}</span>
-                    </div>
-                    <button onclick="startUpgradeFlow('${plan}')" style="padding:8px 12px; border:none; border-radius:8px; background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%); color:#fff; font-weight:700; cursor:pointer;">
-                        Upgrade
-                    </button>
-                `;
+            <div class="upgrade-plan-head">
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span class="upgrade-plan-label">${meta.label}</span>
+                <span class="upgrade-plan-name">${plan}</span>
+              </div>
+              <span class="upgrade-plan-pill ${isCurrent ? "current" : "available"}">
+                ${isCurrent ? "Current Plan" : "Available"}
+              </span>
+            </div>
+            <div class="upgrade-plan-tokens">${meta.tokens}</div>
+            <div class="upgrade-plan-desc">${meta.desc}</div>
+            <ul class="upgrade-plan-features">${featureItems}</ul>
+            <div class="upgrade-plan-action">
+              ${
+                isCurrent
+                  ? '<button class="upgrade-plan-btn current" disabled>Current Plan</button>'
+                  : `<button onclick="startUpgradeFlow('${plan}')" class="upgrade-plan-btn">Upgrade</button>`
+              }
+            </div>
+          `;
           remainingPlansList.appendChild(card);
         });
       }
@@ -4530,7 +4735,7 @@
                                 <div class="m-card-team-icon">${abbr(m.teamA)}</div>
                                 <div class="m-card-details">
                                     <span class="m-card-name-txt">${m.matchup_name}</span>
-                                    <span class="m-card-meta">${m.teamA} vs ${m.teamB} Ã¢â‚¬Â¢ <span class="m-card-status-badge">${dateStr}</span></span>
+                                    <span class="m-card-meta">${m.teamA} vs ${m.teamB} • <span class="m-card-status-badge">${dateStr}</span></span>
                                 </div>
                                 <div class="m-card-winner-val" id="winner-val-${grid.id}-${m.id}">...</div>
                             `;
@@ -4556,7 +4761,7 @@
           const res = await fetch(`/dashboard/customteam/${id}`);
           const data = await res.json();
           const el = document.getElementById(elementId);
-          if (el) el.innerText = data.winner || "Ã¢â‚¬â€";
+          if (el) el.innerText = data.winner || "—";
         } catch (e) {
           console.error(e);
         }
@@ -4596,7 +4801,7 @@
             data.matchup_name || "";
           document.getElementById("sModalTitle").innerText = `${tA} vs ${tB}`;
           document.getElementById("sWinner").innerText =
-            data.winner || "Ã¢â‚¬â€";
+            data.winner || "—";
           document.getElementById("sDetailsID").innerText = `#H2H-${id}`;
 
           // Score metrics
@@ -4769,7 +4974,7 @@
               const formatted =
                 typeof val === "number"
                   ? val.toFixed(idx === 4 ? 2 : 0)
-                  : val || "Ã¢â‚¬â€";
+                  : val || "—";
               return `<td>${formatted}</td>`;
             })
             .join("");
@@ -4788,7 +4993,7 @@
                 total["Team " + k] ||
                 total["Team Avg Score"] ||
                 total["Team Economy"];
-              return `<td>${typeof val === "number" ? val.toFixed(idx === 4 ? 2 : 0) : val || "Ã¢â‚¬â€"}</td>`;
+              return `<td>${typeof val === "number" ? val.toFixed(idx === 4 ? 2 : 0) : val || "—"}</td>`;
             })
             .join("");
           tfoot.appendChild(tr);
@@ -4887,7 +5092,7 @@
           aiBubble.style.cssText =
             "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
           aiBubble.innerHTML =
-            "<span style='color: #8e94a0;'>AI is typing... Ã¢ÂÂ³</span>";
+            "<span style='color: #8e94a0;'>AI is typing... ⏳</span>";
           chatHistory.appendChild(aiBubble);
 
           // Scroll to bottom
@@ -4971,7 +5176,7 @@
           aiBubble.className = "chat-bubble ai-bubble ai-fantasy-bubble";
           aiBubble.style.cssText =
             "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
-          aiBubble.innerHTML = "Preparing matchup... Ã¢ÂÂ³";
+          aiBubble.innerHTML = "Preparing matchup... ⏳";
           chatDisplay.appendChild(aiBubble);
 
           chatDisplay.scrollTop = chatDisplay.scrollHeight;
@@ -4981,7 +5186,7 @@
             upsertFantasyResponseCache(fantasyThreadId, {
               team1: firstteam,
               team2: secondteam,
-              ai_response_partial: "Preparing matchup... Ã¢ÂÂ³",
+              ai_response_partial: "Preparing matchup... ⏳",
               is_complete: false,
             });
             await fetch("/fantasy-matchup", {
@@ -4990,10 +5195,10 @@
               body: JSON.stringify({ team1: firstteam, team2: secondteam }),
             });
 
-            aiBubble.innerHTML = "Matchup ready! Building Fantasy XI... Ã¢ÂÂ³";
+            aiBubble.innerHTML = "Matchup ready! Building Fantasy XI... ⏳";
             upsertFantasyResponseCache(fantasyThreadId, {
               ai_response_partial:
-                "Matchup ready! Building Fantasy XI... Ã¢ÂÂ³",
+                "Matchup ready! Building Fantasy XI... ⏳",
               is_complete: false,
             });
 
@@ -5076,7 +5281,7 @@
           aiBubble.style.cssText =
             "align-self: flex-start; max-width: 80%; background: #ffffff; color: #1a1d20; padding: 10px 14px; border-radius: 12px 12px 12px 0px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 13px; line-height: 1.5; border: 1px solid rgba(0,0,0,0.04);";
           aiBubble.innerHTML =
-            "<span style='color: #8e94a0;'>Calculating scenarios... Ã¢ÂÂ³</span>";
+            "<span style='color: #8e94a0;'>Calculating scenarios... ⏳</span>";
           chatHistory.appendChild(aiBubble);
 
           // Scroll to bottom

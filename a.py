@@ -22,6 +22,8 @@ import razorpay
 import systemprompts
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash, generate_password_hash
 
 matplotlib.use('Agg')  # must be before any other matplotlib import
@@ -30,6 +32,32 @@ import matplotlib.pyplot as plt
 
 
 app = Flask(__name__)
+
+
+def limit_key_user_or_ip():
+    user_id = session.get('user_id')
+    if user_id:
+        return f"user:{user_id}"
+    return f"ip:{get_remote_address()}"
+
+
+def limit_key_email_or_ip():
+    payload = request.get_json(silent=True) or {}
+    email = (
+        request.form.get('email')
+        or payload.get('email')
+        or ''
+    ).strip().lower()
+    ip = get_remote_address()
+    return f"{ip}:{email or 'no-email'}"
+
+
+limiter = Limiter(
+    app=app,
+    key_func=limit_key_user_or_ip,
+    storage_uri="memory://",
+    default_limits=[]
+)
 
 
 def json_safe(value):
@@ -434,19 +462,24 @@ def consume_tokens(user_id, tokens_used):
     tokens_used = max(0, int(tokens_used or 0))
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-
-    status = get_token_status_for_user(user_id)
-    tokens_before = status['tokens_remaining']
-    new_remaining = max(0, tokens_before - tokens_used)
-
+    user_plan_row = cursor.execute(
+        "SELECT plan FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
+    user_plan = normalize_plan(user_plan_row[0] if user_plan_row else 'Basic')
+    ensure_token_quota_row(conn, cursor, user_id, user_plan)
+    apply_refill_for_user(conn, cursor, user_id)
     cursor.execute(
-        "UPDATE token_quota SET tokens_remaining = ? WHERE user_id = ?",
-        (new_remaining, user_id)
+        """
+        UPDATE token_quota
+        SET tokens_remaining = MAX(0, tokens_remaining - ?)
+        WHERE user_id = ?
+        """,
+        (tokens_used, user_id)
     )
     conn.commit()
     conn.close()
-    status['tokens_remaining'] = new_remaining
-    return status
+    return get_token_status_for_user(user_id)
 
 def log_user_activity(user_id, activity_type, title, thread_id=None, reference_id=None, payload=None):
     conn = sqlite3.connect('database.db')
@@ -572,6 +605,19 @@ def init_db():
             old_plan TEXT NOT NULL,
             new_plan TEXT NOT NULL,
             changed_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS billing_refs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            flow TEXT NOT NULL,
+            razorpay_order_id TEXT NOT NULL,
+            razorpay_payment_id TEXT NOT NULL,
+            razorpay_signature TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE (razorpay_order_id, razorpay_payment_id)
         );
     ''')
 
@@ -2068,6 +2114,8 @@ def player_index_summary_stream():
 
 # ----------------------------- AUTH / ACCOUNT ROUTES -----------------------------
 @app.route('/send-otp', methods=['POST'])
+@limiter.limit("3 per minute", key_func=limit_key_email_or_ip)
+@limiter.limit("10 per hour", key_func=limit_key_email_or_ip)
 def send_otp():
     email = (request.form.get('email') or '').strip().lower()
     if not email:
@@ -2075,6 +2123,13 @@ def send_otp():
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
+    existing_user = cursor.execute(
+        'SELECT id FROM users WHERE LOWER(email) = ?',
+        (email,)
+    ).fetchone()
+    if existing_user:
+        conn.close()
+        return jsonify({'message': 'Email already registered. Please sign in.'}), 400
 
     session.pop('otp_verified_email', None)
     otp = create_and_store_email_otp(cursor, email)
@@ -2088,6 +2143,7 @@ def send_otp():
         return jsonify({'message': 'Failed to send OTP'}), 500
 
 @app.route('/verify-otp', methods=['POST'])
+@limiter.limit("10 per 5 minutes", key_func=limit_key_email_or_ip)
 def verify_otp():
     payload = request.get_json(silent=True) or {}
     email = (
@@ -2134,6 +2190,8 @@ def otp_status():
     })
 
 @app.route('/forgot-password/send-otp', methods=['POST'])
+@limiter.limit("3 per minute", key_func=limit_key_email_or_ip)
+@limiter.limit("10 per hour", key_func=limit_key_email_or_ip)
 def forgot_password_send_otp():
     email = (request.form.get('email') or '').strip().lower()
     if not email:
@@ -2158,6 +2216,7 @@ def forgot_password_send_otp():
         return jsonify({'status': 'error', 'message': 'Failed to send OTP'}), 500
 
 @app.route('/forgot-password/verify-otp', methods=['POST'])
+@limiter.limit("10 per 5 minutes", key_func=limit_key_email_or_ip)
 def forgot_password_verify_otp():
     email = (
         request.form.get('email')
@@ -2189,6 +2248,7 @@ def forgot_password_verify_otp():
     return jsonify({'status': 'success', 'message': 'OTP verified successfully'})
 
 @app.route('/forgot-password/reset', methods=['POST'])
+@limiter.limit("5 per 15 minutes", key_func=limit_key_email_or_ip)
 def forgot_password_reset():
     email = (request.form.get('email') or '').strip().lower()
     new_password = (request.form.get('new_password') or '').strip()
@@ -2219,6 +2279,7 @@ def forgot_password_reset():
 
 
 @app.route('/register/create-order', methods=['POST'])
+@limiter.limit("5 per 10 minutes", key_func=limit_key_email_or_ip)
 def create_register_order():
     data = request.json or {}
     name = str(data.get('name', '')).strip()
@@ -2280,6 +2341,7 @@ def create_register_order():
 
 
 @app.route('/register', methods=['POST'])
+@limiter.limit("5 per 10 minutes", key_func=limit_key_email_or_ip)
 def register():
     name = request.form.get('name')
     email = request.form.get('email')
@@ -2329,6 +2391,15 @@ def register():
 
     user_id = cursor.lastrowid
     ensure_token_quota_row(conn, cursor, user_id, plan)
+    if PLAN_PRICES.get(plan, 0) > 0:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO billing_refs
+            (user_id, flow, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, 'register', razorpay_order_id, razorpay_payment_id, razorpay_signature)
+        )
     session['user_id'] = user_id
     session['email'] = email
 
@@ -2341,6 +2412,8 @@ def register():
 
 
 @app.route('/login', methods=['POST'])
+@limiter.limit("10 per minute", key_func=limit_key_email_or_ip)
+@limiter.limit("30 per hour", key_func=limit_key_email_or_ip)
 def login():
     email = request.form.get('email')
     password = request.form.get('password')
@@ -2531,8 +2604,63 @@ def fantasy_session(thread_id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Unable to load fantasy session: {str(e)}'}), 500
 
+@app.route('/dashboard/whatif/session/<thread_id>', methods=['GET'])
+def whatif_session(thread_id):
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    user_id = session['user_id']
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+
+        chat_row = cursor.execute(
+            """
+            SELECT question, response, created_at
+            FROM chat_data
+            WHERE user_id = ? AND thread_id = ? AND pipeline LIKE 'whatif_%'
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (str(user_id), thread_id)
+        ).fetchone()
+
+        if not chat_row:
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'No saved what-if session found'}), 404
+
+        payload = {}
+        try:
+            activity_row = cursor.execute(
+                """
+                SELECT payload
+                FROM user_recent_activities
+                WHERE user_id = ? AND activity_type = 'whatif_chat' AND thread_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (user_id, thread_id)
+            ).fetchone()
+            if activity_row and activity_row[0]:
+                payload = json.loads(activity_row[0])
+        except Exception:
+            payload = {}
+
+        conn.close()
+        return jsonify({
+            'status': 'success',
+            'thread_id': thread_id,
+            'question': chat_row[0],
+            'answer': chat_row[1],
+            'created_at': chat_row[2],
+            'payload': payload
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Unable to load what-if session: {str(e)}'}), 500
+
 # ----------------------------- PLAN UPGRADE / BILLING ROUTES -----------------------------
 @app.route('/dashboard/upgrade-plan/create-order', methods=['POST'])
+@limiter.limit("10 per 10 minutes", key_func=limit_key_user_or_ip)
 def create_razorpay_order():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
@@ -2596,6 +2724,7 @@ def create_razorpay_order():
 
 
 @app.route('/dashboard/upgrade-plan/verify-payment', methods=['POST'])
+@limiter.limit("10 per 10 minutes", key_func=limit_key_user_or_ip)
 def verify_razorpay_payment():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
@@ -2645,6 +2774,16 @@ def verify_razorpay_payment():
             'next_refill': status['next_refill']
         })
 
+    if PLAN_PRICES.get(new_plan, 0) > 0:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO billing_refs
+            (user_id, flow, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, 'upgrade', razorpay_order_id, razorpay_payment_id, razorpay_signature)
+        )
+
     cursor.execute(
         'UPDATE users SET plan = ? WHERE id = ?',
         (new_plan, user_id)
@@ -2655,14 +2794,14 @@ def verify_razorpay_payment():
         (user_id,)
     ).fetchone()
     if quota_row:
-        upgraded_tokens = min(quota_cap, max(int(quota_row[0]), quota_cap))
+        upgraded_tokens = min(quota_cap, int(quota_row[0]))
         cursor.execute(
             """
             UPDATE token_quota
-            SET plan = ?, tokens_remaining = ?, last_refill = ?
+            SET plan = ?, tokens_remaining = ?
             WHERE user_id = ?
             """,
-            (new_plan, upgraded_tokens, datetime.datetime.utcnow().isoformat(), user_id)
+            (new_plan, upgraded_tokens, user_id)
         )
     else:
         ensure_token_quota_row(conn, cursor, user_id, new_plan)
@@ -3007,6 +3146,7 @@ def customteam():
 
 # ----------------------------- LLM CHAT ROUTES -----------------------------
 @app.route('/llm_chat', methods=['POST'])
+@limiter.limit("20 per minute", key_func=limit_key_user_or_ip)
 def llm_chat():
     user_id = session.get('user_id')
     data = request.get_json() or {}
@@ -3201,6 +3341,7 @@ Bowling stats for {name} (Team: {teamB}, Matchup: {matchup_name}):
     return data_response
 
 @app.route('/get_llm', methods=['POST'])
+@limiter.limit("20 per minute", key_func=limit_key_user_or_ip)
 @require_tokens(estimated_cost=120)
 def get_llm():
     user_id = session.get('user_id')
@@ -3572,6 +3713,7 @@ def fantasy_matchup():
     return to_embedding
 
 @app.route('/fantasy-chat', methods=['POST'])
+@limiter.limit("20 per minute", key_func=limit_key_user_or_ip)
 @require_tokens(estimated_cost=120)
 def fantasy_chat():
     data = request.get_json()
@@ -3824,6 +3966,7 @@ def whatif_matchup(season, first_team, second_team, match_id, delete_player):
     return whatif_match
 
 @app.route('/query', methods=['POST'])
+@limiter.limit("20 per minute", key_func=limit_key_user_or_ip)
 @require_tokens(estimated_cost=150)
 def give_query():
     data = request.get_json()

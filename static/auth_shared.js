@@ -558,11 +558,15 @@
 
         if (generateOtpBtn) {
             generateOtpBtn.addEventListener("click", async () => {
+                const nameEl = document.getElementById("name");
                 const emailEl = document.getElementById("email");
+                const passwordEl = document.getElementById("password");
+                const name = (nameEl?.value || "").trim();
                 const email = (emailEl?.value || "").trim().toLowerCase();
+                const password = (passwordEl?.value || "").trim();
                 const otpValue = (otpInput?.value || "").trim();
-                if (!email) {
-                    alert("Please enter your email first.");
+                if (!name || !email || !password) {
+                    alert("Please fill name, email, and password before generating OTP.");
                     return;
                 }
 

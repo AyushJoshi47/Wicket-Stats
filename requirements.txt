@@ -1,0 +1,12 @@
+Flask
+python-dotenv
+flask-limiter
+numpy
+pandas
+polars
+matplotlib
+razorpay
+openai
+groq
+chromadb
+sentence-transformers

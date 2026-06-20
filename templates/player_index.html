@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WicketStats â€” Batter Intelligence</title>
+    <title>WicketStats — Batter Intelligence</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link
       rel="stylesheet"
@@ -153,7 +153,7 @@
         animation: fade-in 0.4s var(--transition-smooth);
       }
 
-      /* â”€â”€ Full-screen wrapper â”€â”€ */
+      /* ── Full-screen wrapper ── */
       .hero-wrap {
         position: relative;
         width: 100vw;
@@ -169,7 +169,7 @@
         );
       }
 
-      /* â”€â”€ Background image â”€â”€ */
+      /* ── Background image ── */
       .bg-img {
         position: absolute;
         inset: 0;
@@ -179,7 +179,7 @@
         z-index: 0;
       }
 
-      /* â”€â”€ Bottom fade-out gradient â”€â”€ */
+      /* ── Bottom fade-out gradient ── */
       .bg-fade {
         position: absolute;
         bottom: 0;
@@ -196,7 +196,7 @@
         pointer-events: none;
       }
 
-      /* â”€â”€ SVG noise texture (reusable) â”€â”€ */
+      /* ── SVG noise texture (reusable) ── */
       .noise-layer {
         position: absolute;
         inset: 0;
@@ -208,7 +208,7 @@
         z-index: 1;
       }
 
-      /* â”€â”€ Navbar â”€â”€ */
+      /* ── Navbar ── */
       .navbar {
         position: absolute;
         top: 28px;
@@ -1586,7 +1586,7 @@
         overflow-x: visible !important;
       }
 
-      /* â”€â”€ PLAYER STATS MODAL â”€â”€ */
+      /* ── PLAYER STATS MODAL ── */
       .stats-modal-overlay {
         display: none;
         position: fixed;
@@ -1898,7 +1898,7 @@
         border-bottom: none;
       }
 
-      /* â”€â”€ PITCHSIDE ANALYTICS THEME OVERRIDES â”€â”€ */
+      /* ── PITCHSIDE ANALYTICS THEME OVERRIDES ── */
 
       .ps-display {
         font-family: "Instrument Serif", ui-serif, Georgia, serif;
@@ -1912,18 +1912,18 @@
         color: var(--lb-ink);
       }
 
-      /* â”€â”€ LIGHT-BLUE PALETTE TOKENS (modal-scoped) â”€â”€ */
+      /* ── LIGHT-BLUE PALETTE TOKENS (modal-scoped) ── */
       :root {
-        --lb-bg: #dbeafe; /* modal shell        â€” blue-100 */
-        --lb-surface: #eff6ff; /* cards / cells      â€” blue-50  */
-        --lb-sidebar: #bfdbfe; /* sidebar panel      â€” blue-200 */
-        --lb-border: #93c5fd; /* all borders        â€” blue-300 */
-        --lb-muted: #60a5fa; /* muted text / icons â€” blue-400 */
-        --lb-ink: #1e3a5f; /* primary text       â€” deep navy*/
-        --lb-accent: #2563eb; /* accent / totals    â€” blue-600 */
-        --lb-hover: #bfdbfe; /* row hover          â€” blue-200 */
-        --lb-th: #dbeafe; /* table header bg    â€” blue-100 */
-        --lb-active-btn: #1d4ed8; /* active nav btn     â€” blue-700 */
+        --lb-bg: #dbeafe; /* modal shell        — blue-100 */
+        --lb-surface: #eff6ff; /* cards / cells      — blue-50  */
+        --lb-sidebar: #bfdbfe; /* sidebar panel      — blue-200 */
+        --lb-border: #93c5fd; /* all borders        — blue-300 */
+        --lb-muted: #60a5fa; /* muted text / icons — blue-400 */
+        --lb-ink: #1e3a5f; /* primary text       — deep navy*/
+        --lb-accent: #2563eb; /* accent / totals    — blue-600 */
+        --lb-hover: #bfdbfe; /* row hover          — blue-200 */
+        --lb-th: #dbeafe; /* table header bg    — blue-100 */
+        --lb-active-btn: #1d4ed8; /* active nav btn     — blue-700 */
       }
 
       .stats-modal-box.ps-theme {
@@ -2496,7 +2496,7 @@
         height: 100%;
       }
 
-      /* â”€â”€â”€ REDESIGN OVERRIDES â”€â”€â”€ */
+      /* ─── REDESIGN OVERRIDES ─── */
       :root {
         --text-main: #1a1d20;
         --text-muted: #6b7280;
@@ -2818,7 +2818,7 @@
         height: 18px;
       }
 
-      /* â”€â”€â”€ HERO â”€â”€â”€ */
+      /* ─── HERO ─── */
       .hero {
         position: relative;
         z-index: 10;
@@ -2954,7 +2954,7 @@
         }
       }
 
-      /* â”€â”€â”€ DASHBOARD REDESIGN OVERRIDES â”€â”€â”€ */
+      /* ─── DASHBOARD REDESIGN OVERRIDES ─── */
       :root {
         --text-main: #1a1d20;
         --text-muted: #6b7280;
@@ -3876,7 +3876,7 @@
     </div>
 
     <div class="dashboard-container">
-      <!-- â”€â”€ Top Layout: 3 Columns when Results show â”€â”€ -->
+      <!-- ── Top Layout: 3 Columns when Results show ── -->
       <div class="pi-top-grid">
         <!-- LEFT: Search Card -->
         <div class="dash-card pi-search-card">
@@ -4165,7 +4165,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Full Width Results (hidden until search) â”€â”€ -->
+      <!-- ── Full Width Results (hidden until search) ── -->
       <div
         id="full_width_results"
         style="
@@ -4756,23 +4756,23 @@
           const data = await response.json();
 
           document.getElementById("val1").innerText =
-            data.total_seasons_played || "â€”";
+            data.total_seasons_played || "—";
           document.getElementById("val2").innerText =
-            data.best_season_by_runs || "â€”";
+            data.best_season_by_runs || "—";
           document.getElementById("val3").innerText =
-            data.highest_average || "â€”";
-          document.getElementById("val4").innerText = data.total_sixes || "â€”";
-          document.getElementById("val5").innerText = data.total_fours || "â€”";
-          document.getElementById("val6").innerText = data.dismissible || "â€”";
+            data.highest_average || "—";
+          document.getElementById("val4").innerText = data.total_sixes || "—";
+          document.getElementById("val5").innerText = data.total_fours || "—";
+          document.getElementById("val6").innerText = data.dismissible || "—";
           document.getElementById("val7").innerText =
-            data.matches_played || "â€”";
+            data.matches_played || "—";
           document.getElementById("val8").innerText =
-            data.matches_lost || "â€”";
+            data.matches_lost || "—";
           document.getElementById("val9").innerText =
-            data.peak_consistency || "â€”";
+            data.peak_consistency || "—";
 
           document.getElementById("batter_name_display").innerText = data.player
-            ? data.player + " â€” Stats"
+            ? data.player + " — Stats"
             : "Career Overview";
 
           if (data.image_url) {
