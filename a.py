@@ -34,6 +34,44 @@ import matplotlib.pyplot as plt
 app = Flask(__name__)
 
 
+def _validate_parquet_file(path):
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Missing required parquet file: {path}")
+
+    with open(path, "rb") as f:
+        head = f.read(64)
+        try:
+            f.seek(-4, os.SEEK_END)
+            footer = f.read(4)
+        except OSError:
+            footer = b""
+
+    # Git LFS pointer files are plain text and are a common deployment trap.
+    if head.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise RuntimeError(
+            f"{path} is a Git LFS pointer file, not real parquet data. "
+            "Install git-lfs on the server, run `git lfs install`, `git lfs pull`, "
+            "then restart the app."
+        )
+
+    # A parquet file must end with the magic bytes "PAR1".
+    if footer != b"PAR1":
+        raise RuntimeError(
+            f"{path} looks invalid/corrupted (missing parquet footer PAR1). "
+            "Re-copy the file from a known good source and restart."
+        )
+
+
+def _read_pd_parquet(path):
+    _validate_parquet_file(path)
+    return pd.read_parquet(path)
+
+
+def _read_pl_parquet(path):
+    _validate_parquet_file(path)
+    return pl.read_parquet(path)
+
+
 def limit_key_user_or_ip():
     user_id = session.get('user_id')
     if user_id:
@@ -98,16 +136,16 @@ def get_user_scope():
 pl.Config.set_float_precision(2)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.precision', 3)
-df = pd.read_parquet('IPL.parquet')
-df_new = pd.read_parquet('IPL.parquet')
+df = _read_pd_parquet('IPL.parquet')
+df_new = _read_pd_parquet('IPL.parquet')
 df_new = df_new[df_new['season'].isin(['2024', '2025'])]
-df_2026 = pd.read_parquet('2026.parquet')
+df_2026 = _read_pd_parquet('2026.parquet')
 
 
 
 
-dataframe = pl.read_parquet('IPL.parquet')
-df1 = pd.read_parquet('2026.parquet')
+dataframe = _read_pl_parquet('IPL.parquet')
+df1 = _read_pd_parquet('2026.parquet')
 
 df_2026['batting_team'] = df_2026['batting_team'].replace({
     'RCB': 'Royal Challengers Bangalore',
@@ -2476,13 +2514,19 @@ def token_status():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
 
-    status = get_token_status_for_user(session['user_id'])
-    return jsonify({
-        'status': 'success',
-        'tokens_remaining': status['tokens_remaining'],
-        'plan': status['plan'],
-        'next_refill': status['next_refill']
-    })
+    try:
+        status = get_token_status_for_user(session['user_id'])
+        return jsonify({
+            'status': 'success',
+            'tokens_remaining': status['tokens_remaining'],
+            'plan': status['plan'],
+            'next_refill': status['next_refill']
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Unable to load token status: {str(e)}'
+        }), 500
 
 @app.route('/dashboard/recent-activities', methods=['GET'])
 def recent_activities():

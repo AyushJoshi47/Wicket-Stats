@@ -4178,13 +4178,24 @@
         if (planBadge) planBadge.innerText = normalizedPlan;
       }
       async function refreshTokenStatus() {
+        const tokenValueEl = document.getElementById("tokenRemainingValue");
+        const nextRefillValueEl = document.getElementById("nextRefillValue");
         try {
           const res = await fetch("/api/token-status");
           const data = await res.json();
           if (res.ok && data.status === "success") {
             applyTokenStatus(data);
+            return;
           }
-        } catch (_) {}
+          const msg = data?.message || "Unable to load token status.";
+          if (tokenValueEl) tokenValueEl.innerText = "Unavailable";
+          if (nextRefillValueEl) nextRefillValueEl.innerText = "Unavailable";
+          console.error("token-status failed:", res.status, msg);
+        } catch (err) {
+          if (tokenValueEl) tokenValueEl.innerText = "Network error";
+          if (nextRefillValueEl) nextRefillValueEl.innerText = "Network error";
+          console.error("token-status error:", err);
+        }
       }
 
       function renderTokenError(errData) {
