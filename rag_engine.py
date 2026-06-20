@@ -3,6 +3,8 @@ import a
 import json
 import os
 import sqlite3
+import threading
+import re
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -20,14 +22,41 @@ or_client = OpenAI(
     base_url='https://openrouter.ai/api/v1'
 )
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-chromadb_client = chromadb.PersistentClient(path='./vector_db')
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
+chromadb_client = None
+embedder = None
 
-# Collections
-chroma_collection_matchup = chromadb_client.get_or_create_collection('custom_matchup_llm')
-chroma_collection_fantasy = chromadb_client.get_or_create_collection('fantasyXI_llm')
-chroma_collection_whatif = chromadb_client.get_or_create_collection('what_if_llm')
-chroma_collection_teamgraph = chromadb_client.get_or_create_collection('team_llm')
+# Collections (initialized lazily)
+chroma_collection_matchup = None
+chroma_collection_fantasy = None
+chroma_collection_whatif = None
+chroma_collection_teamgraph = None
+_rag_init_lock = threading.Lock()
+
+
+def _ensure_rag_clients():
+    global chromadb_client
+    global embedder
+    global chroma_collection_matchup
+    global chroma_collection_fantasy
+    global chroma_collection_whatif
+    global chroma_collection_teamgraph
+
+    if embedder is not None and chromadb_client is not None:
+        return
+
+    with _rag_init_lock:
+        if embedder is None:
+            embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        if chromadb_client is None:
+            chromadb_client = chromadb.PersistentClient(path='./vector_db')
+        if chroma_collection_matchup is None:
+            chroma_collection_matchup = chromadb_client.get_or_create_collection('custom_matchup_llm')
+        if chroma_collection_fantasy is None:
+            chroma_collection_fantasy = chromadb_client.get_or_create_collection('fantasyXI_llm')
+        if chroma_collection_whatif is None:
+            chroma_collection_whatif = chromadb_client.get_or_create_collection('what_if_llm')
+        if chroma_collection_teamgraph is None:
+            chroma_collection_teamgraph = chromadb_client.get_or_create_collection('team_llm')
 
 
 def init_db():
@@ -52,6 +81,7 @@ init_db()
 
 
 def store(chunks, user_id):
+    _ensure_rag_clients()
     if not chunks:
         return 'no data is provided'
 
@@ -82,6 +112,7 @@ def store(chunks, user_id):
 
 
 def store_fantasy(chunks, teamA, teamB, user_scope):
+    _ensure_rag_clients()
     if not chunks:
         return "no data is provided"
 
@@ -114,6 +145,7 @@ def store_fantasy(chunks, teamA, teamB, user_scope):
 
 
 def get_content(question, collection, filter):
+    _ensure_rag_clients()
     data_in_collection = collection.count()
     if data_in_collection == 0:
         return "Nothing is stored in the CHROMA DB"
@@ -137,13 +169,34 @@ def extract_total_tokens(response_obj):
     usage = getattr(response_obj, 'usage', None)
     if usage is None:
         return 0
-    total = getattr(usage, 'total_tokens', None)
-    if total is None and isinstance(usage, dict):
-        total = usage.get('total_tokens', 0)
+    bill_completion_only = (os.getenv("BILL_COMPLETION_ONLY", "false").strip().lower() == "true")
+    if bill_completion_only:
+        total = getattr(usage, 'completion_tokens', None)
+        if total is None and isinstance(usage, dict):
+            total = usage.get('completion_tokens', 0)
+    else:
+        total = getattr(usage, 'total_tokens', None)
+        if total is None and isinstance(usage, dict):
+            total = usage.get('total_tokens', 0)
     try:
         return int(total or 0)
     except Exception:
         return 0
+
+
+def _get_whatif_model():
+    return (os.getenv("WHATIF_MODEL") or os.getenv("AI_MODEL") or "").strip()
+
+
+def _is_smalltalk(text):
+    value = (text or "").strip().lower()
+    if not value:
+        return False
+    normalized = re.sub(r"[^a-z0-9\s]", "", value)
+    return normalized in {
+        "hi", "hello", "hey", "hii", "yo", "thanks", "thank you",
+        "ok", "okay", "cool", "nice", "good morning", "good evening"
+    }
 
 def get_llm_response(question, user_id, thread_id, system_prompt, content, pipeline, max_output_tokens=400, plan_policy=""):
     conn = sqlite3.connect('database.db')
@@ -200,6 +253,7 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
 
 
 def ask(question, thread, user_id, system_prompt, max_output_tokens=400, plan_policy=""):
+    _ensure_rag_clients()
     user_id_str = str(user_id)
     content = get_content(
         question = question,
@@ -218,6 +272,7 @@ def ask(question, thread, user_id, system_prompt, max_output_tokens=400, plan_po
     )
 
 def ask_fantasy(question, user_id, thread_id, system_propmt, teamA, teamB, user_scope, max_output_tokens=400, plan_policy=""):
+    _ensure_rag_clients()
     team_key = "_vs_".join([teamA.strip(), teamB.strip()])
     user_id_str = str(user_id)
     user_scope_str = str(user_scope)
@@ -242,22 +297,13 @@ MY_TOOLS = [
         "type": "function",
         "function": {
             "name": "extract_weather_date_query",
-            "description": (
-                "Extracts a full date from a user's query related to weather conditions "
-                "and returns it in normalized ISO format (YYYY-MM-DD). "
-                "Example: '20 April 2024' → '2024-04-20'."
-            ),
+            "description": "Use for weather what-if queries with a specific date.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "date": {
                         "type": "string",
-                        "description": (
-                            "Normalized date in ISO format: YYYY-MM-DD. "
-                            "Month must always be numeric (01–12). "
-                            "Day must always be two-digit format (01–31). "
-                            "Example outputs: '2024-04-20', '2008-02-18'."
-                        ),
+                        "description": "Date in YYYY-MM-DD format.",
                         "pattern": "^(2008|2009|201[0-9]|202[0-5])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
                     }
                 },
@@ -270,30 +316,17 @@ MY_TOOLS = [
         "type": "function",
         "function": {
             "name": "whatif_player_was_bowler_or_batter",
-            'description': (
-                "Scenerio where the given player is asked if the player played as the bowler in its"
-                'You only need the player_name, what the will will be'
-                'eg:- "What if RG Sharma Played a opening Bowler." or "Would YS Chahal be a good bowler if he primarily was a batsmen "'
-                'you will get the all the values of tha person regarding that field, if you want the player to be a batsmen and the bowler you will get all the related data.'
-            ),
+            "description": "Use when user asks if a player played as batter or bowler.",
             "parameters": {
-                "type": 'object',
-                'properties': {
-                    'player_name': {
-                        'type': 'string',
-                        'description': (
-                             "Full player name as commonly known. "
-                            "e.g. 'V Kohli', 'MS Dhoni', 'Rohit Sharma or RG Sharma'. "
-                            "Even if they have a full name such as Ravendra Jadeja always convert it into initials with the data as - Virat Kohli must always be V Kohli"
-                        )
+                "type": "object",
+                "properties": {
+                    "player_name": {
+                        "type": "string",
+                        "description": "Player name in dataset form; prefer initials format like V Kohli."
                     },
-                    'player_role':{
-                        'type': 'string',
-                        'description': (
-                            "This is the new role that they are to be assigned to"
-                            "What if V Kohli was a bowler - bowler is the new role that they have been assigned to."
-                            "role must be just 'batter' or 'bowler'."
-                        )
+                    "player_role": {
+                        "type": "string",
+                        "description": "Target role: batter or bowler."
                     }
                 }
             }
@@ -303,49 +336,29 @@ MY_TOOLS = [
         "type": "function",
         "function": {
             "name": "remove_player_from_match",
-            "description": (
-                "Removes a player from a specific IPL match and returns recalculated "
-                "team stats without that player's contributions. "
-                "Use this when user asks 'what if [player] didn't play', "
-                "'what if [player] was absent', 'remove [player] from match', etc. "
-                "You ONLY need player_name + season + any ONE of: match_id (ordinal/numeric) OR team OR opponent. "
-                "Never hallucinate values â€” leave fields empty if not stated by the user."
-            ),
+            "description": "Use when user asks to remove or mark a player absent in a specific match.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "player_name": {
                         "type": "string",
-                        "description": (
-                            "Full player name as commonly known. "
-                            "e.g. 'V Kohli', 'MS Dhoni', 'Rohit Sharma or RG Sharma'. "
-                            "Even if they have a full name such as Ravendra Jadeja always convert it into initials - Virat Kohli must always be V Kohli"
-                        )
+                        "description": "Player name, preferably initials form used in dataset."
                     },
                     "season": {
                         "type": "string",
-                        "description": (
-                            "IPL season year. e.g. '2025', '2024'. "
-                            "If user says 'this year' or 'latest IPL', use '2025'."
-                        )
+                        "description": "IPL season as 4-digit year string."
                     },
                     "match_id": {
                         "type": "string",
-                        "description": (
-                            "The match identifier. Can be any of: "
-                            "(a) Ordinal label â€” '74th', '1st', '33rd' when user says 'Nth match of IPL'. "
-                            "(b) Numeric ID â€” a raw integer match ID. "
-                            "(c) Playoff label â€” 'Final', 'Qualifier 1', 'Eliminator', 'Qualifier 2'. "
-                            "Leave EMPTY if user mentions no specific match."
-                        )
+                        "description": "Match ref: ordinal, numeric id, or playoff label."
                     },
                     "team": {
                         "type": "string",
-                        "description": "The player's team in this match. Leave EMPTY if not stated."
+                        "description": "Team name if provided."
                     },
                     "opponent": {
                         "type": "string",
-                        "description": "The opposing team. Leave EMPTY if not stated."
+                        "description": "Opponent team if provided."
                     }
                 },
                 "required": ["player_name", "season"]
@@ -356,69 +369,37 @@ MY_TOOLS = [
         "type": "function",
         "function": {
             "name": "hypothetical_scenario_whatif",
-            "description": (
-                "Handles hypothetical IPL scenarios: partial_contribution, swap_players, "
-                "change_team, change_position. Use when user says things like "
-                "'what if Kohli batted only 10 balls', 'swap Bumrah and Chahal', "
-                "'what if Kohli played for CSK', 'what if Dhoni opened the batting'."
-            ),
+            "description": "Use for scenario transforms: partial_contribution, swap_players, change_team, change_position.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "scenario_type": {
                         "type": "string",
-                        "description": (
-                            "One of: 'partial_contribution', 'swap_players', "
-                            "'change_team', 'change_position'."
-                        )
+                        "description": "One of: partial_contribution, swap_players, change_team, change_position."
                     },
                     "player_1": {
                         "type": "string",
-                        "description": (
-                            "Full name of the primary player. "
-                            "Expand initials where unambiguous: 'V Kohli' â†’ 'Virat Kohli'."
-                        )
+                        "description": "Primary player name."
                     },
                     "player_2": {
                         "type": "string",
-                        "description": (
-                            "Full name of the second player. "
-                            "Only required for 'swap_players' scenario. Leave EMPTY otherwise."
-                        )
+                        "description": "Second player name for swap scenarios."
                     },
                     "target_team": {
                         "type": "string",
-                        "description": (
-                            "The team the player belongs to OR is moving to, depending on scenario. "
-                            "Use full official team names (same as remove_player_from_match). "
-                            "Leave EMPTY if not stated â€” will be auto-resolved from match mapping."
-                        )
+                        "description": "Target team if provided."
                     },
                     "season": {
                         "type": "string",
-                        "description": (
-                            "IPL season year. e.g. '2025', '2024'. "
-                            "If user says 'this year' or 'latest IPL', use '2025'."
-                        )
+                        "description": "IPL season as 4-digit year string."
                     },
                     "match_context": {
                         "type": "string",
-                        "description": (
-                            "The match identifier â€” same rules as match_id in remove_player_from_match. "
-                            "Can be: ordinal ('74th'), playoff label ('Final', 'Qualifier 1'), "
-                            "numeric ID ('1473511'), or opponent reference ('vs CSK'). "
-                            "Leave EMPTY if user mentions no specific match."
-                        )
+                        "description": "Match context if provided."
                     },
                     "constraint": {
                         "type": "string",
-                        "description": (
-                            "The specific constraint or limit in the hypothetical. "
-                            "Only for 'partial_contribution' scenarios. "
-                            "e.g. 'bowled only 1 over', 'batted only 10 balls', "
-                            "'scored only 5 runs', 'got out for a duck', 'bowled only 2 overs'. "
-                            "Extract this verbatim from the user's question."
-                        )
+                        "description": "Constraint text, mainly for partial_contribution."
                     }
                 },
                 "required": ["scenario_type", "player_1", "season"]
@@ -428,6 +409,7 @@ MY_TOOLS = [
 ]
 
 def whatif_store(chunks, user_scope, thread_id):
+    _ensure_rag_clients()
     if not chunks:
         return "nothing in the what-if"
     batch_size = 500
@@ -615,16 +597,27 @@ def execute_tool(fn_name, fn_args, pipeline, user_scope, thread_id):
 
 
 def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_tokens=400, plan_policy=""):
+    _ensure_rag_clients()
     pipeline = pipeline
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
+    if _is_smalltalk(question):
+        answer = "Hey! Ask me any IPL what-if scenario and I will simulate it for you."
+        cursor.execute(
+            """
+            INSERT INTO chat_data (thread_id, user_id, question, response, pipeline) VALUES (?,?,?,?,?)
+            """, (thread_id, user_id, question, answer, pipeline)
+        )
+        conn.commit()
+        conn.close()
+        return answer, 0
     cursor.execute(
         """
         SELECT question, response
         from chat_data
         where user_id = ? AND thread_id = ? AND pipeline = ?
         ORDER BY created_at DESC
-        LIMIT 4
+        LIMIT 2
         """, (user_id, thread_id, pipeline)
     )
 
@@ -648,7 +641,7 @@ def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_to
     messages.append({"role": "user", "content": question})
 
     response = groq_client.chat.completions.create(
-        model=os.getenv("AI_MODEL"),
+        model=_get_whatif_model(),
         messages=messages,
         tools=MY_TOOLS,
         tool_choice="auto",
@@ -673,14 +666,14 @@ def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_to
         rag_context = chroma_collection_whatif.query(
             query_embeddings=[question_query],
             where={"$and": [{"user_scope": str(user_scope)}, {"thread_id": str(thread_id)}]},
-            n_results=60,
+            n_results=3,
         )
 
         rag_context = rag_context.get('documents', [])
         doc = rag_context[0] if rag_context else []
         rag_context = ""
         for raw in doc:
-            if len(rag_context) + len(raw) > 15000:
+            if len(rag_context) + len(raw) > 4000:
                 break
             rag_context += raw + "\n\n"
         
@@ -692,7 +685,7 @@ def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_to
         })
 
         final_response = groq_client.chat.completions.create(
-            model=os.getenv("AI_MODEL"),
+            model=_get_whatif_model(),
             messages=messages,
             max_tokens=max_output_tokens
         )
@@ -721,6 +714,7 @@ def whatif_llm(question, user_id, thread_id, pipeline, user_scope, max_output_to
 
 
 def team_store(chunks, user_scope, namespace):
+    _ensure_rag_clients()
     chunk_size = 5
     user_scope_str = str(user_scope)
     namespace_str = str(namespace)
@@ -746,6 +740,7 @@ def team_store(chunks, user_scope, namespace):
     return 'data embedded successfully'
 
 def get_answer(question, user_scope, namespace):
+    _ensure_rag_clients()
     question_embedding = embedder.encode(question).tolist()
     result = chroma_collection_teamgraph.query(
         query_embeddings= [question_embedding],
