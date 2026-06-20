@@ -4052,9 +4052,19 @@
 
       let tokenStatusCache = null;
       let recentActivitiesCache = [];
+      function createClientId(prefix) {
+        if (
+          window.crypto &&
+          typeof window.crypto.randomUUID === "function"
+        ) {
+          return `${prefix}-${window.crypto.randomUUID()}`;
+        }
+        const fallback = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        return `${prefix}-${fallback}`;
+      }
       let currentWhatIfThreadId =
         localStorage.getItem("whatif_active_thread") ||
-        `whatif-${crypto.randomUUID()}`;
+        createClientId("whatif");
       const FANTASY_RESPONSE_CACHE_KEY = "fantasy_response_cache_v1";
 
       function loadFantasyResponseCache() {
@@ -4210,7 +4220,7 @@
 
       function getWhatIfThreadId() {
         if (!currentWhatIfThreadId) {
-          currentWhatIfThreadId = `whatif-${crypto.randomUUID()}`;
+          currentWhatIfThreadId = createClientId("whatif");
         }
         localStorage.setItem("whatif_active_thread", currentWhatIfThreadId);
         return currentWhatIfThreadId;
@@ -5193,7 +5203,7 @@
           chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
           try {
-            const fantasyThreadId = `fantasy-${crypto.randomUUID()}`;
+            const fantasyThreadId = createClientId("fantasy");
             upsertFantasyResponseCache(fantasyThreadId, {
               team1: firstteam,
               team2: secondteam,
