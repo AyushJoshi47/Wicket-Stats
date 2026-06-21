@@ -825,7 +825,7 @@
         color: #0066ff;
       }
 
-      .wc-compare button {
+      .wc-compare > .input-row > .save-team {
         position: absolute;
         left: 50%;
         top: 50%;
@@ -847,7 +847,7 @@
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
 
-      .wc-compare button:hover {
+      .wc-compare > .input-row > .save-team:hover {
         transform: translate(-50%, -50%) scale(1.1);
         box-shadow: 0 15px 40px rgba(30, 136, 229, 0.6);
       }
@@ -1582,7 +1582,7 @@
     <script src="{{ url_for('static', filename='auth_shared.js') }}"></script>
     <script>
       lucide.createIcons();
-      const MAX_NAME_SUGGESTIONS = 120;
+      const MAX_NAME_SUGGESTIONS = 8;
       const fullNameList = Array.isArray(window.WS_FULL_NAMES)
         ? window.WS_FULL_NAMES
         : [];
@@ -1630,12 +1630,14 @@
 
         function renderSuggestions() {
           const query = inputEl.value.trim().toLowerCase();
+          if (!query) {
+            closePanel();
+            return;
+          }
           currentItems = (
-            query
-              ? dedupedFullNameList.filter((name) =>
-                  name.toLowerCase().includes(query),
-                )
-              : dedupedFullNameList
+            dedupedFullNameList.filter((name) =>
+              name.toLowerCase().includes(query),
+            )
           ).slice(0, MAX_NAME_SUGGESTIONS);
           if (currentItems.length === 0) {
             closePanel();
