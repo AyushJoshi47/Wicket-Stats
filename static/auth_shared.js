@@ -458,6 +458,15 @@
             resetForgotFlow();
         }
 
+        function openModalWithView(view) {
+            modal.classList.add("active");
+            if ((view || "").toLowerCase() === "signin") {
+                showSignInView();
+                return;
+            }
+            showSignUpView();
+        }
+
         function updateRegisterLink(loggedIn = true) {
             const link = document.getElementById("registerLink") || document.querySelector('a.btn-register[href="#"]');
             if (!link) return;
@@ -508,8 +517,7 @@
             registerLink.addEventListener("click", (e) => {
                 if (registerLink.tagName === "BUTTON" || registerLink.getAttribute("href") === "#") {
                     e.preventDefault();
-                    modal.classList.add("active");
-                    showSignUpView();
+                    openModalWithView("signup");
                 }
             });
         }
@@ -517,10 +525,18 @@
         if (bandRegisterBtn) {
             bandRegisterBtn.addEventListener("click", (e) => {
                 e.preventDefault();
-                modal.classList.add("active");
-                showSignUpView();
+                openModalWithView("signup");
             });
         }
+
+        document.querySelectorAll("[data-auth-open]").forEach((trigger) => {
+            trigger.addEventListener("click", (e) => {
+                const href = (trigger.getAttribute("href") || "").trim();
+                if (href && href !== "#") return;
+                e.preventDefault();
+                openModalWithView(trigger.getAttribute("data-auth-open") || "signup");
+            });
+        });
 
         if (closeBtn) closeBtn.onclick = closeModalAndReset;
 

@@ -1,4 +1,5 @@
 import datetime
+import difflib
 import hashlib
 import hmac
 import json
@@ -874,6 +875,42 @@ df_all = pd.concat(
     [df_hist.reindex(columns=_all_cols), df_2026_combined.reindex(columns=_all_cols)],
     ignore_index=True
 )
+
+
+def _build_player_name_lookup():
+    lookup = {}
+    for col in ['batter', 'bowler', 'non_striker', 'player_out']:
+        if col not in df_all.columns:
+            continue
+        series = df_all[col].dropna().astype(str)
+        for raw in series:
+            name = raw.strip()
+            if not name:
+                continue
+            key = _name_key(name)
+            if not key:
+                continue
+            lookup.setdefault(key, name)
+    return lookup
+
+
+PLAYER_NAME_LOOKUP = _build_player_name_lookup()
+
+
+def resolve_player_name(player_name):
+    raw = str(player_name or '').strip()
+    if not raw:
+        return raw
+    key = _name_key(raw)
+    if key in PLAYER_NAME_LOOKUP:
+        return PLAYER_NAME_LOOKUP[key]
+
+    # Typo-tolerant fallback (e.g., "Viraat Kohli" -> "Virat Kohli")
+    closest = difflib.get_close_matches(key, PLAYER_NAME_LOOKUP.keys(), n=1, cutoff=0.88)
+    if closest:
+        return PLAYER_NAME_LOOKUP[closest[0]]
+    return raw
+
 # Build a typed Polars view only for bowler pipeline fields.
 # This avoids Arrow conversion failures from unrelated mixed-type object columns in df_all.
 _bowler_view_cols = ['match_id', 'season', 'bowler', 'bowling_team', 'bowler_wicket', 'balls_faced', 'runs_bowler', 'over']
@@ -889,17 +926,16 @@ _bowler_view['over'] = pd.to_numeric(_bowler_view['over'], errors='coerce').fill
 dataframe_all = pl.from_pandas(_bowler_view)
 
 # -------- Match history dataset (pandas only) --------
-history_df = df[
-    [
-        'match_id', 'season', 'date', 'innings', 'batting_team', 'bowling_team',
-        'team_runs', 'team_wicket', 'match_won_by', 'win_outcome', 'toss_winner',
-        'toss_decision', 'venue', 'city', 'event_name', 'player_of_match', 'umpire',
-        'stage', 'match_type', 'result_type', 'method', 'batter', 'bowler',
-        'runs_batter', 'runs_total', 'runs_extras', 'runs_bowler', 'valid_ball',
-        'extra_type', 'wicket_kind', 'player_out', 'fielders', 'ball_no', 'over',
-        'bowler_wicket', 'overs'
-    ]
-].copy()
+HISTORY_COLUMNS = [
+    'match_id', 'season', 'date', 'innings', 'batting_team', 'bowling_team',
+    'team_runs', 'team_wicket', 'match_won_by', 'win_outcome', 'toss_winner',
+    'toss_decision', 'venue', 'city', 'event_name', 'player_of_match', 'umpire',
+    'stage', 'match_type', 'result_type', 'method', 'batter', 'bowler',
+    'runs_batter', 'runs_total', 'runs_extras', 'runs_bowler', 'valid_ball',
+    'extra_type', 'wicket_kind', 'player_out', 'fielders', 'ball_no', 'over',
+    'bowler_wicket', 'overs'
+]
+history_df = df_all.reindex(columns=HISTORY_COLUMNS).copy()
 history_df['season'] = history_df['season'].astype(str)
 history_df['date'] = pd.to_datetime(history_df['date'], errors='coerce')
 
@@ -1804,7 +1840,7 @@ def top_scorer():
  
 
 def batter_index(batter, team, role, include_summary=True):
-
+    batter = resolve_player_name(batter)
     batter_norm = (batter or "").strip().lower()
     team_aliases = get_team_aliases(team)
 
@@ -2097,7 +2133,7 @@ def player_index():
     data = request.get_json() 
 
     team = data.get('team')
-    batter = data.get('player')
+    batter = resolve_player_name(data.get('player'))
 
     # TATA IPL 2025 Player Headshot ID Map
     # Base URL: https://documents.iplt20.com{ID}.png
@@ -2107,31 +2143,38 @@ def player_index():
     role = ""
 
     bat_index = batter_index(batter, team, role, include_summary=False)
+    best_season_val = bat_index.get("best_season", {}).get("season")
+    best_avg_val = bat_index.get("best_average", {}).get("avg_runs")
+    peak_consistency_val = bat_index.get("peak_consistency")
+    season_stats_rows = bat_index["player_stats_one"].to_dict(orient='records')
     
+    best_season_payload = str(best_season_val).strip() if pd.notna(best_season_val) else None
+    peak_consistency_payload = str(peak_consistency_val).strip() if pd.notna(peak_consistency_val) else None
+
     return jsonify({
     "player": batter,
     "image_url": image_url,
     "player_plot": bat_index['playerstats'],
     "team": team,
     "total_seasons_played": int(bat_index["total_seasons"]),
-    "best_season_by_runs": int(bat_index["best_season"]["season"]),
-    "highest_average": round(float(bat_index["best_average"]["avg_runs"]), 2),
-    "peak_consistency": int(bat_index["peak_consistency"]),
-    "season_stats": bat_index["player_stats_one"].to_dict(orient='records'),
+    "best_season_by_runs": best_season_payload,
+    "highest_average": round(float(best_avg_val), 2) if pd.notna(best_avg_val) else None,
+    "peak_consistency": peak_consistency_payload,
+    "season_stats": season_stats_rows,
     "total_sixes": bat_index["six"],
     "total_fours": bat_index["fours"],
     "dismissible": bat_index["wicket_kind"],
     "matches_played": bat_index["matches_played"],
     "matches_lost": int(bat_index["matches_lost"]),
     'batting_data': "",
-    'summary_input_rows': bat_index["player_stats_one"].to_dict(orient='records')
+    'summary_input_rows': season_stats_rows
 })
 
 
 @app.route('/player_index/summary_stream', methods=['POST'])
 def player_index_summary_stream():
     payload = request.get_json(silent=True) or {}
-    batter = (payload.get('player') or "").strip()
+    batter = resolve_player_name((payload.get('player') or "").strip())
     team = (payload.get('team') or "").strip()
     rows = payload.get('season_stats') or []
     if not batter:
@@ -3416,8 +3459,7 @@ def get_llm():
                     "next_refill": updated['next_refill']})
 
 def comp_player(player):
-    
-    player1 = player
+    player1 = resolve_player_name(player)
     df_compare_bat = df_all[df_all['batter'] == player1]
 
     player1_matches = df_all[
@@ -3518,8 +3560,8 @@ def comp_player(player):
 @app.route('/comparison', methods=['POST'])
 def player_compare():
     data = request.json
-    p1 = data.get('player1')
-    p2 = data.get('player2')
+    p1 = resolve_player_name(data.get('player1'))
+    p2 = resolve_player_name(data.get('player2'))
     user1 = comp_player(p1)
     user2 = comp_player(p2)
 
@@ -4047,6 +4089,7 @@ def give_query():
     })
 
 def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
+    bowl = resolve_player_name(bowl)
     bowl_norm = (bowl or "").strip().lower()
     team_aliases = get_team_aliases(bowl_team)
 
@@ -4205,7 +4248,7 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
 def bowler_index():
     data = request.get_json()
     bowl_team = data.get('bowl_team')
-    bowl = data.get('bowl_player')
+    bowl = resolve_player_name(data.get('bowl_player'))
     role = ""
     pipeline = ""
     image_url = resolve_player_image_url(bowl)
@@ -4232,7 +4275,7 @@ def bowler_index():
 @app.route('/bowler_index/summary_stream', methods=['POST'])
 def bowler_index_summary_stream():
     payload = request.get_json(silent=True) or {}
-    bowl = (payload.get('bowl_player') or "").strip()
+    bowl = resolve_player_name((payload.get('bowl_player') or "").strip())
     bowl_team = (payload.get('bowl_team') or "").strip()
     rows = payload.get('season_stats') or []
     if not bowl:
