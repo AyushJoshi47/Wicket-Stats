@@ -811,6 +811,7 @@ def _normalize_2026_for_combined(raw_2026_df):
     d['fielders'] = d.get('fielder')
     d['ball_no'] = d.get('over')
     d['over'] = _safe_float_series(d.get('over', 0), 0.0)
+    d['_row_order'] = range(len(d))
 
     over_as_text = d['over'].astype(str)
     ball_part = over_as_text.str.split('.').str[-1]
@@ -821,8 +822,14 @@ def _normalize_2026_for_combined(raw_2026_df):
         'run out', 'retired hurt', 'retired out', 'obstructing the field',
         'hit wicket', 'retired'
     }
-    wk = d['wicket_kind'].astype(str).str.strip().str.lower()
-    d['bowler_wicket'] = ((d['wicket_kind'].notna()) & (~wk.isin(non_bowler_wickets))).astype(int)
+    wk = d['wicket_kind'].fillna('').astype(str).str.strip().str.lower()
+    d['bowler_wicket'] = ((wk != '') & (~wk.isin(non_bowler_wickets))).astype(int)
+    d['_team_wicket_event'] = ((wk != '') & (wk != 'retired hurt')).astype(int)
+
+    # Build cumulative innings scoreboard fields consumed by history APIs.
+    d = d.sort_values(['match_id', 'innings', '_row_order']).copy()
+    d['team_runs'] = d.groupby(['match_id', 'innings'])['runs_total'].cumsum().astype(int)
+    d['team_wicket'] = d.groupby(['match_id', 'innings'])['_team_wicket_event'].cumsum().astype(int)
 
     innings_totals = (
         d.groupby(['match_id', 'batting_team'], as_index=False)['runs_total']
@@ -845,6 +852,7 @@ def _normalize_2026_for_combined(raw_2026_df):
     d['toss_winner'] = None
     d['toss_decision'] = None
     d['innings'] = _safe_int_series(d.get('innings', 0), 0)
+    d = d.drop(columns=['_row_order', '_team_wicket_event'], errors='ignore')
     return d
 
 TEAM_ALIASES = {
@@ -1485,172 +1493,318 @@ def predict():
     team1 = data['team1']
     team2 = data['team2']
 
-    h2h = get_h2h_match(team1, team2)
-
-    # ── Total matches ──────────────────────────────────────────
-    total_matches = h2h['match_id'].nunique()
-
-    # ── Runs ───────────────────────────────────────────────────
-    team1_runs = h2h[h2h['batting_team'] == team1].groupby('match_id')['runs_total'].sum().sum()
-    team2_runs = h2h[h2h['batting_team'] == team2].groupby('match_id')['runs_total'].sum().sum()
-
-    team1_average_runs = team1_runs / total_matches if total_matches else 0
-    team2_average_runs = team2_runs / total_matches if total_matches else 0
-
-    # ── Match wins ─────────────────────────────────────────────
-    match_results = h2h[['match_id', 'match_won_by']].drop_duplicates()
-    team1_wins = match_results[match_results['match_won_by'] == team1].shape[0]
-    team2_wins = match_results[match_results['match_won_by'] == team2].shape[0]
-
-    # ── Toss stats ─────────────────────────────────────────────
-    toss_df = h2h[['match_id', 'match_won_by', 'toss_decision', 'toss_winner']].drop_duplicates()
-
-    def toss_stats(team):
-        toss_wins = toss_df[toss_df['toss_winner'] == team]
-        total = toss_wins.shape[0]
-        match_won = toss_wins[toss_wins['match_won_by'] == team].shape[0]
-        won_field = toss_wins[(toss_wins['match_won_by'] == team) & (toss_wins['toss_decision'] == 'field')].shape[0]
-        won_bat   = toss_wins[(toss_wins['match_won_by'] == team) & (toss_wins['toss_decision'] == 'bat')].shape[0]
-        return total, match_won, won_field, won_bat
-
-    team1_toss_wins, team1toss_matchwon, team1toss_field, team1toss_bat = toss_stats(team1)
-    team2_toss_wins, team2toss_matchwon, team2toss_field, team2toss_bat = toss_stats(team2)
-
-    # ── Venue stats ────────────────────────────────────────────
-    venue_df = h2h[['match_id', 'match_won_by', 'venue']].drop_duplicates()
-
-    def top_venue(team):
-        vc = venue_df[venue_df['match_won_by'] == team]['venue'].value_counts()
-        if vc.empty:
-            return None, 0
-        return vc.index[0], int(vc.iloc[0])
-
-    top_venue_team1, top_venue_count_team1 = top_venue(team1)
-    top_venue_team2, top_venue_count_team2 = top_venue(team2)
-
-    # ── Score extremes ─────────────────────────────────────────
-    match_scores = h2h.groupby(['match_id', 'batting_team'])['runs_total'].sum().reset_index()
-    t1_scores = match_scores[match_scores['batting_team'] == team1]
-    t2_scores = match_scores[match_scores['batting_team'] == team2]
-
-    def score_info(scores_df, label):
-        if scores_df.empty:
-            return 0, None, 0, None
-        hi_id  = scores_df.loc[scores_df['runs_total'].idxmax(), 'match_id']
-        lo_id  = scores_df.loc[scores_df['runs_total'].idxmin(), 'match_id']
-        hi_won = h2h[h2h['match_id'] == hi_id]['match_won_by'].iloc[0]
-        lo_won = h2h[h2h['match_id'] == lo_id]['match_won_by'].iloc[0]
-        return int(scores_df['runs_total'].max()), hi_won, int(scores_df['runs_total'].min()), lo_won
-
-    t1_high, t1_high_winner, t1_low, t1_low_winner = score_info(t1_scores, team1)
-    t2_high, t2_high_winner, t2_low, t2_low_winner = score_info(t2_scores, team2)
-
-    # ── Powerplay (overs 1–6) ──────────────────────────────────
-    pp = h2h[h2h['over'] <= 6]
-    team1_pp_avg = pp[pp['batting_team'] == team1].groupby('match_id')['runs_total'].sum().mean() or 0
-    team2_pp_avg = pp[pp['batting_team'] == team2].groupby('match_id')['runs_total'].sum().mean() or 0
-
-    # ── Death overs (15+) ──────────────────────────────────────
-    death = h2h[h2h['over'] >= 15]
-    team1_death_avg = death[death['batting_team'] == team1].groupby('match_id')['runs_total'].sum().mean() or 0
-    team2_death_avg = death[death['batting_team'] == team2].groupby('match_id')['runs_total'].sum().mean() or 0
-
-    # ══ PREDICTION SCORE ══════════════════════════════════════
-    # Each factor normalised to a ratio between the two teams,
-    # then weighted and summed into a 0–100 score per team.
+    # Blend scores: 35% historical (<=2025) + 65% 2026
+    HIST_WEIGHT = 0.35
+    CURR_WEIGHT = 0.65
+    WEIGHTS = {
+        'wins': 0.40,
+        'avg_runs': 0.20,
+        'powerplay': 0.15,
+        'death': 0.15,
+        'toss_win': 0.10,
+    }
 
     def safe_ratio(a, b):
-        """Returns (ratio_a, ratio_b) that add to 1.0"""
         total = a + b
         if total == 0:
             return 0.5, 0.5
         return a / total, b / total
 
-    r_wins     = safe_ratio(team1_wins,       team2_wins)
-    r_avg      = safe_ratio(team1_average_runs, team2_average_runs)
-    r_pp       = safe_ratio(team1_pp_avg,     team2_pp_avg)
-    r_death    = safe_ratio(team1_death_avg,  team2_death_avg)
-    r_toss_win = safe_ratio(team1toss_matchwon, team2toss_matchwon)
+    def _best_venue(venue_counts):
+        if venue_counts is None or venue_counts.empty:
+            return None, 0
+        return str(venue_counts.idxmax()), int(venue_counts.max())
 
-    WEIGHTS = {
-        'wins':     0.40,   # h2h win rate — strongest indicator
-        'avg_runs': 0.20,   # overall batting strength
-        'powerplay':0.15,   # early momentum
-        'death':    0.15,   # finishing ability
-        'toss_win': 0.10,   # toss advantage
-    }
+    def _pick_extreme(hist_val, hist_winner, cur_val, cur_winner, pick='max'):
+        if pick == 'max':
+            if cur_val > hist_val:
+                return int(cur_val), cur_winner
+            return int(hist_val), hist_winner
+        if hist_val == 0 and cur_val == 0:
+            return 0, None
+        vals = [(hist_val, hist_winner), (cur_val, cur_winner)]
+        vals = [x for x in vals if x[0] > 0]
+        if not vals:
+            return 0, None
+        low = min(vals, key=lambda x: x[0])
+        return int(low[0]), low[1]
 
-    team1_score = round(
-        r_wins[0]     * WEIGHTS['wins']     * 100 +
-        r_avg[0]      * WEIGHTS['avg_runs'] * 100 +
-        r_pp[0]       * WEIGHTS['powerplay']* 100 +
-        r_death[0]    * WEIGHTS['death']    * 100 +
-        r_toss_win[0] * WEIGHTS['toss_win'] * 100,
-        2
+    def _metrics_from_h2h(h2h, t1, t2):
+        if h2h is None or h2h.empty:
+            return {
+                'total_matches': 0,
+                'team1_runs': 0.0,
+                'team2_runs': 0.0,
+                'team1_average_runs': 0.0,
+                'team2_average_runs': 0.0,
+                'team1_wins': 0,
+                'team2_wins': 0,
+                'team1_toss_wins': 0,
+                'team1toss_matchwon': 0,
+                'team1toss_field': 0,
+                'team1toss_bat': 0,
+                'team2_toss_wins': 0,
+                'team2toss_matchwon': 0,
+                'team2toss_field': 0,
+                'team2toss_bat': 0,
+                'team1_venue_counts': pd.Series(dtype='int64'),
+                'team2_venue_counts': pd.Series(dtype='int64'),
+                't1_high': 0,
+                't1_high_winner': None,
+                't1_low': 0,
+                't1_low_winner': None,
+                't2_high': 0,
+                't2_high_winner': None,
+                't2_low': 0,
+                't2_low_winner': None,
+                'team1_pp_avg': 0.0,
+                'team2_pp_avg': 0.0,
+                'team1_death_avg': 0.0,
+                'team2_death_avg': 0.0,
+                'team1_score': 50.0,
+                'team2_score': 50.0,
+            }
+
+        total_matches = int(h2h['match_id'].nunique())
+
+        team1_runs = float(
+            h2h[h2h['batting_team'] == t1].groupby('match_id')['runs_total'].sum().sum()
+        )
+        team2_runs = float(
+            h2h[h2h['batting_team'] == t2].groupby('match_id')['runs_total'].sum().sum()
+        )
+        team1_average_runs = team1_runs / total_matches if total_matches else 0.0
+        team2_average_runs = team2_runs / total_matches if total_matches else 0.0
+
+        match_results = h2h[['match_id', 'match_won_by']].drop_duplicates()
+        team1_wins = int(match_results[match_results['match_won_by'] == t1].shape[0])
+        team2_wins = int(match_results[match_results['match_won_by'] == t2].shape[0])
+
+        toss_df = h2h[['match_id', 'match_won_by', 'toss_decision', 'toss_winner']].drop_duplicates()
+
+        def toss_stats(team):
+            toss_wins = toss_df[toss_df['toss_winner'] == team]
+            total = int(toss_wins.shape[0])
+            match_won = int(toss_wins[toss_wins['match_won_by'] == team].shape[0])
+            won_field = int(
+                toss_wins[
+                    (toss_wins['match_won_by'] == team)
+                    & (toss_wins['toss_decision'] == 'field')
+                ].shape[0]
+            )
+            won_bat = int(
+                toss_wins[
+                    (toss_wins['match_won_by'] == team)
+                    & (toss_wins['toss_decision'] == 'bat')
+                ].shape[0]
+            )
+            return total, match_won, won_field, won_bat
+
+        team1_toss_wins, team1toss_matchwon, team1toss_field, team1toss_bat = toss_stats(t1)
+        team2_toss_wins, team2toss_matchwon, team2toss_field, team2toss_bat = toss_stats(t2)
+
+        venue_df = h2h[['match_id', 'match_won_by', 'venue']].drop_duplicates()
+        team1_venue_counts = venue_df[venue_df['match_won_by'] == t1]['venue'].value_counts()
+        team2_venue_counts = venue_df[venue_df['match_won_by'] == t2]['venue'].value_counts()
+
+        match_scores = h2h.groupby(['match_id', 'batting_team'])['runs_total'].sum().reset_index()
+        t1_scores = match_scores[match_scores['batting_team'] == t1]
+        t2_scores = match_scores[match_scores['batting_team'] == t2]
+
+        def score_info(scores_df):
+            if scores_df.empty:
+                return 0, None, 0, None
+            hi_id = scores_df.loc[scores_df['runs_total'].idxmax(), 'match_id']
+            lo_id = scores_df.loc[scores_df['runs_total'].idxmin(), 'match_id']
+            hi_won = h2h[h2h['match_id'] == hi_id]['match_won_by'].iloc[0]
+            lo_won = h2h[h2h['match_id'] == lo_id]['match_won_by'].iloc[0]
+            return int(scores_df['runs_total'].max()), hi_won, int(scores_df['runs_total'].min()), lo_won
+
+        t1_high, t1_high_winner, t1_low, t1_low_winner = score_info(t1_scores)
+        t2_high, t2_high_winner, t2_low, t2_low_winner = score_info(t2_scores)
+
+        pp = h2h[h2h['over'] <= 6]
+        team1_pp_avg = float(
+            pp[pp['batting_team'] == t1].groupby('match_id')['runs_total'].sum().mean() or 0.0
+        )
+        team2_pp_avg = float(
+            pp[pp['batting_team'] == t2].groupby('match_id')['runs_total'].sum().mean() or 0.0
+        )
+
+        death = h2h[h2h['over'] >= 15]
+        team1_death_avg = float(
+            death[death['batting_team'] == t1].groupby('match_id')['runs_total'].sum().mean() or 0.0
+        )
+        team2_death_avg = float(
+            death[death['batting_team'] == t2].groupby('match_id')['runs_total'].sum().mean() or 0.0
+        )
+
+        r_wins = safe_ratio(team1_wins, team2_wins)
+        r_avg = safe_ratio(team1_average_runs, team2_average_runs)
+        r_pp = safe_ratio(team1_pp_avg, team2_pp_avg)
+        r_death = safe_ratio(team1_death_avg, team2_death_avg)
+        r_toss_win = safe_ratio(team1toss_matchwon, team2toss_matchwon)
+
+        team1_score = round(
+            r_wins[0] * WEIGHTS['wins'] * 100
+            + r_avg[0] * WEIGHTS['avg_runs'] * 100
+            + r_pp[0] * WEIGHTS['powerplay'] * 100
+            + r_death[0] * WEIGHTS['death'] * 100
+            + r_toss_win[0] * WEIGHTS['toss_win'] * 100,
+            2,
+        )
+        team2_score = round(100 - team1_score, 2)
+
+        return {
+            'total_matches': total_matches,
+            'team1_runs': team1_runs,
+            'team2_runs': team2_runs,
+            'team1_average_runs': team1_average_runs,
+            'team2_average_runs': team2_average_runs,
+            'team1_wins': team1_wins,
+            'team2_wins': team2_wins,
+            'team1_toss_wins': team1_toss_wins,
+            'team1toss_matchwon': team1toss_matchwon,
+            'team1toss_field': team1toss_field,
+            'team1toss_bat': team1toss_bat,
+            'team2_toss_wins': team2_toss_wins,
+            'team2toss_matchwon': team2toss_matchwon,
+            'team2toss_field': team2toss_field,
+            'team2toss_bat': team2toss_bat,
+            'team1_venue_counts': team1_venue_counts,
+            'team2_venue_counts': team2_venue_counts,
+            't1_high': t1_high,
+            't1_high_winner': t1_high_winner,
+            't1_low': t1_low,
+            't1_low_winner': t1_low_winner,
+            't2_high': t2_high,
+            't2_high_winner': t2_high_winner,
+            't2_low': t2_low,
+            't2_low_winner': t2_low_winner,
+            'team1_pp_avg': team1_pp_avg,
+            'team2_pp_avg': team2_pp_avg,
+            'team1_death_avg': team1_death_avg,
+            'team2_death_avg': team2_death_avg,
+            'team1_score': team1_score,
+            'team2_score': team2_score,
+        }
+
+    h2h_hist = df_hist[
+        ((df_hist['batting_team'] == team1) & (df_hist['bowling_team'] == team2))
+        | ((df_hist['batting_team'] == team2) & (df_hist['bowling_team'] == team1))
+    ]
+    h2h_2026 = df_2026_combined[
+        ((df_2026_combined['batting_team'] == team1) & (df_2026_combined['bowling_team'] == team2))
+        | ((df_2026_combined['batting_team'] == team2) & (df_2026_combined['bowling_team'] == team1))
+    ]
+
+    hist = _metrics_from_h2h(h2h_hist, team1, team2)
+    curr = _metrics_from_h2h(h2h_2026, team1, team2)
+
+    total_matches = int(hist['total_matches'] + curr['total_matches'])
+    team1_runs = hist['team1_runs'] + curr['team1_runs']
+    team2_runs = hist['team2_runs'] + curr['team2_runs']
+    team1_average_runs = team1_runs / total_matches if total_matches else 0.0
+    team2_average_runs = team2_runs / total_matches if total_matches else 0.0
+
+    team1_wins = int(hist['team1_wins'] + curr['team1_wins'])
+    team2_wins = int(hist['team2_wins'] + curr['team2_wins'])
+
+    team1_toss_wins = int(hist['team1_toss_wins'] + curr['team1_toss_wins'])
+    team1toss_matchwon = int(hist['team1toss_matchwon'] + curr['team1toss_matchwon'])
+    team1toss_field = int(hist['team1toss_field'] + curr['team1toss_field'])
+    team1toss_bat = int(hist['team1toss_bat'] + curr['team1toss_bat'])
+
+    team2_toss_wins = int(hist['team2_toss_wins'] + curr['team2_toss_wins'])
+    team2toss_matchwon = int(hist['team2toss_matchwon'] + curr['team2toss_matchwon'])
+    team2toss_field = int(hist['team2toss_field'] + curr['team2toss_field'])
+    team2toss_bat = int(hist['team2toss_bat'] + curr['team2toss_bat'])
+
+    team1_venue_counts = hist['team1_venue_counts'].add(curr['team1_venue_counts'], fill_value=0)
+    team2_venue_counts = hist['team2_venue_counts'].add(curr['team2_venue_counts'], fill_value=0)
+    top_venue_team1, top_venue_count_team1 = _best_venue(team1_venue_counts)
+    top_venue_team2, top_venue_count_team2 = _best_venue(team2_venue_counts)
+
+    t1_high, t1_high_winner = _pick_extreme(
+        hist['t1_high'], hist['t1_high_winner'], curr['t1_high'], curr['t1_high_winner'], pick='max'
     )
+    t1_low, t1_low_winner = _pick_extreme(
+        hist['t1_low'], hist['t1_low_winner'], curr['t1_low'], curr['t1_low_winner'], pick='min'
+    )
+    t2_high, t2_high_winner = _pick_extreme(
+        hist['t2_high'], hist['t2_high_winner'], curr['t2_high'], curr['t2_high_winner'], pick='max'
+    )
+    t2_low, t2_low_winner = _pick_extreme(
+        hist['t2_low'], hist['t2_low_winner'], curr['t2_low'], curr['t2_low_winner'], pick='min'
+    )
+
+    team1_pp_avg = (
+        (hist['team1_pp_avg'] * hist['total_matches']) + (curr['team1_pp_avg'] * curr['total_matches'])
+    ) / total_matches if total_matches else 0.0
+    team2_pp_avg = (
+        (hist['team2_pp_avg'] * hist['total_matches']) + (curr['team2_pp_avg'] * curr['total_matches'])
+    ) / total_matches if total_matches else 0.0
+    team1_death_avg = (
+        (hist['team1_death_avg'] * hist['total_matches']) + (curr['team1_death_avg'] * curr['total_matches'])
+    ) / total_matches if total_matches else 0.0
+    team2_death_avg = (
+        (hist['team2_death_avg'] * hist['total_matches']) + (curr['team2_death_avg'] * curr['total_matches'])
+    ) / total_matches if total_matches else 0.0
+
+    if hist['total_matches'] == 0 and curr['total_matches'] > 0:
+        eff_hist_w, eff_curr_w = 0.0, 1.0
+    elif curr['total_matches'] == 0 and hist['total_matches'] > 0:
+        eff_hist_w, eff_curr_w = 1.0, 0.0
+    elif curr['total_matches'] == 0 and hist['total_matches'] == 0:
+        eff_hist_w, eff_curr_w = 0.5, 0.5
+    else:
+        eff_hist_w, eff_curr_w = HIST_WEIGHT, CURR_WEIGHT
+
+    team1_score = round((hist['team1_score'] * eff_hist_w) + (curr['team1_score'] * eff_curr_w), 2)
+    team1_score = max(0.0, min(100.0, team1_score))
     team2_score = round(100 - team1_score, 2)
-
     predicted_winner = team1 if team1_score > team2_score else team2
-    confidence = round(abs(team1_score - team2_score), 2)   # margin = confidence gap
+    confidence = round(abs(team1_score - team2_score), 2)
 
-    # ── Return ─────────────────────────────────────────────────
     return jsonify({
-        # Teams
         "team1": team1,
         "team2": team2,
-
-        # Match overview
         "total_matches": int(total_matches),
-
-        # Runs
-        "total_team1_runs":    int(team1_runs),
-        "total_team2_runs":    int(team2_runs),
-        "team1_average_runs":  round(team1_average_runs, 2),
-        "team2_average_runs":  round(team2_average_runs, 2),
-
-        # Match wins
+        "total_team1_runs": int(team1_runs),
+        "total_team2_runs": int(team2_runs),
+        "team1_average_runs": round(team1_average_runs, 2),
+        "team2_average_runs": round(team2_average_runs, 2),
         "team1_wins": team1_wins,
         "team2_wins": team2_wins,
-
-        # Toss stats
-        "team1_toss_wins":       team1_toss_wins,
-        "team1_toss_match_won":  team1toss_matchwon,
-        "team1_toss_won_field":  team1toss_field,
-        "team1_toss_won_bat":    team1toss_bat,
-
-        "team2_toss_wins":       team2_toss_wins,
-        "team2_toss_match_won":  team2toss_matchwon,
-        "team2_toss_won_field":  team2toss_field,
-        "team2_toss_won_bat":    team2toss_bat,
-
-        "team1_top_venue":       top_venue_team1,
-        "team1_top_venue_wins":  top_venue_count_team1,
-        "team2_top_venue":       top_venue_team2,
-        "team2_top_venue_wins":  top_venue_count_team2,
-
-        "team1_highest_score":        t1_high,
+        "team1_toss_wins": team1_toss_wins,
+        "team1_toss_match_won": team1toss_matchwon,
+        "team1_toss_won_field": team1toss_field,
+        "team1_toss_won_bat": team1toss_bat,
+        "team2_toss_wins": team2_toss_wins,
+        "team2_toss_match_won": team2toss_matchwon,
+        "team2_toss_won_field": team2toss_field,
+        "team2_toss_won_bat": team2toss_bat,
+        "team1_top_venue": top_venue_team1,
+        "team1_top_venue_wins": top_venue_count_team1,
+        "team2_top_venue": top_venue_team2,
+        "team2_top_venue_wins": top_venue_count_team2,
+        "team1_highest_score": t1_high,
         "team1_highest_score_won_by": t1_high_winner,
-        "team1_lowest_score":         t1_low,
-        "team1_lowest_score_won_by":  t1_low_winner,
-
-        "team2_highest_score":        t2_high,
+        "team1_lowest_score": t1_low,
+        "team1_lowest_score_won_by": t1_low_winner,
+        "team2_highest_score": t2_high,
         "team2_highest_score_won_by": t2_high_winner,
-        "team2_lowest_score":         t2_low,
-        "team2_lowest_score_won_by":  t2_low_winner,
-
-            "team1_powerplay_avg": round(float(team1_pp_avg), 2),
+        "team2_lowest_score": t2_low,
+        "team2_lowest_score_won_by": t2_low_winner,
+        "team1_powerplay_avg": round(float(team1_pp_avg), 2),
         "team2_powerplay_avg": round(float(team2_pp_avg), 2),
-        "team1_death_avg":     round(float(team1_death_avg), 2),
-        "team2_death_avg":     round(float(team2_death_avg), 2),
-
-        # ★ Prediction
+        "team1_death_avg": round(float(team1_death_avg), 2),
+        "team2_death_avg": round(float(team2_death_avg), 2),
         "team1_prediction_score": team1_score,
         "team2_prediction_score": team2_score,
-        "predicted_winner":       predicted_winner,
-        "confidence_gap":         confidence,
+        "predicted_winner": predicted_winner,
+        "confidence_gap": confidence,
     })
-
-
 @app.route('/top_scorer', methods=['POST'])
 def top_scorer():
     data  = request.json
