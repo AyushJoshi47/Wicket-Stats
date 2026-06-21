@@ -4548,6 +4548,23 @@
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
 
+      function formatRetryAfter(seconds) {
+        const total = Math.max(0, Number(seconds || 0));
+        const hours = Math.floor(total / 3600);
+        const minutes = Math.ceil((total % 3600) / 60);
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${Math.max(1, minutes)}m`;
+      }
+
+      function buildUpgradeErrorMessage(data, fallbackMessage) {
+        const apiMessage = data?.message || fallbackMessage || "Upgrade failed";
+        const retryAfter = Number(data?.retry_after_seconds || 0);
+        if (retryAfter > 0) {
+          return `${apiMessage}\nPlease try again in ${formatRetryAfter(retryAfter)}.`;
+        }
+        return apiMessage;
+      }
+
       async function initiateUpgrade(plan) {
         try {
           openUpgradeLoadingModal();
@@ -4559,7 +4576,12 @@
           });
           const orderData = await orderRes.json();
           if (!orderRes.ok || orderData.status !== "success") {
-            throw new Error(orderData.message || "Failed to create order");
+            throw new Error(
+              buildUpgradeErrorMessage(
+                orderData,
+                "Failed to create order",
+              ),
+            );
           }
 
           const verifyUpgrade = async (paymentPayload = {}) => {
@@ -4581,7 +4603,9 @@
             );
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok || verifyData.status !== "success") {
-              throw new Error(verifyData.message || "Upgrade failed");
+              throw new Error(
+                buildUpgradeErrorMessage(verifyData, "Upgrade failed"),
+              );
             }
             applyTokenStatus(verifyData);
             window.location.reload();

@@ -201,6 +201,7 @@ PLAN_MAX_OUTPUT_TOKENS = {
     'Premium': 1200
 }
 REFILL_INTERVAL_HOURS = 6
+PLAN_CHANGE_COOLDOWN_HOURS = 24
 PLAN_PRICES = {
     'Basic': 0,
     'Plus': 49900,
@@ -329,6 +330,58 @@ def get_plan_refill(plan_value):
 
 def get_plan_output_limit(plan_value):
     return PLAN_MAX_OUTPUT_TOKENS.get(normalize_plan(plan_value), PLAN_MAX_OUTPUT_TOKENS['Basic'])
+
+
+def _parse_db_timestamp(value):
+    raw = str(value or '').strip()
+    if not raw:
+        return None
+
+    # Handles both ISO strings and sqlite CURRENT_TIMESTAMP format.
+    for parser in (
+        lambda s: datetime.datetime.fromisoformat(s.replace('Z', '+00:00')),
+        lambda s: datetime.datetime.strptime(s, "%Y-%m-%d %H:%M:%S"),
+    ):
+        try:
+            parsed = parser(raw)
+            if parsed.tzinfo is not None:
+                return parsed.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            return parsed
+        except Exception:
+            continue
+    return None
+
+
+def _plan_change_cooldown(cursor, user_id):
+    row = cursor.execute(
+        """
+        SELECT new_plan, changed_at
+        FROM plan_change_history
+        WHERE user_id = ?
+        ORDER BY datetime(changed_at) DESC, id DESC
+        LIMIT 1
+        """,
+        (user_id,)
+    ).fetchone()
+    if not row:
+        return 0, None
+
+    changed_at = _parse_db_timestamp(row[1])
+    if not changed_at:
+        return 0, normalize_plan(row[0])
+
+    cooldown = datetime.timedelta(hours=PLAN_CHANGE_COOLDOWN_HOURS)
+    remaining = cooldown - (datetime.datetime.utcnow() - changed_at)
+    remaining_seconds = max(0, int(remaining.total_seconds()))
+    return remaining_seconds, normalize_plan(row[0])
+
+
+def _format_wait_time(seconds):
+    hours = seconds // 3600
+    minutes = (seconds % 3600 + 59) // 60
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    return f"{max(1, minutes)}m"
 
 def plan_response_policy(plan_value):
     plan = normalize_plan(plan_value)
@@ -2920,14 +2973,28 @@ def create_razorpay_order():
         'SELECT plan FROM users WHERE id = ?',
         (user_id,)
     ).fetchone()
-    conn.close()
 
     if not user_row:
+        conn.close()
         return jsonify({'status': 'error', 'message': 'User not found'}), 404
 
     current_plan = normalize_plan(user_row[0])
     if current_plan == new_plan:
+        conn.close()
         return jsonify({'status': 'error', 'message': 'Already on this plan'}), 400
+
+    remaining_seconds, last_plan = _plan_change_cooldown(cursor, user_id)
+    if remaining_seconds > 0:
+        conn.close()
+        return jsonify({
+            'status': 'error',
+            'message': (
+                f"Plan can be changed once every {PLAN_CHANGE_COOLDOWN_HOURS} hours. "
+                f"Last plan: {last_plan}. Try again in {_format_wait_time(remaining_seconds)}."
+            ),
+            'retry_after_seconds': remaining_seconds
+        }), 429
+    conn.close()
 
     amount = PLAN_PRICES.get(new_plan, 0)
     if amount <= 0:
@@ -3015,6 +3082,18 @@ def verify_razorpay_payment():
             'next_refill': status['next_refill']
         })
 
+    remaining_seconds, last_plan = _plan_change_cooldown(cursor, user_id)
+    if remaining_seconds > 0:
+        conn.close()
+        return jsonify({
+            'status': 'error',
+            'message': (
+                f"Plan can be changed once every {PLAN_CHANGE_COOLDOWN_HOURS} hours. "
+                f"Last plan: {last_plan}. Try again in {_format_wait_time(remaining_seconds)}."
+            ),
+            'retry_after_seconds': remaining_seconds
+        }), 429
+
     if PLAN_PRICES.get(new_plan, 0) > 0:
         cursor.execute(
             """
@@ -3030,22 +3109,17 @@ def verify_razorpay_payment():
         (new_plan, user_id)
     )
     quota_cap = get_plan_quota(new_plan)
-    quota_row = cursor.execute(
-        "SELECT tokens_remaining FROM token_quota WHERE user_id = ?",
-        (user_id,)
-    ).fetchone()
-    if quota_row:
-        upgraded_tokens = min(quota_cap, int(quota_row[0]))
-        cursor.execute(
-            """
-            UPDATE token_quota
-            SET plan = ?, tokens_remaining = ?
-            WHERE user_id = ?
-            """,
-            (new_plan, upgraded_tokens, user_id)
-        )
-    else:
-        ensure_token_quota_row(conn, cursor, user_id, new_plan)
+    cursor.execute(
+        """
+        INSERT INTO token_quota (user_id, plan, tokens_remaining, last_refill)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            plan = excluded.plan,
+            tokens_remaining = excluded.tokens_remaining,
+            last_refill = excluded.last_refill
+        """,
+        (user_id, new_plan, quota_cap, datetime.datetime.utcnow().isoformat())
+    )
     cursor.execute(
         'INSERT INTO plan_change_history (user_id, old_plan, new_plan) VALUES (?, ?, ?)',
         (user_id, old_plan or 'Basic', new_plan)

@@ -1,0 +1,157 @@
+WicketStats Deployment Steps (PowerShell to Live Server)
+========================================================
+
+0) From Windows PowerShell: go to key location
+Command:
+cd C:\Users\ayush\Downloads
+What it does:
+Moves to the folder where your SSH key file is stored.
+
+
+1) SSH into Ubuntu EC2
+Command:
+ssh -i "C:\Users\ayush\Downloads\wicketstats-key-pai.pem" ubuntu@16.192.46.18
+What it does:
+Logs into your EC2 instance using your PEM private key.
+
+
+2) Go to project folder on server
+Command:
+cd ~/Wicket-Stats
+What it does:
+Moves into your app repository directory.
+
+
+3) Pull latest code
+Command:
+git pull origin main
+What it does:
+Fetches and updates server code to latest pushed version from GitHub.
+
+
+4) Activate Python virtual environment
+Command:
+source .venv/bin/activate
+What it does:
+Enables project-specific Python packages.
+
+
+5) Install/repair required runtime packages
+Command:
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+pip install gunicorn pyarrow sentence-transformers
+What it does:
+Ensures all required dependencies are installed.
+- gunicorn: production WSGI server
+- pyarrow: parquet reader needed by pandas
+- sentence-transformers: required by rag_engine
+
+
+6) Sanity checks for imports and syntax
+Command:
+python -c "import pyarrow, torch, sentence_transformers; print('deps ok')"
+python -m py_compile a.py
+What it does:
+Confirms critical modules import and your main app file has no syntax errors.
+
+
+7) Start app with PM2 + Gunicorn
+Command:
+pm2 delete all
+pm2 start /home/ubuntu/Wicket-Stats/.venv/bin/gunicorn --name wicketstats --cwd /home/ubuntu/Wicket-Stats --interpreter none -- -w 1 -k gthread --threads 2 --timeout 180 -b 127.0.0.1:8000 a:app
+What it does:
+Runs your Flask app in production mode via Gunicorn, managed by PM2.
+- -w 1 keeps memory usage lower on small instance
+- binds only local port 8000 (Nginx will proxy)
+
+
+8) Persist PM2 on reboot
+Command:
+pm2 save
+pm2 startup
+sudo env PATH=$PATH:/usr/bin /usr/local/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu
+pm2 save
+What it does:
+Makes PM2 auto-start after server reboot and restores your app process list.
+
+
+9) Install Nginx (if not already installed)
+Command:
+sudo apt update
+sudo apt install -y nginx
+What it does:
+Installs reverse proxy server.
+
+
+10) Create Nginx site config
+Command:
+sudo tee /etc/nginx/sites-available/wicketstats >/dev/null <<'EOF'
+server {
+    listen 80 default_server;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+What it does:
+Routes public HTTP traffic on port 80 to Gunicorn at localhost:8000.
+
+
+11) Enable site + restart Nginx
+Command:
+sudo ln -sf /etc/nginx/sites-available/wicketstats /etc/nginx/sites-enabled/wicketstats
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+What it does:
+Enables your site config, removes default site, validates config, and restarts Nginx.
+
+
+12) Verify app health on server
+Command:
+pm2 status
+ss -tlnp | grep 8000
+curl -I http://127.0.0.1:8000
+curl -I http://127.0.0.1
+What it does:
+Checks PM2 process, Gunicorn listener, and HTTP responses from Gunicorn and Nginx.
+
+
+13) External access check from your PC
+PowerShell command:
+Test-NetConnection 16.192.46.18 -Port 80
+What it does:
+Confirms TCP connectivity to your server on HTTP port 80.
+
+
+14) Open in browser
+URL:
+http://16.192.46.18
+What it does:
+Loads live public site.
+
+
+AWS Security Group requirement (must-do)
+---------------------------------------
+Inbound rule must allow:
+- Type: HTTP
+- Port: 80
+- Source: 0.0.0.0/0 (and ::/0 if you use IPv6)
+
+
+Quick restart commands (daily use)
+----------------------------------
+cd ~/Wicket-Stats
+source .venv/bin/activate
+git pull origin main
+pm2 restart wicketstats
+pm2 logs wicketstats --lines 80
+
