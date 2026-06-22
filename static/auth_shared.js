@@ -231,6 +231,25 @@
                                 <label for="password">Password</label>
                                 <input type="password" name="password" id="password" placeholder="********" required>
                             </div>
+                            <div class="form-group" id="planSection" style="position: relative; display:none;">
+                                <label>Your Plan</label>
+                                <div class="custom-select-wrapper" id="customPlanSelect">
+                                    <div class="custom-select-trigger">
+                                        <span class="custom-select-text">SELECT YOUR PLAN</span>
+                                    </div>
+                                    <div class="custom-options">
+                                        <div class="custom-option" data-value="Basic">Basic (INR 0)</div>
+                                        <div class="custom-option" data-value="Plus">Plus (INR 499)</div>
+                                        <div class="custom-option" data-value="Premium">Premium (INR 999)</div>
+                                    </div>
+                                </div>
+                                <select id="plan" name="plan" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;">
+                                    <option value="" selected>SELECT YOUR PLAN</option>
+                                    <option value="Basic">Basic (INR 0)</option>
+                                    <option value="Plus">Plus (INR 499)</option>
+                                    <option value="Premium">Premium (INR 999)</option>
+                                </select>
+                            </div>
                             <div class="form-group" id="otpSection" style="display:none;">
                                 <label for="otp">Enter OTP</label>
                                 <input type="text" name="otp" id="otp" placeholder="6-digit code">
