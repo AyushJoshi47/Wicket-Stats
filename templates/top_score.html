@@ -2177,7 +2177,89 @@
               <button type="submit" class="form-submit">Sign In</button>
             </form>
             <div class="toggle-link">
+              <a id="showForgotPassword">Forgot password?</a>
+            </div>
+            <div class="toggle-link">
               Don't have an account? <a id="showSignUp">Sign Up</a>
+            </div>
+          </div>
+
+          <!-- Forgot Password Form -->
+          <div id="forgotPasswordForm" style="display: none">
+            <h2
+              class="modal-title"
+              style="font-size: 2.2rem; text-align: center; margin-bottom: 24px"
+            >
+              Forgot Password
+            </h2>
+            <form id="forgotPasswordFormEl">
+              <div class="form-group">
+                <label for="fp-email">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  id="fp-email"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div class="form-group" id="fpOtpSection" style="display: none">
+                <label for="fp-otp">Enter OTP</label>
+                <input
+                  type="text"
+                  name="otp"
+                  id="fp-otp"
+                  placeholder="6-digit code"
+                />
+              </div>
+              <div
+                id="fpOtpMeta"
+                style="display: none; margin: 8px 0 14px 0; font-size: 0.9rem"
+              >
+                <span id="fpOtpTimer">OTP expires in 05:00</span>
+                <button
+                  type="button"
+                  id="fpResendOtpBtn"
+                  style="margin-left: 10px"
+                  disabled
+                >
+                  Resend OTP
+                </button>
+              </div>
+              <div id="fpResetSection" style="display: none">
+                <div class="form-group">
+                  <label for="fp-new-pass">New Password</label>
+                  <input
+                    type="password"
+                    id="fp-new-pass"
+                    name="new_password"
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="fp-confirm-pass">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="fp-confirm-pass"
+                    name="confirm_password"
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+              </div>
+              <button type="button" id="fpActionBtn" class="form-submit">
+                Send OTP
+              </button>
+              <button
+                type="submit"
+                id="fpResetBtn"
+                class="form-submit"
+                style="display: none"
+              >
+                Reset Password
+              </button>
+            </form>
+            <div class="toggle-link">
+              Back to <a id="backToSignInFromForgot">Sign In</a>
             </div>
           </div>
 
@@ -2210,27 +2292,15 @@
                   required
                 />
               </div>
-              <div class="form-group" style="position: relative">
+              <div
+                class="form-group"
+                id="planSection"
+                style="position: relative; display: none"
+              >
                 <label>Your Plan</label>
                 <div class="custom-select-wrapper" id="customPlanSelect">
                   <div class="custom-select-trigger">
-                    <span class="custom-select-text"
-                      ><svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        stroke-width="2.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        style="vertical-align: middle; margin-right: 8px"
-                      >
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      </svg>
-                      Basic</span
-                    >
+                    <span class="custom-select-text">SELECT YOUR PLAN</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -2247,7 +2317,7 @@
                     </svg>
                   </div>
                   <div class="custom-options">
-                    <div class="custom-option selected" data-value="Basic">
+                    <div class="custom-option" data-value="Basic">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="15"
@@ -2262,7 +2332,7 @@
                       >
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                       </svg>
-                      Basic
+                      Basic (₹0)
                     </div>
                     <div class="custom-option" data-value="Plus">
                       <svg
@@ -2281,7 +2351,7 @@
                           points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
                         />
                       </svg>
-                      Plus
+                      Plus (₹499)
                     </div>
                     <div class="custom-option" data-value="Premium">
                       <svg
@@ -2299,14 +2369,13 @@
                         <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
                         <path d="M5 20h14" />
                       </svg>
-                      Premium
+                      Premium (₹999)
                     </div>
                   </div>
                 </div>
                 <select
                   id="plan"
                   name="plan"
-                  required
                   style="
                     position: absolute;
                     width: 0;
@@ -2315,9 +2384,10 @@
                     pointer-events: none;
                   "
                 >
-                  <option value="Basic" selected>Basic</option>
-                  <option value="Plus">Plus</option>
-                  <option value="Premium">Premium</option>
+                  <option value="" selected>SELECT YOUR PLAN</option>
+                  <option value="Basic">Basic (₹0)</option>
+                  <option value="Plus">Plus (₹499)</option>
+                  <option value="Premium">Premium (₹999)</option>
                 </select>
               </div>
               <div class="form-group">
@@ -2339,6 +2409,20 @@
                   placeholder="6-digit code"
                 />
               </div>
+              <div
+                id="signupOtpMeta"
+                style="display: none; margin: 8px 0 14px 0; font-size: 0.9rem"
+              >
+                <span id="signupOtpTimer">OTP expires in 05:00</span>
+                <button
+                  type="button"
+                  id="signupResendOtpBtn"
+                  style="margin-left: 10px"
+                  disabled
+                >
+                  Resend OTP
+                </button>
+              </div>
               <button type="button" id="actionBtn" class="form-submit">
                 Generate OTP
               </button>
@@ -2348,7 +2432,7 @@
                 class="form-submit"
                 style="display: none"
               >
-                Create Account
+                Pay & Create Account
               </button>
             </form>
             <div class="toggle-link">

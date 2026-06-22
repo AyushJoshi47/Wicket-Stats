@@ -1,5 +1,6 @@
 import datetime
 import difflib
+import io
 import hashlib
 import hmac
 import json
@@ -11,6 +12,7 @@ import sqlite3
 import urllib.parse
 import urllib.request
 import uuid
+import base64
 from email.mime.text import MIMEText
 from functools import wraps
 import image_mapping
@@ -121,6 +123,14 @@ def json_safe(value):
     except Exception:
         pass
     return value
+
+
+def _figure_to_data_url(fig, *, dpi=300):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=dpi, bbox_inches='tight')
+    buf.seek(0)
+    encoded = base64.b64encode(buf.read()).decode('ascii')
+    return f"data:image/png;base64,{encoded}"
 
 
 def get_user_scope():
@@ -2213,8 +2223,7 @@ def batter_index(batter, team, role, include_summary=True):
     ax1.grid(True, linestyle='--', linewidth=0.8, alpha=0.5, color='black')
 
     ax2.grid(True, linestyle=':', linewidth=0.6, alpha=0.3, color='black')
-    plt_image = 'static/images/batsmen.png'
-    plt.savefig(plt_image, dpi=300)
+    plt_image = _figure_to_data_url(plt.gcf(), dpi=300)
     plt.close()
     batting_data = []
 
@@ -4404,13 +4413,13 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
 
     plt.title(f"{bowl} â€” {'All Seasons' if not bowl_team else bowl_team}", fontsize=16, fontweight='bold')
     plt.tight_layout(pad=1.5)
-    plt.savefig('static/images/filename.png', dpi=300)
+    stats_image_data_url = _figure_to_data_url(fig, dpi=300)
     plt.close(fig)
 
    
     if not include_summary and role != 'bowler':
         return ({
-            'stats_image': '/static/images/filename.png',
+            'stats_image': stats_image_data_url,
             'total':     season_df.where(pd.notna(season_df), None).to_dict(orient='records'),
             'high_wkt':  best_wickets.to_dict(),
             'best_avg':  best_avg.to_dict() if not best_avg.empty else {},
@@ -4462,7 +4471,7 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
         bowler_data = ""
     
     return ({
-        'stats_image': '/static/images/filename.png',
+        'stats_image': stats_image_data_url,
         'total':     season_df.where(pd.notna(season_df), None).to_dict(orient='records'),
         'high_wkt':  best_wickets.to_dict(),
         'best_avg':  best_avg.to_dict() if not best_avg.empty else {},
@@ -4679,8 +4688,7 @@ def teamgraph():
     ax1.grid(True, linestyle='--', color='black', alpha=0.5)
 
     plt.tight_layout(pad=1.5)
-    filename = "static/images/team.png"
-    plt.savefig(filename)
+    team_graph_data_url = _figure_to_data_url(fig, dpi=300)
     plt.close(fig)
 
     payload = {
@@ -4690,7 +4698,7 @@ def teamgraph():
         'Total_null': int(season_table['no_result'].sum()),
         'Total_runs': int(season_table['runs_scored'].sum()),
         'Total_wickets': int(season_table['wickets_taken'].sum()),
-        'Team_graph': "static/images/team.png",
+        'Team_graph': team_graph_data_url,
         'Total_wins': [int(x) for x in titles],
         'Title_count': int(len(titles)),
         'image_summary': "",

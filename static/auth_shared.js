@@ -5,154 +5,255 @@
         style.id = "authSharedModalStyles";
         style.textContent = `
             #signinModal.modal-overlay {
-                position: fixed !important;
-                inset: 0 !important;
-                background: rgba(185, 205, 236, 0.28) !important;
-                backdrop-filter: blur(8px) !important;
-                -webkit-backdrop-filter: blur(8px) !important;
-                z-index: 9999 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                opacity: 0 !important;
-                visibility: hidden !important;
-                transition: opacity .28s ease, visibility .28s ease !important;
+                position: fixed;
+                inset: 0;
+                background: rgba(244, 247, 251, 0.35);
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
             }
             #signinModal.modal-overlay.active {
-                opacity: 1 !important;
-                visibility: visible !important;
+                opacity: 1;
+                visibility: visible;
             }
             #signinModal .modal-wrapper {
-                width: min(92vw, 420px) !important;
-                display: flex !important;
-                justify-content: center !important;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
             }
             #signinModal .modal-box {
-                width: 100% !important;
-                border-radius: 22px !important;
-                padding: 18px 20px 16px !important;
-                background: rgba(255, 255, 255, 0.72) !important;
-                border: 1px solid rgba(255, 255, 255, 0.7) !important;
-                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,.7) !important;
-                backdrop-filter: blur(22px) saturate(1.2) !important;
-                -webkit-backdrop-filter: blur(22px) saturate(1.2) !important;
-                color: #0f172a !important;
-                position: relative !important;
-                max-height: 90vh !important;
-                overflow: auto !important;
+                position: relative;
+                width: 440px;
+                max-width: 92vw;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(245, 245, 245, 0.7));
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 28px;
+                padding: 40px 36px 36px;
+                box-shadow: 0 30px 70px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+                transform: translateY(20px) scale(0.97);
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+                opacity: 0;
+                color: #000000;
+                max-height: 90vh;
+                overflow: auto;
+            }
+            #signinModal.modal-overlay.active .modal-box {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            #signinModal .modal-close,
+            #signinModal .close {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: none;
+                border: none;
+                color: #000000;
+                cursor: pointer;
+                padding: 6px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.2s, color 0.2s;
+            }
+            #signinModal .modal-close:hover,
+            #signinModal .close:hover {
+                background-color: rgba(0, 0, 0, 0.08);
+                color: #000000;
             }
             #signinModal .modal-title {
-                margin: 2px 0 12px !important;
-                text-align: center !important;
-                font-size: 34px !important;
-                line-height: 1.08 !important;
-                font-weight: 700 !important;
-                letter-spacing: -0.5px !important;
-                color: #000 !important;
-            }
-            #signinModal .close {
-                position: absolute !important;
-                right: 12px !important;
-                top: 8px !important;
-                font-size: 30px !important;
-                line-height: 1 !important;
-                cursor: pointer !important;
-                color: #111 !important;
-                opacity: .92 !important;
-                user-select: none !important;
-                font-weight: 300 !important;
+                font-size: 2.2rem;
+                text-align: center;
+                margin-bottom: 24px;
+                line-height: 1.1;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                color: #000000;
             }
             #signinModal .form-group {
-                margin-bottom: 10px !important;
+                margin-bottom: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
             }
             #signinModal .form-group label {
-                display: block !important;
-                margin-bottom: 5px !important;
-                font-size: 12px !important;
-                letter-spacing: .4px !important;
-                text-transform: uppercase !important;
-                font-weight: 800 !important;
-                color: #000 !important;
+                font-size: 12px;
+                font-weight: 700;
+                color: #000000;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                text-align: left;
             }
             #signinModal .form-group input,
-            #signinModal .form-group select,
-            #signinModal .custom-select-trigger {
-                width: 100% !important;
-                min-height: 44px !important;
-                border: 1px solid rgba(167, 190, 222, 0.55) !important;
-                border-radius: 12px !important;
-                padding: 0 12px !important;
-                font-size: 14px !important;
-                background: rgba(255,255,255,0.9) !important;
-                color: #111 !important;
-                box-shadow: inset 0 1px 0 rgba(255,255,255,.8) !important;
+            #signinModal .form-group select {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.65);
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                border-radius: 12px;
+                padding: 12px 16px;
+                font-size: 15px;
+                color: #000000;
+                outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
             }
             #signinModal .form-group input::placeholder {
-                color: rgba(0,0,0,0.42) !important;
+                color: #555555;
+            }
+            #signinModal .form-group input:focus {
+                border-color: #000000;
+                background-color: #ffffff;
+                box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
             }
             #signinModal .custom-select-wrapper {
-                width: 100% !important;
+                position: relative;
+                width: 100%;
+            }
+            #signinModal .custom-select-trigger {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                background: rgba(255, 255, 255, 0.65);
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                border-radius: 12px;
+                padding: 12px 16px;
+                font-size: 15px;
+                color: #000000;
+                font-weight: 550;
+                cursor: pointer;
+                transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            }
+            #signinModal .custom-select-trigger:hover {
+                background: rgba(255, 255, 255, 0.85);
+                border-color: rgba(0, 0, 0, 0.25);
+            }
+            #signinModal .custom-select-wrapper.open .custom-select-trigger {
+                border-color: #000000;
+                background-color: #ffffff;
+                box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+            }
+            #signinModal .custom-select-trigger .chevron-icon {
+                transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                color: #000000;
+            }
+            #signinModal .custom-select-wrapper.open .chevron-icon {
+                transform: rotate(180deg);
             }
             #signinModal .custom-options {
-                border-radius: 10px !important;
-                margin-top: 6px !important;
-                border: 1px solid rgba(167, 190, 222, 0.55) !important;
-                background: rgba(255,255,255,0.95) !important;
+                position: absolute;
+                top: calc(100% + 6px);
+                left: 0;
+                right: 0;
+                background: rgba(255, 255, 255, 0.96);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-8px);
+                transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+                z-index: 10000;
+                overflow: hidden;
+            }
+            #signinModal .custom-select-wrapper.open .custom-options {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
             }
             #signinModal .custom-option {
-                font-size: 14px !important;
-                padding: 8px 10px !important;
+                padding: 12px 16px;
+                font-size: 15px;
+                color: #000000;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.15s, color 0.15s;
+                text-align: left;
+            }
+            #signinModal .custom-option:hover {
+                background-color: rgba(0, 0, 0, 0.06);
+            }
+            #signinModal .custom-option.selected {
+                background-color: rgba(0, 0, 0, 0.1);
+                font-weight: 600;
             }
             #signinModal .form-submit {
-                width: 100% !important;
-                min-height: 46px !important;
-                margin-top: 6px !important;
-                border: none !important;
-                border-radius: 12px !important;
-                background: #000 !important;
-                color: #fff !important;
-                font-size: 16px !important;
-                font-weight: 700 !important;
-                letter-spacing: 0 !important;
-                cursor: pointer !important;
-                text-transform: none !important;
+                width: 100%;
+                padding: 14px;
+                border: none;
+                border-radius: 12px;
+                background: #000000;
+                color: #ffffff;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            }
+            #signinModal .form-submit:hover {
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+                transform: translateY(-1px);
+            }
+            #signinModal .form-submit:active {
+                transform: translateY(0);
+            }
+            #signinModal .form-submit:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+                box-shadow: none;
             }
             #signinModal .toggle-link {
-                margin-top: 10px !important;
-                text-align: center !important;
-                font-size: 13px !important;
-                color: rgba(0, 0, 0, 0.84) !important;
+                margin-top: 20px;
+                font-size: 14px;
+                color: #333333;
+                text-align: center;
             }
             #signinModal .toggle-link a {
-                color: #000 !important;
-                text-decoration: underline !important;
-                font-weight: 700 !important;
-                cursor: pointer !important;
+                color: #000000;
+                text-decoration: none;
+                font-weight: 600;
+                margin-left: 4px;
+                transition: opacity 0.2s;
+                cursor: pointer;
+            }
+            #signinModal .toggle-link a:hover {
+                opacity: 0.7;
             }
             #signinModal #signupOtpMeta,
             #signinModal #fpOtpMeta {
-                font-size: 12px !important;
-                color: #1f2937 !important;
+                margin: 8px 0 14px 0;
+                font-size: 0.9rem;
+                color: #1f2937;
             }
             #signinModal #signupResendOtpBtn,
             #signinModal #fpResendOtpBtn {
-                border: 1px solid rgba(0,0,0,.2) !important;
-                border-radius: 8px !important;
-                padding: 4px 8px !important;
-                background: rgba(255,255,255,.9) !important;
-                font-size: 12px !important;
+                margin-left: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 8px;
+                padding: 4px 8px;
+                background: rgba(255, 255, 255, 0.9);
+                font-size: 12px;
             }
             @media (max-width: 768px) {
-                #signinModal .modal-wrapper { width: min(95vw, 360px) !important; }
-                #signinModal .modal-box { border-radius: 18px !important; padding: 14px 14px 12px !important; }
-                #signinModal .modal-title { font-size: clamp(28px, 8vw, 34px) !important; margin-bottom: 8px !important; }
-                #signinModal .close { font-size: 24px !important; right: 8px !important; top: 4px !important; }
-                #signinModal .form-group label { font-size: 12px !important; margin-bottom: 5px !important; }
-                #signinModal .form-group input, #signinModal .form-group select, #signinModal .custom-select-trigger { min-height: 40px !important; font-size: 13px !important; border-radius: 10px !important; padding: 0 10px !important; }
-                #signinModal .custom-option { font-size: 14px !important; padding: 9px 10px !important; }
-                #signinModal .form-submit { min-height: 42px !important; font-size: 14px !important; border-radius: 10px !important; }
-                #signinModal .toggle-link { font-size: 12px !important; margin-top: 8px !important; }
-                #signinModal #signupOtpMeta, #signinModal #fpOtpMeta { font-size: 12px !important; }
+                #signinModal .modal-box {
+                    width: 100%;
+                    margin: 0 16px;
+                    padding: 28px 22px 24px;
+                    border-radius: 22px;
+                }
+                #signinModal .modal-title {
+                    font-size: 1.8rem;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -236,18 +337,21 @@
                                 <div class="custom-select-wrapper" id="customPlanSelect">
                                     <div class="custom-select-trigger">
                                         <span class="custom-select-text">SELECT YOUR PLAN</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
                                     </div>
                                     <div class="custom-options">
-                                        <div class="custom-option" data-value="Basic">Basic (INR 0)</div>
-                                        <div class="custom-option" data-value="Plus">Plus (INR 499)</div>
-                                        <div class="custom-option" data-value="Premium">Premium (INR 999)</div>
+                                        <div class="custom-option" data-value="Basic">Basic (&#8377;0)</div>
+                                        <div class="custom-option" data-value="Plus">Plus (&#8377;499)</div>
+                                        <div class="custom-option" data-value="Premium">Premium (&#8377;999)</div>
                                     </div>
                                 </div>
                                 <select id="plan" name="plan" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;">
                                     <option value="" selected>SELECT YOUR PLAN</option>
-                                    <option value="Basic">Basic (INR 0)</option>
-                                    <option value="Plus">Plus (INR 499)</option>
-                                    <option value="Premium">Premium (INR 999)</option>
+                                    <option value="Basic">Basic (&#8377;0)</option>
+                                    <option value="Plus">Plus (&#8377;499)</option>
+                                    <option value="Premium">Premium (&#8377;999)</option>
                                 </select>
                             </div>
                             <div class="form-group" id="otpSection" style="display:none;">
@@ -259,7 +363,7 @@
                                 <button type="button" id="signupResendOtpBtn" style="margin-left:10px;" disabled>Resend OTP</button>
                             </div>
                             <button type="button" id="actionBtn" class="form-submit">Generate OTP</button>
-                            <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Create Account</button>
+                            <button type="submit" id="signUpSubmitBtn" class="form-submit" style="display:none;">Pay &amp; Create Account</button>
                         </form>
                         <div class="toggle-link">Already have an account? <a id="showSignIn">Sign In</a></div>
                     </div>
@@ -866,7 +970,10 @@
                     alert("Please select a plan.");
                     return;
                 }
-                if (!payload.plan) payload.plan = "Basic";
+                if (!payload.plan) {
+                    alert("Please select a plan.");
+                    return;
+                }
 
                 if (signUpSubmitBtn) {
                     signUpSubmitBtn.disabled = true;

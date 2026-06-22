@@ -4590,6 +4590,7 @@
       const teamBtn = document.getElementById("teamBtn");
       const teamNameWrap = document.getElementById("team_name_wrap");
       const teamNameInput = document.getElementById("team_name");
+      const teamNameSuggest = document.getElementById("team_name_suggest");
       const aiModeBadge = document.getElementById("ai_mode_badge");
       const playerInput = document.getElementById("player_name");
 
@@ -4606,14 +4607,24 @@
         activeBtn.classList.add("active");
       }
 
+      function clearTeamFilterInput() {
+        teamNameInput.value = "";
+        if (teamNameSuggest) {
+          teamNameSuggest.innerHTML = "";
+          teamNameSuggest.style.display = "none";
+        }
+      }
+
       playerInput.addEventListener("input", () => {
         setActive(careerBtn);
         teamNameWrap.style.display = "none";
+        clearTeamFilterInput();
         updateModeBadge();
       });
       careerBtn.addEventListener("click", () => {
         setActive(careerBtn);
         teamNameWrap.style.display = "none";
+        clearTeamFilterInput();
         updateModeBadge();
       });
       teamBtn.addEventListener("click", () => {
@@ -4658,7 +4669,9 @@
 
       document.getElementById("submitt").addEventListener("click", async () => {
         const player_name = document.getElementById("player_name").value.trim();
-        const team_name = document.getElementById("team_name").value.trim();
+        const raw_team_name = document.getElementById("team_name").value.trim();
+        const isTeamScope = teamBtn.classList.contains("active");
+        const team_name = isTeamScope ? raw_team_name : "";
         const btn = document.getElementById("submitt");
         updateModeBadge();
 
@@ -4725,8 +4738,14 @@
           }
 
           if (data.stats_image) {
+            const plotSrc = String(data.stats_image).startsWith("data:")
+              ? data.stats_image
+              : `${data.stats_image}?v=${new Date().getTime()}`;
             document.getElementById("image_plt").innerHTML =
-              `<img src="${data.stats_image}?v=${new Date().getTime()}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
+              `<img src="${plotSrc}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;" />`;
+          } else {
+            document.getElementById("image_plt").innerHTML =
+              `<div style="width:100%;min-height:220px;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));">No graph available for selected filters</div>`;
           }
 
           const tbody = document.getElementById("all_season_body");
