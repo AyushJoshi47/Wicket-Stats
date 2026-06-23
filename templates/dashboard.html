@@ -977,6 +977,7 @@
         min-height: 0;
       }
       .fantasy-generator-card input,
+      .fantasy-generator-card select,
       .simulator-card input {
         width: 100%;
         padding: 14px 18px;
@@ -990,10 +991,126 @@
         transition: all 0.2s;
       }
       .fantasy-generator-card input:focus,
+      .fantasy-generator-card select:focus,
       .simulator-card input:focus {
         border-color: #0ea5e9;
         background: #ffffff;
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+      .team-native-select {
+        position: absolute !important;
+        width: 0 !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+      .custom-team-select-wrapper {
+        position: relative;
+        width: 100%;
+        margin-bottom: 0;
+      }
+      .fantasy-generator-card:has(.custom-team-select-wrapper.open),
+      .fantasy-generator-card.has-open-dropdown {
+        position: relative;
+        z-index: 1000 !important;
+      }
+      .custom-team-select-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.01);
+      }
+      .custom-team-select-trigger:hover {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .custom-team-select-wrapper.open .custom-team-select-trigger {
+        border-color: #000000;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+      }
+      .custom-team-selected-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .custom-team-logo {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        flex-shrink: 0;
+      }
+      .custom-team-name {
+        font-family: var(--font-display) !important;
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1d20;
+      }
+      .custom-team-select-trigger .chevron-icon {
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        color: #6b7280 !important;
+        flex-shrink: 0;
+      }
+      .custom-team-select-wrapper.open .chevron-icon {
+        transform: rotate(180deg);
+      }
+      .custom-team-options {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition:
+          opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+          visibility 0.25s;
+        z-index: 1000;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .custom-team-select-wrapper.open .custom-team-options {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+      .custom-team-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .custom-team-option:hover {
+        background-color: rgba(0, 102, 255, 0.06);
+      }
+      .custom-team-option.selected {
+        background-color: rgba(0, 102, 255, 0.1);
+      }
+      .custom-team-option.selected .custom-team-name {
+        color: #0066ff;
       }
       .ws-name-suggest-floating {
         position: fixed;
@@ -2860,10 +2977,9 @@
                     "
                     >Team 1 Name</label
                   >
-                  <input
-                    type="text"
+                  <select
                     id="fantasyTeam1"
-                    placeholder="e.g. MI"
+                    class="team-native-select"
                     style="
                       width: 100%;
                       padding: 12px 14px;
@@ -2874,7 +2990,19 @@
                       background: #ffffff;
                       color: #1a1d20;
                     "
-                  />
+                  >
+                    <option value="">Select Team 1</option>
+                    <option value="Chennai Super Kings">Chennai Super Kings (CSK)</option>
+                    <option value="Delhi Capitals">Delhi Capitals (DC)</option>
+                    <option value="Gujarat Titans">Gujarat Titans (GT)</option>
+                    <option value="Kolkata Knight Riders">Kolkata Knight Riders (KKR)</option>
+                    <option value="Lucknow Super Giants">Lucknow Super Giants (LSG)</option>
+                    <option value="Mumbai Indians">Mumbai Indians (MI)</option>
+                    <option value="Kings XI Punjab">Kings XI Punjab (PBKS)</option>
+                    <option value="Rajasthan Royals">Rajasthan Royals (RR)</option>
+                    <option value="Royal Challengers Bangalore">Royal Challengers Bangalore (RCB)</option>
+                    <option value="Sunrisers Hyderabad">Sunrisers Hyderabad (SRH)</option>
+                  </select>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 8px">
@@ -2887,10 +3015,9 @@
                     "
                     >Team 2 Name</label
                   >
-                  <input
-                    type="text"
+                  <select
                     id="fantasyTeam2"
-                    placeholder="e.g. CSK"
+                    class="team-native-select"
                     style="
                       width: 100%;
                       padding: 12px 14px;
@@ -2901,7 +3028,19 @@
                       background: #ffffff;
                       color: #1a1d20;
                     "
-                  />
+                  >
+                    <option value="">Select Team 2</option>
+                    <option value="Chennai Super Kings">Chennai Super Kings (CSK)</option>
+                    <option value="Delhi Capitals">Delhi Capitals (DC)</option>
+                    <option value="Gujarat Titans">Gujarat Titans (GT)</option>
+                    <option value="Kolkata Knight Riders">Kolkata Knight Riders (KKR)</option>
+                    <option value="Lucknow Super Giants">Lucknow Super Giants (LSG)</option>
+                    <option value="Mumbai Indians">Mumbai Indians (MI)</option>
+                    <option value="Kings XI Punjab">Kings XI Punjab (PBKS)</option>
+                    <option value="Rajasthan Royals">Rajasthan Royals (RR)</option>
+                    <option value="Royal Challengers Bangalore">Royal Challengers Bangalore (RCB)</option>
+                    <option value="Sunrisers Hyderabad">Sunrisers Hyderabad (SRH)</option>
+                  </select>
                 </div>
 
                 <button
@@ -4066,6 +4205,153 @@
         localStorage.getItem("whatif_active_thread") ||
         createClientId("whatif");
       const FANTASY_RESPONSE_CACHE_KEY = "fantasy_response_cache_v1";
+      const FANTASY_TEAM_NORMALIZE_MAP = {
+        CSK: "Chennai Super Kings",
+        DC: "Delhi Capitals",
+        GT: "Gujarat Titans",
+        KKR: "Kolkata Knight Riders",
+        LSG: "Lucknow Super Giants",
+        MI: "Mumbai Indians",
+        PBKS: "Kings XI Punjab",
+        RR: "Rajasthan Royals",
+        RCB: "Royal Challengers Bangalore",
+        SRH: "Sunrisers Hyderabad",
+      };
+      const TEAM_LOGO_MAP = {
+        "Chennai Super Kings": "/static/images/csk.png",
+        "Delhi Capitals": "/static/images/dc.png",
+        "Gujarat Titans": "/static/images/gt.png",
+        "Kolkata Knight Riders": "/static/images/kkr.png",
+        "Lucknow Super Giants": "/static/images/lsg.png",
+        "Mumbai Indians": "/static/images/mi.png",
+        "Kings XI Punjab": "/static/images/pbks.png",
+        "Rajasthan Royals": "/static/images/rr.png",
+        "Royal Challengers Bangalore": "/static/images/rcb.png",
+        "Sunrisers Hyderabad": "/static/images/srh.png",
+      };
+
+      function normalizeFantasyTeamName(rawName) {
+        const value = String(rawName || "").trim();
+        if (!value) return "";
+        const mapped = FANTASY_TEAM_NORMALIZE_MAP[value.toUpperCase()];
+        return mapped || value;
+      }
+
+      function setFantasyTeamSelectValue(selectId, value) {
+        const selectEl = document.getElementById(selectId);
+        if (!selectEl) return;
+        selectEl.value = normalizeFantasyTeamName(value);
+        selectEl.dispatchEvent(new Event("change"));
+      }
+
+      function createCustomTeamSelect(selectId, placeholderText) {
+        const originalSelect = document.getElementById(selectId);
+        if (!originalSelect) return;
+        if (document.getElementById(`custom-${selectId}`)) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "custom-team-select-wrapper";
+        wrapper.id = `custom-${selectId}`;
+
+        const trigger = document.createElement("div");
+        trigger.className = "custom-team-select-trigger";
+        const selectedContent = document.createElement("div");
+        selectedContent.className = "custom-team-selected-content";
+        const chevron = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        chevron.setAttribute("width", "14");
+        chevron.setAttribute("height", "14");
+        chevron.setAttribute("viewBox", "0 0 24 24");
+        chevron.setAttribute("fill", "none");
+        chevron.setAttribute("stroke", "currentColor");
+        chevron.setAttribute("stroke-width", "2");
+        chevron.setAttribute("stroke-linecap", "round");
+        chevron.setAttribute("stroke-linejoin", "round");
+        chevron.className = "chevron-icon";
+        chevron.innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
+        trigger.appendChild(selectedContent);
+        trigger.appendChild(chevron);
+
+        const optionsEl = document.createElement("div");
+        optionsEl.className = "custom-team-options";
+
+        const options = Array.from(originalSelect.options).filter((o) => o.value);
+        options.forEach((opt) => {
+          const logoSrc = TEAM_LOGO_MAP[opt.value] || "/static/images/team.png";
+          const item = document.createElement("div");
+          item.className = "custom-team-option";
+          item.dataset.value = opt.value;
+          item.innerHTML = `
+            <img class="custom-team-logo" src="${logoSrc}" alt="${opt.value}" onerror="this.src='/static/images/team.png'">
+            <span class="custom-team-name">${opt.textContent}</span>
+          `;
+          item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            originalSelect.value = opt.value;
+            originalSelect.dispatchEvent(new Event("change"));
+            wrapper
+              .querySelectorAll(".custom-team-option")
+              .forEach((el) => el.classList.remove("selected"));
+            item.classList.add("selected");
+            selectedContent.innerHTML = `
+              <img class="custom-team-logo" src="${logoSrc}" alt="${opt.value}" onerror="this.src='/static/images/team.png'">
+              <span class="custom-team-name">${opt.textContent}</span>
+            `;
+            wrapper.classList.remove("open");
+            wrapper.closest(".fantasy-generator-card")?.classList.remove("has-open-dropdown");
+          });
+          optionsEl.appendChild(item);
+        });
+
+        trigger.addEventListener("click", (e) => {
+          e.stopPropagation();
+          document
+            .querySelectorAll(".custom-team-select-wrapper")
+            .forEach((el) => {
+              if (el !== wrapper) {
+                el.classList.remove("open");
+                el
+                  .closest(".fantasy-generator-card")
+                  ?.classList.remove("has-open-dropdown");
+              }
+            });
+          const isOpen = wrapper.classList.toggle("open");
+          if (isOpen) {
+            wrapper.closest(".fantasy-generator-card")?.classList.add("has-open-dropdown");
+          } else {
+            wrapper.closest(".fantasy-generator-card")?.classList.remove("has-open-dropdown");
+          }
+        });
+
+        originalSelect.addEventListener("change", () => {
+          const selectedOption = Array.from(
+            optionsEl.querySelectorAll(".custom-team-option"),
+          ).find((el) => el.dataset.value === originalSelect.value);
+          optionsEl
+            .querySelectorAll(".custom-team-option")
+            .forEach((el) => el.classList.remove("selected"));
+          if (selectedOption) {
+            selectedOption.classList.add("selected");
+            const logoSrc =
+              TEAM_LOGO_MAP[originalSelect.value] || "/static/images/team.png";
+            selectedContent.innerHTML = `
+              <img class="custom-team-logo" src="${logoSrc}" alt="${originalSelect.value}" onerror="this.src='/static/images/team.png'">
+              <span class="custom-team-name">${originalSelect.value}</span>
+            `;
+          } else {
+            selectedContent.innerHTML = `
+              <span class="custom-team-name">${placeholderText}</span>
+            `;
+          }
+        });
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(optionsEl);
+        originalSelect.parentNode.insertBefore(wrapper, originalSelect.nextSibling);
+        originalSelect.dispatchEvent(new Event("change"));
+      }
 
       function loadFantasyResponseCache() {
         try {
@@ -4143,6 +4429,17 @@
         cards.forEach((card) => wrap.appendChild(card));
         return wrap.outerHTML;
       }
+
+      createCustomTeamSelect("fantasyTeam1", "Select Team 1");
+      createCustomTeamSelect("fantasyTeam2", "Select Team 2");
+      document.addEventListener("click", () => {
+        document
+          .querySelectorAll(".custom-team-select-wrapper")
+          .forEach((el) => {
+            el.classList.remove("open");
+            el.closest(".fantasy-generator-card")?.classList.remove("has-open-dropdown");
+          });
+      });
 
       function normalizePlanLabel(raw) {
         const text = (raw || "").trim().toLowerCase().replace(" plan", "");
@@ -4327,10 +4624,10 @@
         if (item.activity_type === "fantasy_team") {
           showSection("fantasy");
           const payload = item.payload || {};
-          const team1 = payload.team1 || "";
-          const team2 = payload.team2 || "";
-          document.getElementById("fantasyTeam1").value = team1;
-          document.getElementById("fantasyTeam2").value = team2;
+          const team1 = normalizeFantasyTeamName(payload.team1 || "");
+          const team2 = normalizeFantasyTeamName(payload.team2 || "");
+          setFantasyTeamSelectValue("fantasyTeam1", team1);
+          setFantasyTeamSelectValue("fantasyTeam2", team2);
 
           const chatDisplay = openFantasyChatCard();
           if (!chatDisplay) return;
@@ -4375,10 +4672,8 @@
               aiBubble.innerHTML = `<span style='color:#b91c1c;'>${data.message || "Unable to restore this fantasy session."}</span>`;
               return;
             }
-            if (data.team1)
-              document.getElementById("fantasyTeam1").value = data.team1;
-            if (data.team2)
-              document.getElementById("fantasyTeam2").value = data.team2;
+            if (data.team1) setFantasyTeamSelectValue("fantasyTeam1", data.team1);
+            if (data.team2) setFantasyTeamSelectValue("fantasyTeam2", data.team2);
             const restored = data.answer || "No saved response found.";
             aiBubble.innerHTML = renderFantasyResponseLayout(restored);
             upsertFantasyResponseCache(item.thread_id, {
@@ -5180,15 +5475,19 @@
       document
         .querySelector(".fantasyCreateBtn")
         ?.addEventListener("click", async () => {
-          const firstteam = document
-            .getElementById("fantasyTeam1")
-            .value.trim();
-          const secondteam = document
-            .getElementById("fantasyTeam2")
-            .value.trim();
+          const firstteam = normalizeFantasyTeamName(
+            document.getElementById("fantasyTeam1").value,
+          );
+          const secondteam = normalizeFantasyTeamName(
+            document.getElementById("fantasyTeam2").value,
+          );
 
           if (!firstteam || !secondteam) {
             alert("Please enter both teams!");
+            return;
+          }
+          if (firstteam === secondteam) {
+            alert("Please select two different teams.");
             return;
           }
 

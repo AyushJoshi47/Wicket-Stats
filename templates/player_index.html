@@ -4677,7 +4677,8 @@
         teamNameInput.value = "";
         if (teamNameSuggest) {
           teamNameSuggest.innerHTML = "";
-          teamNameSuggest.style.display = "none";
+          teamNameSuggest.classList.remove("open");
+          teamNameSuggest.style.display = "";
         }
       }
 

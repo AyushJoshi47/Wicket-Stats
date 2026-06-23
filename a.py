@@ -1876,7 +1876,7 @@ def top_scorer():
 
 
  
-    # ── 2024/25 data ──────────────────────────────────────────────────────────
+    #  2024/25 data 
     h2h_2025 = get_h2h_matches(team1, team2)   # uses df_recent_2425 (2024+2025 only)
  
     batter_scores =  h2h_2025.groupby(["match_id", "date", "batter", "batting_team"], as_index=False).agg(
@@ -1916,7 +1916,7 @@ def top_scorer():
     )
     prediction_top_scorer = prediction_df[['batter', 'batting_team', 'predicted_score']]
  
-    # ── 2026 data ─────────────────────────────────────────────────────────────
+    #  2026 data 
     h2h_2026 = get_h2h_matches_2026(team1, team2)
  
     batter_scores_2026 = h2h_2026.groupby(["match_no", "date", "striker", "batting_team"], as_index=False).agg(
@@ -1968,12 +1968,12 @@ def top_scorer():
     prediction_df_2026 = prediction_df_2026.rename(columns={'striker': 'batter'})
     prediction_top_scorer_2026 = prediction_df_2026[['batter', 'batting_team', 'predicted_score']]
  
-    # ── FIX: OUTER JOIN so players in only one season are kept ───────────────
+    #  FIX: OUTER JOIN so players in only one season are kept 
     overall_score = pd.merge(
         prediction_top_scorer,
         prediction_top_scorer_2026,
         on=['batter', 'batting_team'],
-        how='outer',                        # ← was inner (default), dropping players
+        how='outer',                        #  was inner (default), dropping players
         suffixes=('_old', '_new')
     )
     # Fill NaN scores (player appeared in only one dataset)
@@ -1996,7 +1996,7 @@ def top_scorer():
         batter      = row['batter']
         bat_team    = row['batting_team']
  
-        # ── Peak score ───────────────────────────────────────────────────────
+        #  Peak score 
         peak_old_row = highest_score[
             (highest_score['batter'] == batter) &
             (highest_score['batting_team'] == bat_team)
@@ -2009,7 +2009,7 @@ def top_scorer():
         peak_new_val = peak_new_row['total_runs'].iloc[0]  if not peak_new_row.empty else 0
         best_peak    = max(peak_old_val, peak_new_val)
  
-        # ── Totals ───────────────────────────────────────────────────────────
+        #  Totals 
         total_old_row = overall_totals[
             (overall_totals['batter'] == batter) &
             (overall_totals['batting_team'] == bat_team)
@@ -3512,7 +3512,7 @@ def llm_chat():
         teamB        = row['teamB']
         winner       = row['winner']
 
-        # â”€â”€ FIX 2: parse every JSON field before use â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # FIX 2: parse every JSON field before use
         def p(field):
             raw = row[field]
             if not raw:
@@ -3534,9 +3534,9 @@ def llm_chat():
         scores          = p('teamScores')
         teamA_players   = p('teamA_players')
         teamB_players   = p('teamB_players')
-        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        #
 
-        # â”€â”€ CHUNK 1: matchup summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 1: matchup summary
         tA_summary = tA_bat_total[0]  if tA_bat_total  else {}
         tB_summary = tB_bat_total[0]  if tB_bat_total  else {}
         tA_bowl_s  = tA_bowl_total[0] if tA_bowl_total else {}
@@ -3556,31 +3556,31 @@ Winner: {winner}
 {teamA} Players: {tA_roster}
 {teamB} Players: {tB_roster}
 
-{teamA} batting Ã¢â‚¬â€ Total Runs: {tA_summary.get('Total Runs', 'N/A')},
+{teamA} batting - Total Runs: {tA_summary.get('Total Runs', 'N/A')},
   Team Avg Score: {tA_summary.get('Team Avg Score', 'N/A')},
   Strike Rate: {tA_summary.get('Team SR', 'N/A')},
   Fours: {tA_summary.get('Total Fours', 'N/A')},
   Sixes: {tA_summary.get('Total Sixes', 'N/A')}
 
-{teamB} batting Ã¢â‚¬â€ Total Runs: {tB_summary.get('Total Runs', 'N/A')},
+{teamB} batting - Total Runs: {tB_summary.get('Total Runs', 'N/A')},
   Team Avg Score: {tB_summary.get('Team Avg Score', 'N/A')},
   Strike Rate: {tB_summary.get('Team SR', 'N/A')},
   Fours: {tB_summary.get('Total Fours', 'N/A')},
   Sixes: {tB_summary.get('Total Sixes', 'N/A')}
 
-{teamA} bowling Ã¢â‚¬â€ Wickets: {tA_bowl_s.get('Total Wickets', 'N/A')},
+{teamA} bowling - Wickets: {tA_bowl_s.get('Total Wickets', 'N/A')},
   Economy: {tA_bowl_s.get('Team Economy', 'N/A')},
   Avg: {tA_bowl_s.get('Team Average', 'N/A')},
   Strike Rate: {tA_bowl_s.get('Team Strike Rate', 'N/A')}
 
-{teamB} bowling Ã¢â‚¬â€ Wickets: {tB_bowl_s.get('Total Wickets', 'N/A')},
+{teamB} bowling - Wickets: {tB_bowl_s.get('Total Wickets', 'N/A')},
   Economy: {tB_bowl_s.get('Team Economy', 'N/A')},
   Avg: {tB_bowl_s.get('Team Average', 'N/A')},
   Strike Rate: {tB_bowl_s.get('Team Strike Rate', 'N/A')}
 """.strip()
         })
 
-        # â”€â”€ CHUNK 2: metrics comparison â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 2: metrics comparison
         metrics_lines = "\n".join(
             f"  {m.get('Metric', '')}: {teamA} = {m.get('Team1', 'N/A')}, "
             f"{teamB} = {m.get('Team2', 'N/A')}"
@@ -3595,7 +3595,7 @@ Winner: {winner}
 """.strip()
         })
 
-        # â”€â”€ CHUNK 3: per-player batting â€” Team A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 3: per-player batting - Team A
         for player in tA_bat_players:
             name = player.get('batter', 'Unknown')
             chunks.append({
@@ -3612,7 +3612,7 @@ Batting stats for {name} (Team: {teamA}, Matchup: {matchup_name}):
 """.strip()
             })
 
-        # â”€â”€ CHUNK 4: per-player batting â€” Team B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 4: per-player batting - Team B
         for player in tB_bat_players:
             name = player.get('batter', 'Unknown')
             chunks.append({
@@ -3629,7 +3629,7 @@ Batting stats for {name} (Team: {teamB}, Matchup: {matchup_name}):
 """.strip()
             })
 
-        # â”€â”€ CHUNK 5: per-player bowling â€” Team A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 5: per-player bowling - Team A
         for player in tA_bowl_players:
             name = player.get('bowler', 'Unknown')
             chunks.append({
@@ -3645,7 +3645,7 @@ Bowling stats for {name} (Team: {teamA}, Matchup: {matchup_name}):
 """.strip()
             })
 
-        # â”€â”€ CHUNK 6: per-player bowling â€” Team B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # CHUNK 6: per-player bowling - Team B
         for player in tB_bowl_players:
             name = player.get('bowler', 'Unknown')
             chunks.append({
@@ -4411,7 +4411,7 @@ def bowler_pipeline(bowl, bowl_team, role, pipeline, include_summary=True):
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
 
-    plt.title(f"{bowl} â€” {'All Seasons' if not bowl_team else bowl_team}", fontsize=16, fontweight='bold')
+    plt.title(f"{bowl} - {'All Seasons' if not bowl_team else bowl_team}", fontsize=16, fontweight='bold')
     plt.tight_layout(pad=1.5)
     stats_image_data_url = _figure_to_data_url(fig, dpi=300)
     plt.close(fig)
@@ -4782,7 +4782,7 @@ def whatif_weather(date):
             conditions = day.get('conditions', 'unknown')
             weather_sentence = (
                 f"Weather for {weather_data['resolvedAddress']} on {day['datetime']} "
-                f"is  {conditions} with a temperature of {day['temp']}°C."
+                f"is  {conditions} with a temperature of {day['temp']}C."
             )
 
     except Exception as e:
@@ -4794,4 +4794,5 @@ def whatif_weather(date):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 

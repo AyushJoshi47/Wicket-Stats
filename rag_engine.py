@@ -212,7 +212,7 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
     )
     row = cursor.fetchall()
 
-    # â”€â”€ Content is injected into the system prompt once, not per user turn â”€â”€
+    # Content is injected into the system prompt once, not per user turn
     system_with_context = (
         f"{system_prompt}\n\n"
         f"=== PLAN RESPONSE POLICY ===\n"
@@ -225,7 +225,7 @@ def get_llm_response(question, user_id, thread_id, system_prompt, content, pipel
 
     message = [{'role': 'system', 'content': system_with_context}]
 
-    # Chat history: plain questions and answers â€” no content repetition
+    # Chat history: plain questions and answers - no content repetition
     for question_text, response_text in reversed(row):
         message.append({'role': 'user',      'content': question_text})
         message.append({'role': 'assistant', 'content': response_text})
@@ -412,6 +412,45 @@ def whatif_store(chunks, user_scope, thread_id):
     _ensure_rag_clients()
     if not chunks:
         return "nothing in the what-if"
+
+    # Accept flexible payloads from tools:
+    # - string -> single chunk
+    # - dict with text/id -> single chunk
+    # - list[str|dict] -> normalized chunk list
+    normalized_chunks = []
+    if isinstance(chunks, str):
+        text = chunks.strip()
+        if text:
+            normalized_chunks.append({"id": f"whatif_{thread_id}_0", "text": text})
+    elif isinstance(chunks, dict):
+        text_val = chunks.get("text") or chunks.get("content") or json.dumps(chunks, ensure_ascii=False)
+        text = str(text_val).strip()
+        if text:
+            normalized_chunks.append({
+                "id": str(chunks.get("id") or f"whatif_{thread_id}_0"),
+                "text": text,
+            })
+    elif isinstance(chunks, list):
+        for idx, item in enumerate(chunks):
+            if isinstance(item, dict):
+                text_val = item.get("text") or item.get("content")
+                if text_val is None:
+                    text_val = json.dumps(item, ensure_ascii=False)
+                text = str(text_val).strip()
+                if not text:
+                    continue
+                normalized_chunks.append({
+                    "id": str(item.get("id") or f"whatif_{thread_id}_{idx}"),
+                    "text": text,
+                })
+            elif isinstance(item, str):
+                text = item.strip()
+                if text:
+                    normalized_chunks.append({"id": f"whatif_{thread_id}_{idx}", "text": text})
+
+    if not normalized_chunks:
+        return "nothing in the what-if"
+
     batch_size = 500
     prepared_batches = []
     user_scope_str = str(user_scope)
@@ -421,8 +460,8 @@ def whatif_store(chunks, user_scope, thread_id):
     if existing['ids']:
         chroma_collection_whatif.delete(ids=existing['ids'])
 
-    for i in range(0, len(chunks), batch_size):
-        batch = chunks[i:i + batch_size]
+    for i in range(0, len(normalized_chunks), batch_size):
+        batch = normalized_chunks[i:i + batch_size]
         ids = [str(c['id']) for c in batch]
         documents = [c['text'] for c in batch]
         embeddings = embedder.encode(documents).tolist()
@@ -818,3 +857,4 @@ def ask_team_stream(question, user_scope, namespace):
     except Exception:
         # Fallback for providers/models that do not support streaming.
         yield get_team(content, question)
+
